@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 // Define available languages
@@ -34,10 +35,12 @@ const translations: Record<Language, Record<string, string>> = {
     'project': 'Project',
     'description': 'Description',
     'select_project': 'Select project...',
+    'select_client': 'Select client',
     'what_did_you_work_on': 'What did you work on?',
     'save_time_entry': 'Save Time Entry',
     'fill_all_required_fields': 'Please fill all required fields',
     'time_entry_saved': 'Time entry saved successfully!',
+    'back_to_clients': 'Back to clients',
     
     // WeeklyView
     'weekly_overview': 'Weekly Overview',
@@ -86,10 +89,12 @@ const translations: Record<Language, Record<string, string>> = {
     'project': 'Projekti',
     'description': 'Kuvaus',
     'select_project': 'Valitse projekti...',
+    'select_client': 'Valitse asiakas',
     'what_did_you_work_on': 'Mitä teit?',
     'save_time_entry': 'Tallenna kirjaus',
     'fill_all_required_fields': 'Täytä kaikki pakolliset kentät',
     'time_entry_saved': 'Aikakirjaus tallennettu onnistuneesti!',
+    'back_to_clients': 'Takaisin asiakkaisiin',
     
     // WeeklyView
     'weekly_overview': 'Viikon yhteenveto',
@@ -138,10 +143,12 @@ const translations: Record<Language, Record<string, string>> = {
     'project': 'Projekt',
     'description': 'Beskrivning',
     'select_project': 'Välj projekt...',
+    'select_client': 'Välj kund',
     'what_did_you_work_on': 'Vad jobbade du med?',
     'save_time_entry': 'Spara tidsinlägg',
     'fill_all_required_fields': 'Fyll i alla obligatoriska fält',
     'time_entry_saved': 'Tidsinlägg sparades framgångsrikt!',
+    'back_to_clients': 'Tillbaka till kunder',
     
     // WeeklyView
     'weekly_overview': 'Veckoöversikt',
