@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import WeeklyView from "./components/WeeklyView";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import { LanguageProvider } from "./context/LanguageContext";
 
 const queryClient = new QueryClient();
@@ -36,10 +38,17 @@ const App = () => (
               element={
                 <Layout>
                   <div className="py-6">
-                    <h1 className="text-3xl font-bold text-reportronic-800">Reports</h1>
-                    <div className="mt-8 text-center text-gray-500">
-                      Report functionality coming soon.
-                    </div>
+                    <Reports />
+                  </div>
+                </Layout>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <Layout>
+                  <div className="py-6">
+                    <Settings />
                   </div>
                 </Layout>
               } 

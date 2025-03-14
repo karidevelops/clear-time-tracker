@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { BarChart, Calendar } from 'lucide-react';
+import { BarChart, Calendar, FileText, Settings as SettingsIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -63,9 +63,22 @@ const Header = () => {
                       {t('reports')}
                     </Link>
                   </MenubarItem>
+                  <MenubarItem>
+                    <Link to="/settings" className="w-full block">
+                      {t('settings')}
+                    </Link>
+                  </MenubarItem>
                 </MenubarContent>
               </MenubarMenu>
             </Menubar>
+            
+            <Link to="/reports" className="text-gray-700 hover:text-reportronic-500 transition-colors px-3 py-2">
+              {t('reports')}
+            </Link>
+            
+            <Link to="/settings" className="text-gray-700 hover:text-reportronic-500 transition-colors px-3 py-2">
+              {t('settings')}
+            </Link>
           </nav>
           
           <div className="flex items-center space-x-4">
