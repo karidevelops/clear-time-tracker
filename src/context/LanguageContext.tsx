@@ -43,6 +43,10 @@ const translations: Record<Language, Record<string, string>> = {
     // WeeklyView
     'weekly_overview': 'Viikon yhteenveto',
     'total': 'Yhteensä',
+    'remaining': 'jäljellä',
+    'over': 'yli',
+    'weekly_total': 'Viikon yhteensä',
+    'weekly_target': 'Viikon tavoite',
     
     // Dashboard
     'today': 'Tänään',
@@ -88,6 +92,10 @@ const translations: Record<Language, Record<string, string>> = {
     // WeeklyView
     'weekly_overview': 'Veckoöversikt',
     'total': 'Totalt',
+    'remaining': 'återstår',
+    'over': 'över',
+    'weekly_total': 'Veckans totalt',
+    'weekly_target': 'Veckans mål',
     
     // Dashboard
     'today': 'Idag',
@@ -133,6 +141,10 @@ const translations: Record<Language, Record<string, string>> = {
     // WeeklyView
     'weekly_overview': 'Weekly Overview',
     'total': 'Total',
+    'remaining': 'remaining',
+    'over': 'over',
+    'weekly_total': 'Weekly Total',
+    'weekly_target': 'Weekly Target',
     
     // Dashboard
     'today': 'Today',

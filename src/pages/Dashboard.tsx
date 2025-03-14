@@ -13,13 +13,18 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import TimeEntry from '@/components/TimeEntry';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
+import { useLanguage } from '@/context/LanguageContext';
+
+// Target working hours
+const DAILY_TARGET_HOURS = 7.5;
+const WEEKLY_TARGET_HOURS = 37.5;
 
 // Mock data for the dashboard
 const hours = {
   today: 6.5,
   week: 32.5,
   month: 142,
-  target: 40
+  target: WEEKLY_TARGET_HOURS
 };
 
 const projects = [
@@ -38,16 +43,18 @@ const recentEntries = [
 ];
 
 const Dashboard = () => {
+  const { t } = useLanguage();
+
   return (
     <Layout>
       <div className="py-6 space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-reportronic-800">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-reportronic-800">{t('dashboard')}</h1>
           <Dialog>
             <DialogTrigger asChild>
               <Button className="bg-reportronic-600 hover:bg-reportronic-700">
                 <Clock className="mr-2 h-4 w-4" />
-                Log Time
+                {t('log_time')}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -59,19 +66,28 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Today</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">{t('today')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-end">
                 <div className="text-2xl font-bold">{hours.today}h</div>
                 <Clock className="h-8 w-8 text-reportronic-500" />
               </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {t('target')}: {DAILY_TARGET_HOURS}h
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                  <div 
+                    className="bg-reportronic-600 h-1.5 rounded-full" 
+                    style={{ width: `${Math.min(100, (hours.today / DAILY_TARGET_HOURS) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">This Week</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">{t('this_week')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-end">
@@ -79,7 +95,7 @@ const Dashboard = () => {
                 <Calendar className="h-8 w-8 text-reportronic-500" />
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                Target: {hours.target}h
+                {t('target')}: {hours.target}h
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                   <div 
                     className="bg-reportronic-600 h-1.5 rounded-full" 
@@ -92,7 +108,7 @@ const Dashboard = () => {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">This Month</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">{t('this_month')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-end">
@@ -104,7 +120,7 @@ const Dashboard = () => {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">Weekly Average</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">{t('weekly_average')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-end">
@@ -124,7 +140,7 @@ const Dashboard = () => {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader className="pb-4 border-b">
-                <CardTitle className="text-lg font-semibold text-reportronic-800">Recent Time Entries</CardTitle>
+                <CardTitle className="text-lg font-semibold text-reportronic-800">{t('recent_time_entries')}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y">
@@ -141,7 +157,7 @@ const Dashboard = () => {
                 <div className="p-4 text-center">
                   <Link to="/weekly">
                     <Button variant="ghost" className="text-reportronic-600 hover:text-reportronic-700">
-                      View All Entries
+                      {t('view_all_entries')}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
@@ -153,7 +169,7 @@ const Dashboard = () => {
           <div>
             <Card>
               <CardHeader className="pb-4 border-b">
-                <CardTitle className="text-lg font-semibold text-reportronic-800">Hours by Project</CardTitle>
+                <CardTitle className="text-lg font-semibold text-reportronic-800">{t('hours_by_project')}</CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                 <div className="space-y-4">

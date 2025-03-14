@@ -8,6 +8,11 @@ import { fi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import TimeEntry from './TimeEntry';
+import { useLanguage } from '@/context/LanguageContext';
+
+// Target working hours
+const DAILY_TARGET_HOURS = 7.5;
+const WEEKLY_TARGET_HOURS = 37.5;
 
 // Mock data for time entries
 // In a real app, this would come from an API
@@ -21,6 +26,7 @@ const mockTimeEntries = [
 ];
 
 const WeeklyView = () => {
+  const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(startOfWeek(currentDate, { weekStartsOn: 1 }));
   const [weekEnd, setWeekEnd] = useState(endOfWeek(currentDate, { weekStartsOn: 1 }));
@@ -59,10 +65,21 @@ const WeeklyView = () => {
     return entries.reduce((total, entry) => total + entry.hours, 0);
   };
 
+  // Calculate remaining hours for a day
+  const getRemainingHoursForDay = (day: Date) => {
+    const totalHours = getTotalHoursForDay(day);
+    return DAILY_TARGET_HOURS - totalHours;
+  };
+
+  // Calculate total hours for the week
+  const getTotalHoursForWeek = () => {
+    return days.reduce((total, day) => total + getTotalHoursForDay(day), 0);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-reportronic-800">Weekly Overview</h2>
+        <h2 className="text-2xl font-bold text-reportronic-800">{t('weekly_overview')}</h2>
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline" 
@@ -111,6 +128,7 @@ const WeeklyView = () => {
             {days.map((day) => {
               const entries = getEntriesForDay(day);
               const totalHours = getTotalHoursForDay(day);
+              const remainingHours = getRemainingHoursForDay(day);
               const dateStr = format(day, 'yyyy-MM-dd');
               
               return (
@@ -133,7 +151,15 @@ const WeeklyView = () => {
                         </div>
                       ))}
                       <div className="text-xs text-gray-500 text-right mt-1">
-                        Total: <span className="font-medium">{totalHours}h</span>
+                        {t('total')}: <span className="font-medium">{totalHours}h</span>
+                        <div className={cn(
+                          "text-xs",
+                          remainingHours > 0 ? "text-orange-500" : "text-green-500"
+                        )}>
+                          {remainingHours > 0 
+                            ? `${remainingHours}h ${t('remaining')}` 
+                            : `${Math.abs(remainingHours)}h ${t('over')}`}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -156,6 +182,21 @@ const WeeklyView = () => {
           </div>
         </CardContent>
       </Card>
+      
+      <div className="flex justify-between items-center p-4 bg-reportronic-50 rounded-lg">
+        <div className="text-sm font-medium">
+          {t('weekly_total')}: <span className="text-reportronic-700">{getTotalHoursForWeek()}h</span>
+        </div>
+        <div className="text-sm font-medium">
+          {t('weekly_target')}: <span className="text-reportronic-700">{WEEKLY_TARGET_HOURS}h</span>
+        </div>
+        <div className="text-sm font-medium">
+          {getTotalHoursForWeek() < WEEKLY_TARGET_HOURS 
+            ? <span className="text-orange-500">{(WEEKLY_TARGET_HOURS - getTotalHoursForWeek()).toFixed(1)}h {t('remaining')}</span>
+            : <span className="text-green-500">{(getTotalHoursForWeek() - WEEKLY_TARGET_HOURS).toFixed(1)}h {t('over')}</span>
+          }
+        </div>
+      </div>
     </div>
   );
 };
