@@ -12,7 +12,11 @@ const Header = () => {
             <img 
               src="https://www.reportronic.fi/wp-content/uploads/2022/09/reportronic-logo-1.svg" 
               alt="Reportronic Logo" 
-              className="h-8" 
+              className="h-8 w-auto" 
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "https://www.reportronic.fi/wp-content/uploads/2023/07/cropped-reportronic-logo.png";
+              }}
             />
             <span className="text-xl font-bold text-reportronic-600 hidden md:inline-flex">TimeTracker</span>
           </Link>
