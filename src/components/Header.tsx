@@ -10,13 +10,9 @@ const Header = () => {
         <div className="flex justify-between items-center py-4">
           <Link to="/" className="flex items-center space-x-2">
             <img 
-              src="https://www.reportronic.fi/wp-content/uploads/2022/09/reportronic-logo-1.svg" 
+              src="/lovable-uploads/e97d7c3c-c424-4921-a787-aa1f71cd6d8f.png" 
               alt="Reportronic Logo" 
               className="h-8 w-auto" 
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "https://www.reportronic.fi/wp-content/uploads/2023/07/cropped-reportronic-logo.png";
-              }}
             />
             <span className="text-xl font-bold text-reportronic-600 hidden md:inline-flex">TimeTracker</span>
           </Link>
