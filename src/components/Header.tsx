@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { Clock, BarChart, Calendar } from 'lucide-react';
+import { BarChart, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Header = () => {
@@ -9,18 +9,22 @@ const Header = () => {
       <div className="time-tracker-container">
         <div className="flex justify-between items-center py-4">
           <Link to="/" className="flex items-center space-x-2">
-            <Clock className="h-8 w-8 text-reportronic-600" />
-            <span className="text-xl font-bold text-reportronic-800">TimeTracker</span>
+            <img 
+              src="https://www.reportronic.fi/wp-content/uploads/2022/09/reportronic-logo-1.svg" 
+              alt="Reportronic Logo" 
+              className="h-8" 
+            />
+            <span className="text-xl font-bold text-reportronic-600 hidden md:inline-flex">TimeTracker</span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-gray-700 hover:text-reportronic-600 transition-colors">
+            <Link to="/" className="text-gray-700 hover:text-reportronic-500 transition-colors">
               Dashboard
             </Link>
-            <Link to="/weekly" className="text-gray-700 hover:text-reportronic-600 transition-colors">
+            <Link to="/weekly" className="text-gray-700 hover:text-reportronic-500 transition-colors">
               Weekly View
             </Link>
-            <Link to="/reports" className="text-gray-700 hover:text-reportronic-600 transition-colors">
+            <Link to="/reports" className="text-gray-700 hover:text-reportronic-500 transition-colors">
               Reports
             </Link>
           </nav>
@@ -30,8 +34,8 @@ const Header = () => {
               <Calendar className="h-4 w-4" />
               <span>Calendar</span>
             </Button>
-            <Button size="sm" className="bg-reportronic-600 hover:bg-reportronic-700">
-              <Clock className="h-4 w-4 mr-2" />
+            <Button size="sm" className="bg-reportronic-500 hover:bg-reportronic-600 text-white">
+              <Calendar className="h-4 w-4 mr-2" />
               <span>Log Time</span>
             </Button>
           </div>

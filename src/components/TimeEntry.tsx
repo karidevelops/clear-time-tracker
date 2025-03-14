@@ -44,7 +44,7 @@ const TimeEntry = () => {
     <Card>
       <CardHeader className="bg-reportronic-50 border-b">
         <CardTitle className="flex items-center text-reportronic-800">
-          <Clock className="mr-2 h-5 w-5 text-reportronic-600" />
+          <Clock className="mr-2 h-5 w-5 text-reportronic-500" />
           Log Time
         </CardTitle>
       </CardHeader>
@@ -99,7 +99,7 @@ const TimeEntry = () => {
         
           <Button 
             type="submit" 
-            className="w-full md:w-auto bg-reportronic-600 hover:bg-reportronic-700"
+            className="w-full md:w-auto bg-reportronic-500 hover:bg-reportronic-600 text-white"
           >
             <Save className="mr-2 h-4 w-4" />
             Save Time Entry

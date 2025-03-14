@@ -54,17 +54,17 @@ export default {
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				reportronic: {
-					50: '#f0f7ff',
-					100: '#e0efff',
-					200: '#bae0ff',
-					300: '#7bc7ff',
-					400: '#36a9ff',
-					500: '#0d8df3',
-					600: '#006fd5',
-					700: '#0058ae',
-					800: '#00498f',
-					900: '#003d75',
-					950: '#00264d',
+					50: '#fff5eb',
+					100: '#ffebd7',
+					200: '#ffd7af',
+					300: '#ffbd80',
+					400: '#fe9a47',
+					500: '#fd7e1e', // Reportronic orange
+					600: '#f16200',
+					700: '#cc4f00',
+					800: '#a84307',
+					900: '#893b0c',
+					950: '#4d1e02',
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',

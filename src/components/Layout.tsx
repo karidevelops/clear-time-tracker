@@ -15,7 +15,7 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </div>
       </main>
-      <footer className="bg-reportronic-900 text-white py-6">
+      <footer className="bg-reportronic-500 text-white py-6">
         <div className="time-tracker-container">
           <div className="text-sm text-center">
             © {new Date().getFullYear()} Time Tracker - Inspired by Reportronic
