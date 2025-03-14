@@ -1,42 +1,54 @@
 
-import React from 'react';
-import { useLanguage, Language } from '@/context/LanguageContext';
+import { useState } from 'react';
+import { useLanguage } from '@/context/LanguageContext';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { fi, sv, gb } from 'country-flag-icons/react/3x2';
+import { FI, SV, GB } from 'country-flag-icons/react/3x2';
 
 const LanguageSwitcher = () => {
   const { language, setLanguage } = useLanguage();
+  const [open, setOpen] = useState(false);
+
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang);
+    setOpen(false);
+  };
+
+  const getFlagIcon = () => {
+    switch (language) {
+      case 'fi':
+        return <FI className="h-5 w-5 mr-2" />;
+      case 'sv':
+        return <SV className="h-5 w-5 mr-2" />;
+      case 'en':
+        return <GB className="h-5 w-5 mr-2" />;
+      default:
+        return <GB className="h-5 w-5 mr-2" />;
+    }
+  };
 
   return (
-    <div className="flex items-center space-x-2">
-      <Button
-        variant={language === 'fi' ? 'default' : 'ghost'}
-        size="sm"
-        className={`p-1 h-8 w-8 ${language === 'fi' ? 'bg-reportronic-500' : ''}`}
-        onClick={() => setLanguage('fi')}
-        aria-label="Switch to Finnish"
-      >
-        <span className="text-xs">FI</span>
-      </Button>
-      <Button
-        variant={language === 'sv' ? 'default' : 'ghost'}
-        size="sm"
-        className={`p-1 h-8 w-8 ${language === 'sv' ? 'bg-reportronic-500' : ''}`}
-        onClick={() => setLanguage('sv')}
-        aria-label="Switch to Swedish"
-      >
-        <span className="text-xs">SV</span>
-      </Button>
-      <Button
-        variant={language === 'en' ? 'default' : 'ghost'}
-        size="sm"
-        className={`p-1 h-8 w-8 ${language === 'en' ? 'bg-reportronic-500' : ''}`}
-        onClick={() => setLanguage('en')}
-        aria-label="Switch to English"
-      >
-        <span className="text-xs">EN</span>
-      </Button>
-    </div>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 px-0">
+          {getFlagIcon()}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleLanguageChange('fi')}>
+          <FI className="h-4 w-4 mr-2" />
+          Suomi
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleLanguageChange('sv')}>
+          <SV className="h-4 w-4 mr-2" />
+          Svenska
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleLanguageChange('en')}>
+          <GB className="h-4 w-4 mr-2" />
+          English
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
