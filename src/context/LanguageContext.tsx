@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 // Define available languages
@@ -20,6 +19,58 @@ const LanguageContext = createContext<LanguageContextType>({
 
 // Translations for all supported languages
 const translations: Record<Language, Record<string, string>> = {
+  en: {
+    // Header
+    'dashboard': 'Dashboard',
+    'weekly_view': 'Weekly View',
+    'reports': 'Reports',
+    'calendar': 'Calendar',
+    'log_time': 'Log Time',
+    'timetracker': 'TimeTracker',
+    
+    // TimeEntry
+    'date': 'Date',
+    'hours': 'Hours',
+    'project': 'Project',
+    'description': 'Description',
+    'select_project': 'Select project...',
+    'what_did_you_work_on': 'What did you work on?',
+    'save_time_entry': 'Save Time Entry',
+    'fill_all_required_fields': 'Please fill all required fields',
+    'time_entry_saved': 'Time entry saved successfully!',
+    
+    // WeeklyView
+    'weekly_overview': 'Weekly Overview',
+    'total': 'Total',
+    'remaining': 'remaining',
+    'over': 'over',
+    'weekly_total': 'Weekly Total',
+    'weekly_target': 'Weekly Target',
+    
+    // Dashboard
+    'today': 'Today',
+    'this_week': 'This Week',
+    'this_month': 'This Month',
+    'weekly_average': 'Weekly Average',
+    'target': 'Target',
+    'recent_time_entries': 'Recent Time Entries',
+    'view_all_entries': 'View All Entries',
+    'hours_by_project': 'Hours by Project',
+    
+    // Footer
+    'inspired_by': 'Inspired by Reportronic',
+    
+    // NotFound
+    'not_found': '404',
+    'page_not_found': 'Oops! Page not found',
+    'return_to_home': 'Return to Home',
+    
+    // Reports
+    'report_functionality': 'Report functionality coming soon.',
+    
+    // Clients & Projects
+    'clients_and_projects': "Clients & Projects"
+  },
   fi: {
     // Header
     'dashboard': 'Kojelauta',
@@ -67,7 +118,10 @@ const translations: Record<Language, Record<string, string>> = {
     'return_to_home': 'Palaa etusivulle',
     
     // Reports
-    'report_functionality': 'Raportointitoiminnallisuus tulossa pian.'
+    'report_functionality': 'Raportointitoiminnallisuus tulossa pian.',
+    
+    // Clients & Projects
+    'clients_and_projects': "Asiakkaat & Projektit"
   },
   sv: {
     // Header
@@ -116,56 +170,10 @@ const translations: Record<Language, Record<string, string>> = {
     'return_to_home': 'Återgå till startsidan',
     
     // Reports
-    'report_functionality': 'Rapportfunktionen kommer snart.'
-  },
-  en: {
-    // Header
-    'dashboard': 'Dashboard',
-    'weekly_view': 'Weekly View',
-    'reports': 'Reports',
-    'calendar': 'Calendar',
-    'log_time': 'Log Time',
-    'timetracker': 'TimeTracker',
+    'report_functionality': 'Rapportfunktionen kommer snart.',
     
-    // TimeEntry
-    'date': 'Date',
-    'hours': 'Hours',
-    'project': 'Project',
-    'description': 'Description',
-    'select_project': 'Select project...',
-    'what_did_you_work_on': 'What did you work on?',
-    'save_time_entry': 'Save Time Entry',
-    'fill_all_required_fields': 'Please fill all required fields',
-    'time_entry_saved': 'Time entry saved successfully!',
-    
-    // WeeklyView
-    'weekly_overview': 'Weekly Overview',
-    'total': 'Total',
-    'remaining': 'remaining',
-    'over': 'over',
-    'weekly_total': 'Weekly Total',
-    'weekly_target': 'Weekly Target',
-    
-    // Dashboard
-    'today': 'Today',
-    'this_week': 'This Week',
-    'this_month': 'This Month',
-    'weekly_average': 'Weekly Average',
-    'target': 'Target',
-    'recent_time_entries': 'Recent Time Entries',
-    'view_all_entries': 'View All Entries',
-    'hours_by_project': 'Hours by Project',
-    
-    // Footer
-    'inspired_by': 'Inspired by Reportronic',
-    
-    // NotFound
-    'not_found': '404',
-    'page_not_found': 'Oops! Page not found',
-    'return_to_home': 'Return to Home',
-    
-    // Reports
-    'report_functionality': 'Report functionality coming soon.'
+    // Clients & Projects
+    'clients_and_projects': "Kunder & Projekt"
   }
 };
 
