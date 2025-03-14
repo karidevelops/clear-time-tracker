@@ -1,15 +1,6 @@
 
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLanguage } from '@/context/LanguageContext';
 
 // Mock project data that would come from an API in a real application
 const projects = [
@@ -27,13 +18,15 @@ interface ProjectSelectProps {
 }
 
 const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
+  const { t } = useLanguage();
+  
   return (
     <Select
       value={value}
       onValueChange={onChange}
     >
       <SelectTrigger className="w-full border-gray-300 bg-white text-left font-normal">
-        <SelectValue placeholder="Select project..." />
+        <SelectValue placeholder={t('select_project')} />
       </SelectTrigger>
       <SelectContent>
         {projects.map((project) => (

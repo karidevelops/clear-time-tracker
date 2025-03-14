@@ -2,8 +2,12 @@
 import { Link } from 'react-router-dom';
 import { BarChart, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/context/LanguageContext';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const Header = () => {
+  const { t } = useLanguage();
+  
   return (
     <header className="time-tracker-header sticky top-0 z-10 border-b border-gray-200">
       <div className="time-tracker-container">
@@ -14,29 +18,30 @@ const Header = () => {
               alt="Reportronic Logo" 
               className="h-8 w-auto" 
             />
-            <span className="text-xl font-bold text-reportronic-600 hidden md:inline-flex">TimeTracker</span>
+            <span className="text-xl font-bold text-reportronic-600 hidden md:inline-flex">{t('timetracker')}</span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-6">
             <Link to="/" className="text-gray-700 hover:text-reportronic-500 transition-colors">
-              Dashboard
+              {t('dashboard')}
             </Link>
             <Link to="/weekly" className="text-gray-700 hover:text-reportronic-500 transition-colors">
-              Weekly View
+              {t('weekly_view')}
             </Link>
             <Link to="/reports" className="text-gray-700 hover:text-reportronic-500 transition-colors">
-              Reports
+              {t('reports')}
             </Link>
           </nav>
           
           <div className="flex items-center space-x-4">
+            <LanguageSwitcher />
             <Button size="sm" variant="outline" className="hidden md:flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              <span>Calendar</span>
+              <span>{t('calendar')}</span>
             </Button>
             <Button size="sm" className="bg-reportronic-500 hover:bg-reportronic-600 text-white">
               <Calendar className="h-4 w-4 mr-2" />
-              <span>Log Time</span>
+              <span>{t('log_time')}</span>
             </Button>
           </div>
         </div>
