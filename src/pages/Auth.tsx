@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,10 +53,7 @@ const Auth = () => {
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
+        password
       });
 
       if (error) {
@@ -90,16 +86,14 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const redirectUrl = window.location.origin;
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: email.split('@')[0],
-          },
-          emailRedirectTo: redirectUrl
+            redirect_url: window.location.origin
+          }
         }
       });
 
