@@ -47,6 +47,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       if (error) {
         console.error('Error fetching user role:', error);
+        // Even if there's an error, we should continue with the app
+        setIsLoading(false);
         return;
       }
       
@@ -55,34 +57,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsAdmin(role === 'admin');
     } catch (error) {
       console.error('Exception fetching user role:', error);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     // Set up auth redirect URL to current window location (instead of localhost)
     const setAuthRedirectUrl = async () => {
-      const currentUrl = window.location.origin;
-      // Clear previous session
-      const { error } = await supabase.auth.setSession({
-        access_token: "",
-        refresh_token: "",
-      });
-      
-      if (error) {
-        console.error('Error setting session:', error);
-      }
-      
-      // Set the site URL for redirects
-      const { data: settingsData, error: settingsError } = await supabase.auth.updateUser({
-        data: { redirect_url: currentUrl }
-      });
-      
-      if (settingsError) {
-        console.error('Error setting redirect URL:', settingsError);
+      try {
+        const currentUrl = window.location.origin;
+        // Clear previous session only if not authenticated
+        if (!session) {
+          await supabase.auth.setSession({
+            access_token: "",
+            refresh_token: "",
+          });
+        }
+        
+        // Set the site URL for redirects
+        if (!session) {
+          const { data: settingsData, error: settingsError } = await supabase.auth.updateUser({
+            data: { redirect_url: currentUrl }
+          });
+          
+          if (settingsError) {
+            console.error('Error setting redirect URL:', settingsError);
+          }
+        }
+      } catch (error) {
+        console.error('Error in setAuthRedirectUrl:', error);
       }
     };
-    
-    setAuthRedirectUrl();
     
     // Get initial session
     const getInitialSession = async () => {
@@ -91,6 +96,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (error) {
           console.error('Error getting session:', error);
+          setIsLoading(false);
           return;
         }
         
@@ -101,13 +107,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (data.session?.user) {
           await fetchUserRole(data.session.user.id);
         }
+        
+        // Ensure we set loading to false no matter what
+        setIsLoading(false);
       } catch (error) {
         console.error('Exception getting session:', error);
-      } finally {
         setIsLoading(false);
       }
     };
 
+    // Execute these functions
+    setAuthRedirectUrl();
     getInitialSession();
 
     // Listen for auth changes
