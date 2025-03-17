@@ -25,9 +25,9 @@ interface Translations {
   demo_use_code: string;
   verify: string;
   verifying: string;
-  2fa_verified: string;
+  "2fa_verified": string;
   invalid_2fa_code: string;
-  2fa_error: string;
+  "2fa_error": string;
   login_required: string;
 }
 
@@ -312,28 +312,28 @@ const translations: Record<string, Translations> = {
     clients_and_projects: 'Kunder & Projekt',
     calendar: 'Kalender',
     inspired_by: 'Reportronic',
-    login: "Kirjaudu",
-    register: "Rekisteröidy",
-    email: "Sähköposti",
-    password: "Salasana",
-    logging_in: "Kirjaudutaan...",
-    registering: "Rekisteröidään...",
-    login_successful: "Kirjautuminen onnistui",
-    registration_successful: "Rekisteröityminen onnistui",
-    login_error: "Kirjautuminen epäonnistui",
-    registration_error: "Rekisteröityminen epäonnistui",
-    enter_credentials: "Syötä kirjautumistiedot",
-    create_account: "Luo uusi käyttäjätili",
-    two_factor_authentication: "Kaksivaiheinen tunnistautuminen",
-    enter_2fa_code: "Syötä vahvistuskoodi",
-    verification_code: "Vahvistuskoodi",
-    demo_use_code: "Demotarkoitukseen käytä koodia:",
-    verify: "Vahvista",
-    verifying: "Vahvistetaan...",
-    "2fa_verified": "Koodi vahvistettu onnistuneesti",
-    invalid_2fa_code: "Virheellinen vahvistuskoodi",
-    "2fa_error": "Virhe koodin vahvistamisessa",
-    login_required: "Sinun täytyy olla kirjautunut sisään"
+    login: "Logga in",
+    register: "Registrera",
+    email: "E-post",
+    password: "Lösenord",
+    logging_in: "Loggar in...",
+    registering: "Registrerar...",
+    login_successful: "Inloggning lyckades",
+    registration_successful: "Registrering lyckades",
+    login_error: "Inloggning misslyckades",
+    registration_error: "Registrering misslyckades",
+    enter_credentials: "Ange dina inloggningsuppgifter",
+    create_account: "Skapa ett nytt konto",
+    two_factor_authentication: "Tvåfaktorsautentisering",
+    enter_2fa_code: "Ange verifieringskoden",
+    verification_code: "Verifieringskod",
+    demo_use_code: "För demonstrationsändamål, använd kod:",
+    verify: "Verifiera",
+    verifying: "Verifierar...",
+    "2fa_verified": "Kod verifierad framgångsrikt",
+    invalid_2fa_code: "Ogiltig verifieringskod",
+    "2fa_error": "Fel vid verifiering av kod",
+    login_required: "Du måste vara inloggad"
   },
 };
 
