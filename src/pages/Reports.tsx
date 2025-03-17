@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Time entry interface matching the database schema
 interface TimeEntry {
@@ -76,7 +77,7 @@ const Reports = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   // Fetch clients from Supabase
-  const { data: clients = [] } = useQuery<Client[]>({
+  const { data: clients = [], isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ['clients'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -94,7 +95,7 @@ const Reports = () => {
   });
   
   // Fetch projects from Supabase
-  const { data: projects = [] } = useQuery<Project[]>({
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -287,32 +288,40 @@ const Reports = () => {
           {/* Client filter */}
           <div>
             <label className="block text-sm font-medium mb-2">{t('client')}</label>
-            <Select 
-              value={selectedClient} 
-              onValueChange={setSelectedClient}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('select_client')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">{t('all_clients')}</SelectItem>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isLoadingClients ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select 
+                value={selectedClient} 
+                onValueChange={setSelectedClient}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('select_client')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">{t('all_clients')}</SelectItem>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           
           {/* Project filter */}
           <div>
             <label className="block text-sm font-medium mb-2">{t('project')}</label>
-            <ProjectSelect 
-              value={selectedProject} 
-              onChange={setSelectedProject} 
-              clientId={selectedClient}
-            />
+            {isLoadingProjects ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <ProjectSelect 
+                value={selectedProject} 
+                onChange={setSelectedProject} 
+                clientId={selectedClient}
+              />
+            )}
           </div>
           
           {/* Date range filter */}
