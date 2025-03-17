@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, BarChart3, Calendar, PieChart, ArrowUp, ArrowRight } from 'lucide-react';
+import { Clock, BarChart3, Calendar, ArrowUp, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -10,7 +10,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns';
 import TodayEntries from '@/components/TodayEntries';
-import HoursCharts from '@/components/HoursCharts';
 
 const DAILY_TARGET_HOURS = 7.5;
 const WEEKLY_TARGET_HOURS = 37.5;
@@ -205,7 +204,7 @@ const Index = () => {
                     </span>
                   )}
                 </div>
-                <PieChart className="h-8 w-8 text-reportronic-500" />
+                <BarChart3 className="h-8 w-8 text-reportronic-500" />
               </div>
             </CardContent>
           </Card>
@@ -219,8 +218,6 @@ const Index = () => {
             />
           </div>
         </div>
-        
-        <HoursCharts />
       </div>
     </Layout>
   );
