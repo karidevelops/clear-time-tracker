@@ -1,7 +1,6 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { Tab } from '@headlessui/react';
 import { 
   Tabs, 
   TabsContent, 
