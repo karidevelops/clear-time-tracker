@@ -15,8 +15,7 @@ import {
   Dialog, 
   DialogContent, 
   DialogHeader, 
-  DialogTitle, 
-  DialogTrigger,
+  DialogTitle,
   DialogFooter,
   DialogClose
 } from "@/components/ui/dialog";
@@ -42,6 +41,7 @@ import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 
 type Client = {
   id: string;
@@ -55,11 +55,16 @@ type Project = {
   client_name?: string;
 };
 
-export const ProjectsList = () => {
+interface ProjectsListProps {
+  selectedClientId?: string | null;
+}
+
+export const ProjectsList = ({ selectedClientId }: ProjectsListProps) => {
   const { t } = useLanguage();
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedClient, setSelectedClient] = useState<string | null>(selectedClientId || null);
   const queryClient = useQueryClient();
 
   const formSchema = z.object({
@@ -71,7 +76,7 @@ export const ProjectsList = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      client_id: ""
+      client_id: selectedClientId || ""
     }
   });
 
@@ -254,8 +259,29 @@ export const ProjectsList = () => {
   };
 
   const handleClientSelect = (clientId: string) => {
-    setSelectedClient(clientId === "all" ? null : clientId);
+    const newClientId = clientId === "all" ? null : clientId;
+    setSelectedClient(newClientId);
+    
+    // Update URL
+    if (newClientId) {
+      setSearchParams(params => {
+        params.set("client_id", newClientId);
+        return params;
+      });
+    } else {
+      setSearchParams(params => {
+        params.delete("client_id");
+        return params;
+      });
+    }
   };
+
+  // Use the selected client from props if provided
+  React.useEffect(() => {
+    if (selectedClientId && selectedClientId !== selectedClient) {
+      setSelectedClient(selectedClientId);
+    }
+  }, [selectedClientId]);
 
   const isLoading = isLoadingClients || isLoadingProjects;
 
@@ -424,3 +450,4 @@ export const ProjectsList = () => {
     </div>
   );
 };
+

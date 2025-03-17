@@ -63,7 +63,7 @@ const Settings = () => {
         </TabsContent>
         
         <TabsContent value="projects">
-          <ProjectsList />
+          <ProjectsList selectedClientId={clientId} />
         </TabsContent>
       </Tabs>
     </div>
