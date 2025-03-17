@@ -8,16 +8,10 @@ import { useLanguage } from '@/context/LanguageContext';
 import TimeEntry from '@/components/TimeEntry';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { format, startOfToday, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns';
 
 const DAILY_TARGET_HOURS = 7.5;
 const WEEKLY_TARGET_HOURS = 37.5;
-
-const hours = {
-  today: 6.5,
-  week: 32.5,
-  month: 142,
-  target: WEEKLY_TARGET_HOURS
-};
 
 const projects = [
   { id: '1', name: 'Website Development', hours: 48.5, color: 'bg-blue-500' },
@@ -32,6 +26,13 @@ const Index = () => {
   const { user } = useAuth();
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    today: 0,
+    week: 0,
+    month: 0,
+    weeklyAverage: 0,
+    previousWeeklyAverage: 0
+  });
 
   useEffect(() => {
     async function fetchRecentEntries() {
@@ -84,6 +85,83 @@ const Index = () => {
     fetchRecentEntries();
   }, [user]);
 
+  useEffect(() => {
+    async function fetchStats() {
+      if (!user?.id) return;
+      
+      const userId = user.id;
+      const today = startOfToday();
+      const weekStart = startOfWeek(today);
+      const monthStart = startOfMonth(today);
+      
+      const todayStr = format(today, 'yyyy-MM-dd');
+      const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+      const monthStartStr = format(monthStart, 'yyyy-MM-dd');
+      
+      // Get today's hours
+      const { data: todayData, error: todayError } = await supabase
+        .from('time_entries')
+        .select('hours')
+        .eq('user_id', userId)
+        .eq('date', todayStr);
+      
+      // Get this week's hours
+      const { data: weekData, error: weekError } = await supabase
+        .from('time_entries')
+        .select('hours')
+        .eq('user_id', userId)
+        .gte('date', weekStartStr)
+        .lte('date', format(endOfWeek(today), 'yyyy-MM-dd'));
+      
+      // Get this month's hours
+      const { data: monthData, error: monthError } = await supabase
+        .from('time_entries')
+        .select('hours')
+        .eq('user_id', userId)
+        .gte('date', monthStartStr)
+        .lte('date', format(endOfMonth(today), 'yyyy-MM-dd'));
+      
+      // Get previous month's hours for comparison
+      const prevMonthStart = startOfMonth(new Date(today.getFullYear(), today.getMonth() - 1));
+      const prevMonthEnd = endOfMonth(new Date(today.getFullYear(), today.getMonth() - 1));
+      
+      const { data: prevMonthData, error: prevMonthError } = await supabase
+        .from('time_entries')
+        .select('hours')
+        .eq('user_id', userId)
+        .gte('date', format(prevMonthStart, 'yyyy-MM-dd'))
+        .lte('date', format(prevMonthEnd, 'yyyy-MM-dd'));
+      
+      if (todayError || weekError || monthError || prevMonthError) {
+        console.error('Error fetching stats:', todayError || weekError || monthError || prevMonthError);
+        return;
+      }
+      
+      const todayHours = todayData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
+      const weekHours = weekData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
+      const monthHours = monthData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
+      
+      const currentWeeklyAvg = monthHours / 4; // Simplified weekly average
+      const prevMonthHours = prevMonthData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
+      const prevWeeklyAvg = prevMonthHours / 4;
+      
+      // Calculate percentage change
+      const percentChange = prevWeeklyAvg > 0 
+        ? ((currentWeeklyAvg - prevWeeklyAvg) / prevWeeklyAvg) * 100 
+        : 0;
+      
+      setStats({
+        today: todayHours,
+        week: weekHours,
+        month: monthHours,
+        weeklyAverage: currentWeeklyAvg,
+        previousWeeklyAverage: prevWeeklyAvg
+      });
+    }
+    
+    fetchStats();
+  }, [user]);
+
   const handleTimeEntrySaved = (newEntry: any) => {
     async function fetchEntryDetails() {
       try {
@@ -122,6 +200,9 @@ const Index = () => {
           },
           ...recentEntries
         ]);
+        
+        // Refresh stats after new entry
+        fetchStats();
       } catch (error) {
         console.error('Exception fetching entry details:', error);
       }
@@ -129,6 +210,82 @@ const Index = () => {
 
     fetchEntryDetails();
   };
+  
+  // Function to calculate if there's growth compared to previous period
+  const isGrowing = stats.weeklyAverage > stats.previousWeeklyAverage;
+  
+  // Calculate percentage change for weekly average
+  const percentChange = stats.previousWeeklyAverage > 0 
+    ? Math.abs(((stats.weeklyAverage - stats.previousWeeklyAverage) / stats.previousWeeklyAverage) * 100).toFixed(1) 
+    : "0.0";
+
+  async function fetchStats() {
+    if (!user?.id) return;
+    
+    const userId = user.id;
+    const today = startOfToday();
+    const weekStart = startOfWeek(today);
+    const monthStart = startOfMonth(today);
+    
+    const todayStr = format(today, 'yyyy-MM-dd');
+    const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+    const monthStartStr = format(monthStart, 'yyyy-MM-dd');
+    
+    // Get today's hours
+    const { data: todayData, error: todayError } = await supabase
+      .from('time_entries')
+      .select('hours')
+      .eq('user_id', userId)
+      .eq('date', todayStr);
+    
+    // Get this week's hours
+    const { data: weekData, error: weekError } = await supabase
+      .from('time_entries')
+      .select('hours')
+      .eq('user_id', userId)
+      .gte('date', weekStartStr)
+      .lte('date', format(endOfWeek(today), 'yyyy-MM-dd'));
+    
+    // Get this month's hours
+    const { data: monthData, error: monthError } = await supabase
+      .from('time_entries')
+      .select('hours')
+      .eq('user_id', userId)
+      .gte('date', monthStartStr)
+      .lte('date', format(endOfMonth(today), 'yyyy-MM-dd'));
+    
+    // Get previous month's hours for comparison
+    const prevMonthStart = startOfMonth(new Date(today.getFullYear(), today.getMonth() - 1));
+    const prevMonthEnd = endOfMonth(new Date(today.getFullYear(), today.getMonth() - 1));
+    
+    const { data: prevMonthData, error: prevMonthError } = await supabase
+      .from('time_entries')
+      .select('hours')
+      .eq('user_id', userId)
+      .gte('date', format(prevMonthStart, 'yyyy-MM-dd'))
+      .lte('date', format(prevMonthEnd, 'yyyy-MM-dd'));
+    
+    if (todayError || weekError || monthError || prevMonthError) {
+      console.error('Error fetching stats:', todayError || weekError || monthError || prevMonthError);
+      return;
+    }
+    
+    const todayHours = todayData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
+    const weekHours = weekData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
+    const monthHours = monthData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
+    
+    const currentWeeklyAvg = monthHours / 4; // Simplified weekly average
+    const prevMonthHours = prevMonthData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
+    const prevWeeklyAvg = prevMonthHours / 4;
+    
+    setStats({
+      today: todayHours,
+      week: weekHours,
+      month: monthHours,
+      weeklyAverage: currentWeeklyAvg,
+      previousWeeklyAverage: prevWeeklyAvg
+    });
+  }
 
   return (
     <Layout>
@@ -156,7 +313,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-end">
-                <div className="text-2xl font-bold">{hours.today}h</div>
+                <div className="text-2xl font-bold">{stats.today.toFixed(1)}h</div>
                 <Clock className="h-8 w-8 text-reportronic-500" />
               </div>
               <div className="text-xs text-gray-500 mt-1">
@@ -164,7 +321,7 @@ const Index = () => {
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                   <div 
                     className="bg-reportronic-600 h-1.5 rounded-full" 
-                    style={{ width: `${Math.min(100, (hours.today / DAILY_TARGET_HOURS) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (stats.today / DAILY_TARGET_HOURS) * 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -177,15 +334,15 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-end">
-                <div className="text-2xl font-bold">{hours.week}h</div>
+                <div className="text-2xl font-bold">{stats.week.toFixed(1)}h</div>
                 <Calendar className="h-8 w-8 text-reportronic-500" />
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {t('target')}: {hours.target}h
+                {t('target')}: {WEEKLY_TARGET_HOURS}h
                 <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                   <div 
                     className="bg-reportronic-600 h-1.5 rounded-full" 
-                    style={{ width: `${Math.min(100, (hours.week / hours.target) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (stats.week / WEEKLY_TARGET_HOURS) * 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -198,7 +355,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-end">
-                <div className="text-2xl font-bold">{hours.month}h</div>
+                <div className="text-2xl font-bold">{stats.month.toFixed(1)}h</div>
                 <BarChart3 className="h-8 w-8 text-reportronic-500" />
               </div>
             </CardContent>
@@ -211,10 +368,12 @@ const Index = () => {
             <CardContent>
               <div className="flex justify-between items-end">
                 <div className="text-2xl font-bold">
-                  {(hours.month / 4).toFixed(1)}h
-                  <span className="ml-1 text-xs font-normal text-green-600 flex items-center">
-                    <ArrowUp className="h-3 w-3" /> 3.2%
-                  </span>
+                  {stats.weeklyAverage.toFixed(1)}h
+                  {stats.previousWeeklyAverage > 0 && (
+                    <span className={`ml-1 text-xs font-normal flex items-center ${isGrowing ? 'text-green-600' : 'text-red-600'}`}>
+                      {isGrowing ? <ArrowUp className="h-3 w-3" /> : <ArrowUp className="h-3 w-3 transform rotate-180" />} {percentChange}%
+                    </span>
+                  )}
                 </div>
                 <PieChart className="h-8 w-8 text-reportronic-500" />
               </div>
@@ -279,7 +438,7 @@ const Index = () => {
                       <div className="w-full bg-gray-100 rounded-full h-2">
                         <div 
                           className={`${project.color} h-2 rounded-full`} 
-                          style={{ width: `${(project.hours / hours.month) * 100}%` }}
+                          style={{ width: `${(project.hours / stats.month) * 100}%` }}
                         ></div>
                       </div>
                     </div>
