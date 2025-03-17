@@ -31,10 +31,11 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AddProjectDialog } from "./AddProjectDialog";
 
 type Client = {
   id: string;
@@ -46,6 +47,9 @@ export const ClientsList = () => {
   const { t } = useLanguage();
   const [editingClient, setEditingClient] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [addProjectDialogOpen, setAddProjectDialogOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedClientName, setSelectedClientName] = useState<string>("");
   const queryClient = useQueryClient();
 
   const formSchema = z.object({
@@ -228,6 +232,12 @@ export const ClientsList = () => {
     setDialogOpen(true);
   };
 
+  const handleAddProject = (clientId: string, clientName: string) => {
+    setSelectedClientId(clientId);
+    setSelectedClientName(clientName);
+    setAddProjectDialogOpen(true);
+  };
+
   // Add this to debug the form state
   useEffect(() => {
     const subscription = form.watch((value) => {
@@ -321,7 +331,16 @@ export const ClientsList = () => {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => handleAddProject(client.id, client.name)}
+                      title={t('add_project')}
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleEdit(client.id, client.name)}
+                      title={t('edit_client')}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -330,6 +349,7 @@ export const ClientsList = () => {
                       size="sm"
                       onClick={() => handleDelete(client.id)}
                       disabled={deleteClientMutation.isPending}
+                      title={t('delete_client')}
                     >
                       {deleteClientMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -344,6 +364,14 @@ export const ClientsList = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Dialog to add a project for the selected client */}
+      <AddProjectDialog 
+        open={addProjectDialogOpen} 
+        onOpenChange={setAddProjectDialogOpen} 
+        clientId={selectedClientId} 
+        clientName={selectedClientName}
+      />
     </div>
   );
 };
