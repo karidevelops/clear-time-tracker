@@ -1,15 +1,6 @@
 
 import { useState } from "react";
 import { 
-  Select, 
-  SelectContent, 
-  SelectGroup, 
-  SelectItem, 
-  SelectLabel, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
@@ -45,9 +36,23 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
   };
 
   const handleProjectSelect = (projectId: string) => {
-    onChange(projectId);
+    // Ensure we're providing a valid UUID for the project ID
+    // For testing, we'll format the project IDs as UUIDs
+    // In a real application, these would come from your database
+    const formattedProjectId = formatAsUUID(projectId);
+    onChange(formattedProjectId);
     setOpen(false);
     setSelectedClient(null);
+  };
+
+  // This function converts simple numeric IDs to UUID format
+  // Note: This is a temporary solution - in production you'd use real UUIDs from database
+  const formatAsUUID = (id: string): string => {
+    // Create a UUID from the project ID
+    // This is a simplified version for testing purposes
+    // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx where x is hex digit and y is 8, 9, A, or B
+    const idNum = parseInt(id, 10);
+    return `00000000-0000-4000-a000-${idNum.toString().padStart(12, '0')}`;
   };
 
   return (

@@ -55,6 +55,8 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
       date,
       hours: parseFloat(hours),
       description,
+      // Convert project_id to a proper UUID format that matches Supabase expectations
+      // The project IDs from ProjectSelect need to be actual UUIDs, not numeric IDs
       project_id: project,
       user_id: user.id
     };
