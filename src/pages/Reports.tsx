@@ -39,8 +39,8 @@ interface Client {
 const Reports = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const [selectedProject, setSelectedProject] = useState<string>("");
-  const [selectedClient, setSelectedClient] = useState<string>("");
+  const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [selectedClient, setSelectedClient] = useState<string>("all");
   const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
@@ -98,7 +98,7 @@ const Reports = () => {
   });
 
   // Get filtered projects for the selected client
-  const clientProjects = selectedClient && Array.isArray(projects)
+  const clientProjects = selectedClient && selectedClient !== "all" && Array.isArray(projects)
     ? projects.filter(project => project.client_id === selectedClient)
     : [];
 
@@ -128,11 +128,11 @@ const Reports = () => {
         }
         
         // Add project filter if set
-        if (selectedProject) {
+        if (selectedProject && selectedProject !== "all") {
           query = query.eq('project_id', selectedProject);
         } 
         // If client is selected but no project, filter by all projects of the client
-        else if (selectedClient && clientProjects.length > 0) {
+        else if (selectedClient && selectedClient !== "all" && clientProjects.length > 0) {
           const projectIds = clientProjects.map(p => p.id);
           query = query.in('project_id', projectIds);
         }
