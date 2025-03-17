@@ -392,7 +392,7 @@ const Index = () => {
           
           <div className="lg:col-span-2">
             <Card>
-              <CardHeader className="pb-4 border-b">
+              <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-semibold text-reportronic-800">{t('recent_time_entries')}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
