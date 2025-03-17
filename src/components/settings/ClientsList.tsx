@@ -63,6 +63,7 @@ export const ClientsList = () => {
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
+      console.log('Fetching clients...');
       // Fetch clients
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
@@ -74,6 +75,8 @@ export const ClientsList = () => {
         return [];
       }
 
+      console.log('Clients data:', clientsData);
+
       // Fetch project counts for each client
       const clientsWithProjects = await Promise.all(
         clientsData.map(async (client) => {
@@ -81,6 +84,10 @@ export const ClientsList = () => {
             .from('projects')
             .select('id', { count: 'exact', head: true })
             .eq('client_id', client.id);
+          
+          if (countError) {
+            console.error('Error counting projects:', countError);
+          }
           
           return {
             ...client,
@@ -96,12 +103,17 @@ export const ClientsList = () => {
   // Create client mutation
   const createClientMutation = useMutation({
     mutationFn: async (values: { name: string }) => {
+      console.log('Creating client with name:', values.name);
       const { data, error } = await supabase
         .from('clients')
         .insert({ name: values.name })
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating client:', error);
+        throw error;
+      }
+      console.log('Client created successfully:', data);
       return data[0];
     },
     onSuccess: () => {
@@ -119,13 +131,18 @@ export const ClientsList = () => {
   // Update client mutation
   const updateClientMutation = useMutation({
     mutationFn: async ({ id, name }: { id: string, name: string }) => {
+      console.log('Updating client with id:', id, 'new name:', name);
       const { data, error } = await supabase
         .from('clients')
         .update({ name, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating client:', error);
+        throw error;
+      }
+      console.log('Client updated successfully:', data);
       return data[0];
     },
     onSuccess: () => {
@@ -144,15 +161,20 @@ export const ClientsList = () => {
   // Delete client mutation
   const deleteClientMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Deleting client with id:', id);
       // First check if client has projects
       const { count, error: countError } = await supabase
         .from('projects')
         .select('id', { count: 'exact', head: true })
         .eq('client_id', id);
       
-      if (countError) throw countError;
+      if (countError) {
+        console.error('Error checking projects:', countError);
+        throw countError;
+      }
       
       if (count && count > 0) {
+        console.error('Client has projects, cannot delete');
         throw new Error('client_has_projects');
       }
       
@@ -161,7 +183,11 @@ export const ClientsList = () => {
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting client:', error);
+        throw error;
+      }
+      console.log('Client deleted successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -178,6 +204,7 @@ export const ClientsList = () => {
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    console.log('Form submitted with values:', values);
     if (editingClient) {
       updateClientMutation.mutate({ id: editingClient, name: values.name });
     } else {
@@ -200,6 +227,14 @@ export const ClientsList = () => {
     form.reset();
     setDialogOpen(true);
   };
+
+  // Add this to debug the form state
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      console.log('Form values changed:', value);
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
 
   return (
     <div>
