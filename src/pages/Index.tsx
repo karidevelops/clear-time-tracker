@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, PieChart, ArrowUp, ArrowRight } from 'lucide-react';
@@ -25,7 +26,6 @@ const projects = [
 const Index = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     today: 0,
@@ -36,180 +36,13 @@ const Index = () => {
   });
 
   useEffect(() => {
-    async function fetchRecentEntries() {
-      try {
-        const userId = user?.id || '00000000-0000-0000-0000-000000000000';
-        
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('time_entries')
-          .select(`
-            id,
-            date,
-            hours,
-            description,
-            project_id,
-            projects (
-              name,
-              client_id,
-              clients (
-                name
-              )
-            )
-          `)
-          .eq('user_id', userId)
-          .order('date', { ascending: false })
-          .limit(10);
-
-        if (error) {
-          console.error('Error fetching time entries:', error);
-          return;
-        }
-
-        const mappedEntries = data.map(entry => ({
-          id: entry.id,
-          date: entry.date,
-          hours: entry.hours,
-          description: entry.description,
-          project: entry.projects?.name || 'Unknown Project',
-          client: entry.projects?.clients?.name || 'Unknown Client'
-        }));
-
-        setRecentEntries(mappedEntries);
-      } catch (error) {
-        console.error('Exception fetching time entries:', error);
-      } finally {
-        setIsLoading(false);
-      }
+    if (user?.id) {
+      fetchStats();
     }
-
-    fetchRecentEntries();
   }, [user]);
 
-  useEffect(() => {
-    async function fetchStats() {
-      if (!user?.id) return;
-      
-      const userId = user.id;
-      const today = startOfToday();
-      const weekStart = startOfWeek(today);
-      const monthStart = startOfMonth(today);
-      
-      const todayStr = format(today, 'yyyy-MM-dd');
-      const weekStartStr = format(weekStart, 'yyyy-MM-dd');
-      const monthStartStr = format(monthStart, 'yyyy-MM-dd');
-      
-      // Get today's hours
-      const { data: todayData, error: todayError } = await supabase
-        .from('time_entries')
-        .select('hours')
-        .eq('user_id', userId)
-        .eq('date', todayStr);
-      
-      // Get this week's hours
-      const { data: weekData, error: weekError } = await supabase
-        .from('time_entries')
-        .select('hours')
-        .eq('user_id', userId)
-        .gte('date', weekStartStr)
-        .lte('date', format(endOfWeek(today), 'yyyy-MM-dd'));
-      
-      // Get this month's hours
-      const { data: monthData, error: monthError } = await supabase
-        .from('time_entries')
-        .select('hours')
-        .eq('user_id', userId)
-        .gte('date', monthStartStr)
-        .lte('date', format(endOfMonth(today), 'yyyy-MM-dd'));
-      
-      // Get previous month's hours for comparison
-      const prevMonthStart = startOfMonth(new Date(today.getFullYear(), today.getMonth() - 1));
-      const prevMonthEnd = endOfMonth(new Date(today.getFullYear(), today.getMonth() - 1));
-      
-      const { data: prevMonthData, error: prevMonthError } = await supabase
-        .from('time_entries')
-        .select('hours')
-        .eq('user_id', userId)
-        .gte('date', format(prevMonthStart, 'yyyy-MM-dd'))
-        .lte('date', format(prevMonthEnd, 'yyyy-MM-dd'));
-      
-      if (todayError || weekError || monthError || prevMonthError) {
-        console.error('Error fetching stats:', todayError || weekError || monthError || prevMonthError);
-        return;
-      }
-      
-      const todayHours = todayData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
-      const weekHours = weekData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
-      const monthHours = monthData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
-      
-      const currentWeeklyAvg = monthHours / 4; // Simplified weekly average
-      const prevMonthHours = prevMonthData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
-      const prevWeeklyAvg = prevMonthHours / 4;
-      
-      // Calculate percentage change
-      const percentChange = prevWeeklyAvg > 0 
-        ? ((currentWeeklyAvg - prevWeeklyAvg) / prevWeeklyAvg) * 100 
-        : 0;
-      
-      setStats({
-        today: todayHours,
-        week: weekHours,
-        month: monthHours,
-        weeklyAverage: currentWeeklyAvg,
-        previousWeeklyAverage: prevWeeklyAvg
-      });
-    }
-    
+  const handleTimeEntrySaved = () => {
     fetchStats();
-  }, [user]);
-
-  const handleTimeEntrySaved = (newEntry: any) => {
-    async function fetchEntryDetails() {
-      try {
-        const { data, error } = await supabase
-          .from('time_entries')
-          .select(`
-            id,
-            date,
-            hours,
-            description,
-            project_id,
-            projects (
-              name,
-              client_id,
-              clients (
-                name
-              )
-            )
-          `)
-          .eq('id', newEntry.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching entry details:', error);
-          return;
-        }
-
-        setRecentEntries([
-          {
-            id: data.id,
-            date: data.date,
-            hours: data.hours,
-            description: data.description,
-            project: data.projects?.name || 'Unknown Project',
-            client: data.projects?.clients?.name || 'Unknown Client'
-          },
-          ...recentEntries
-        ]);
-        
-        // Refresh stats after new entry
-        fetchStats();
-      } catch (error) {
-        console.error('Exception fetching entry details:', error);
-      }
-    }
-
-    fetchEntryDetails();
   };
   
   // Function to calculate if there's growth compared to previous period
@@ -286,6 +119,8 @@ const Index = () => {
       weeklyAverage: currentWeeklyAvg,
       previousWeeklyAverage: prevWeeklyAvg
     });
+    
+    setIsLoading(false);
   }
 
   return (
@@ -382,7 +217,7 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <TodayEntries 
               onEntrySaved={handleTimeEntrySaved} 
@@ -390,35 +225,6 @@ const Index = () => {
             />
           </div>
           
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-reportronic-800">{t('recent_time_entries')}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {isLoading ? (
-                  <div className="p-4 text-center text-gray-500">{t('loading')}...</div>
-                ) : recentEntries.length > 0 ? (
-                  <div className="p-4 text-center text-gray-500">
-                    {t('entries_removed') || 'Entries removed'}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-gray-500">
-                    {t('no_recent_entries') || 'No recent time entries found. Add a new entry above.'}
-                  </div>
-                )}
-                <div className="p-4 text-center">
-                  <Link to="/weekly">
-                    <Button variant="ghost" className="text-reportronic-600 hover:text-reportronic-700">
-                      {t('view_all_entries')}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           <div>
             <Card>
               <CardHeader className="pb-4 border-b">
