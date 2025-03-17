@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -38,7 +39,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -57,6 +58,7 @@ type Project = {
 
 export const ProjectsList = () => {
   const { t } = useLanguage();
+  const { isAdmin } = useAuth();
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -230,6 +232,11 @@ export const ProjectsList = () => {
   };
 
   const handleEdit = (projectId: string) => {
+    if (!isAdmin) {
+      toast.error(t('admin_only_feature') || 'This feature is for administrators only');
+      return;
+    }
+    
     const project = projects.find(p => p.id === projectId);
     if (project) {
       setEditingProject(projectId);
@@ -240,10 +247,20 @@ export const ProjectsList = () => {
   };
 
   const handleDelete = (projectId: string) => {
+    if (!isAdmin) {
+      toast.error(t('admin_only_feature') || 'This feature is for administrators only');
+      return;
+    }
+    
     deleteProjectMutation.mutate(projectId);
   };
 
   const handleAddNew = () => {
+    if (!isAdmin) {
+      toast.error(t('admin_only_feature') || 'This feature is for administrators only');
+      return;
+    }
+    
     setEditingProject(null);
     form.reset();
     setDialogOpen(true);
@@ -257,7 +274,13 @@ export const ProjectsList = () => {
         <h2 className="text-xl font-semibold">{t('manage_projects')}</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleAddNew} disabled={clients.length === 0}>
+            <Button 
+              onClick={handleAddNew} 
+              disabled={clients.length === 0 || !isAdmin}
+              aria-label={isAdmin ? t('add_project') : t('admin_only_feature')}
+              title={!isAdmin ? t('admin_only_feature') : clients.length === 0 ? t('no_clients_available') : undefined}
+            >
+              {!isAdmin && <ShieldAlert className="mr-2 h-4 w-4" />}
               <Plus className="mr-2 h-4 w-4" />
               {t('add_project')}
             </Button>
@@ -365,6 +388,8 @@ export const ProjectsList = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEdit(project.id)}
+                      disabled={!isAdmin}
+                      title={isAdmin ? t('edit') : t('admin_only_feature')}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -372,7 +397,8 @@ export const ProjectsList = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(project.id)}
-                      disabled={deleteProjectMutation.isPending}
+                      disabled={deleteProjectMutation.isPending || !isAdmin}
+                      title={isAdmin ? t('delete') : t('admin_only_feature')}
                     >
                       {deleteProjectMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

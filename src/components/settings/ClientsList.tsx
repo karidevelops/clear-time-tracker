@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -31,7 +31,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Pencil, Trash2, Loader2, FolderPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, FolderPlus, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -45,6 +45,7 @@ type Client = {
 
 export const ClientsList = () => {
   const { t } = useLanguage();
+  const { isAdmin } = useAuth();
   const [editingClient, setEditingClient] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addProjectDialogOpen, setAddProjectDialogOpen] = useState(false);
@@ -63,12 +64,10 @@ export const ClientsList = () => {
     }
   });
 
-  // Fetch clients from Supabase
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
       console.log('Fetching clients...');
-      // Fetch clients
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('id, name');
@@ -81,7 +80,6 @@ export const ClientsList = () => {
 
       console.log('Clients data:', clientsData);
 
-      // Fetch project counts for each client
       const clientsWithProjects = await Promise.all(
         clientsData.map(async (client) => {
           const { count, error: countError } = await supabase
@@ -104,7 +102,6 @@ export const ClientsList = () => {
     }
   });
 
-  // Create client mutation
   const createClientMutation = useMutation({
     mutationFn: async (values: { name: string }) => {
       console.log('Creating client with name:', values.name);
@@ -132,7 +129,6 @@ export const ClientsList = () => {
     }
   });
 
-  // Update client mutation
   const updateClientMutation = useMutation({
     mutationFn: async ({ id, name }: { id: string, name: string }) => {
       console.log('Updating client with id:', id, 'new name:', name);
@@ -162,11 +158,9 @@ export const ClientsList = () => {
     }
   });
 
-  // Delete client mutation
   const deleteClientMutation = useMutation({
     mutationFn: async (id: string) => {
       console.log('Deleting client with id:', id);
-      // First check if client has projects
       const { count, error: countError } = await supabase
         .from('projects')
         .select('id', { count: 'exact', head: true })
@@ -217,28 +211,47 @@ export const ClientsList = () => {
   };
 
   const handleEdit = (clientId: string, clientName: string) => {
+    if (!isAdmin) {
+      toast.error(t('admin_only_feature') || 'This feature is for administrators only');
+      return;
+    }
+    
     setEditingClient(clientId);
     form.setValue("name", clientName);
     setDialogOpen(true);
   };
 
   const handleDelete = (clientId: string) => {
+    if (!isAdmin) {
+      toast.error(t('admin_only_feature') || 'This feature is for administrators only');
+      return;
+    }
+    
     deleteClientMutation.mutate(clientId);
   };
 
   const handleAddNew = () => {
+    if (!isAdmin) {
+      toast.error(t('admin_only_feature') || 'This feature is for administrators only');
+      return;
+    }
+    
     setEditingClient(null);
     form.reset();
     setDialogOpen(true);
   };
 
   const handleAddProject = (clientId: string, clientName: string) => {
+    if (!isAdmin) {
+      toast.error(t('admin_only_feature') || 'This feature is for administrators only');
+      return;
+    }
+    
     setSelectedClientId(clientId);
     setSelectedClientName(clientName);
     setAddProjectDialogOpen(true);
   };
 
-  // Add this to debug the form state
   useEffect(() => {
     const subscription = form.watch((value) => {
       console.log('Form values changed:', value);
@@ -252,7 +265,13 @@ export const ClientsList = () => {
         <h2 className="text-xl font-semibold">{t('manage_clients')}</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleAddNew}>
+            <Button 
+              onClick={handleAddNew}
+              disabled={!isAdmin}
+              aria-label={isAdmin ? t('add_client') : t('admin_only_feature')}
+              title={isAdmin ? undefined : t('admin_only_feature')}
+            >
+              {!isAdmin && <ShieldAlert className="mr-2 h-4 w-4" />}
               <Plus className="mr-2 h-4 w-4" />
               {t('add_client')}
             </Button>
@@ -332,7 +351,8 @@ export const ClientsList = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleAddProject(client.id, client.name)}
-                      title={t('add_project')}
+                      title={isAdmin ? t('add_project') : t('admin_only_feature')}
+                      disabled={!isAdmin}
                     >
                       <FolderPlus className="h-4 w-4" />
                     </Button>
@@ -340,7 +360,8 @@ export const ClientsList = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEdit(client.id, client.name)}
-                      title={t('edit_client')}
+                      title={isAdmin ? t('edit_client') : t('admin_only_feature')}
+                      disabled={!isAdmin}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -348,8 +369,8 @@ export const ClientsList = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(client.id)}
-                      disabled={deleteClientMutation.isPending}
-                      title={t('delete_client')}
+                      disabled={deleteClientMutation.isPending || !isAdmin}
+                      title={isAdmin ? t('delete_client') : t('admin_only_feature')}
                     >
                       {deleteClientMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -365,7 +386,6 @@ export const ClientsList = () => {
         </Table>
       </div>
 
-      {/* Dialog to add a project for the selected client */}
       <AddProjectDialog 
         open={addProjectDialogOpen} 
         onOpenChange={setAddProjectDialogOpen} 

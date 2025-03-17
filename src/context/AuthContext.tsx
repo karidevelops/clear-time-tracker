@@ -3,10 +3,14 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+type UserRole = 'admin' | 'user';
+
 type AuthContextType = {
   user: any | null;
   session: any | null;
   isLoading: boolean;
+  userRole: UserRole | null;
+  isAdmin: boolean;
   signOut: () => Promise<void>;
 };
 
@@ -14,6 +18,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   isLoading: true,
+  userRole: null,
+  isAdmin: false,
   signOut: async () => {}
 });
 
@@ -27,6 +33,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Function to fetch user role
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return;
+      }
+      
+      const role = data?.role as UserRole;
+      setUserRole(role);
+      setIsAdmin(role === 'admin');
+    } catch (error) {
+      console.error('Exception fetching user role:', error);
+    }
+  };
 
   useEffect(() => {
     // Set up auth redirect URL to current window location (instead of localhost)
@@ -66,6 +96,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         setSession(data.session);
         setUser(data.session?.user ?? null);
+        
+        // Fetch user role if user is logged in
+        if (data.session?.user) {
+          await fetchUserRole(data.session.user.id);
+        }
       } catch (error) {
         console.error('Exception getting session:', error);
       } finally {
@@ -81,6 +116,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log('Auth state changed:', event);
         setSession(newSession);
         setUser(newSession?.user ?? null);
+        
+        // Update user role when auth state changes
+        if (newSession?.user) {
+          await fetchUserRole(newSession.user.id);
+        } else {
+          setUserRole(null);
+          setIsAdmin(false);
+        }
+        
         setIsLoading(false);
       }
     );
@@ -102,7 +146,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      isLoading, 
+      userRole,
+      isAdmin,
+      signOut 
+    }}>
       {children}
     </AuthContext.Provider>
   );
