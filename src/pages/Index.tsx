@@ -45,10 +45,8 @@ const Index = () => {
     fetchStats();
   };
   
-  // Function to calculate if there's growth compared to previous period
   const isGrowing = stats.weeklyAverage > stats.previousWeeklyAverage;
   
-  // Calculate percentage change for weekly average
   const percentChange = stats.previousWeeklyAverage > 0 
     ? Math.abs(((stats.weeklyAverage - stats.previousWeeklyAverage) / stats.previousWeeklyAverage) * 100).toFixed(1) 
     : "0.0";
@@ -65,14 +63,12 @@ const Index = () => {
     const weekStartStr = format(weekStart, 'yyyy-MM-dd');
     const monthStartStr = format(monthStart, 'yyyy-MM-dd');
     
-    // Get today's hours
     const { data: todayData, error: todayError } = await supabase
       .from('time_entries')
       .select('hours')
       .eq('user_id', userId)
       .eq('date', todayStr);
     
-    // Get this week's hours
     const { data: weekData, error: weekError } = await supabase
       .from('time_entries')
       .select('hours')
@@ -80,7 +76,6 @@ const Index = () => {
       .gte('date', weekStartStr)
       .lte('date', format(endOfWeek(today), 'yyyy-MM-dd'));
     
-    // Get this month's hours
     const { data: monthData, error: monthError } = await supabase
       .from('time_entries')
       .select('hours')
@@ -88,7 +83,6 @@ const Index = () => {
       .gte('date', monthStartStr)
       .lte('date', format(endOfMonth(today), 'yyyy-MM-dd'));
     
-    // Get previous month's hours for comparison
     const prevMonthStart = startOfMonth(new Date(today.getFullYear(), today.getMonth() - 1));
     const prevMonthEnd = endOfMonth(new Date(today.getFullYear(), today.getMonth() - 1));
     
@@ -108,7 +102,7 @@ const Index = () => {
     const weekHours = weekData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
     const monthHours = monthData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
     
-    const currentWeeklyAvg = monthHours / 4; // Simplified weekly average
+    const currentWeeklyAvg = monthHours / 4;
     const prevMonthHours = prevMonthData?.reduce((sum, entry) => sum + entry.hours, 0) || 0;
     const prevWeeklyAvg = prevMonthHours / 4;
     
