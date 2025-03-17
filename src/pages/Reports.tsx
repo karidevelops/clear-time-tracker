@@ -142,15 +142,15 @@ const Reports = () => {
         if (error) {
           console.error("Error fetching time entries:", error);
           toast.error(t('error_fetching_time_entries'));
+          setTimeEntries([]);
           return;
         }
         
-        if (data) {
-          setTimeEntries(data as TimeEntry[]);
-        }
+        setTimeEntries(data || []);
       } catch (error) {
         console.error("Exception fetching time entries:", error);
         toast.error(t('error_fetching_time_entries'));
+        setTimeEntries([]);
       } finally {
         setIsLoading(false);
       }

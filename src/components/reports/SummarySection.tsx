@@ -41,27 +41,32 @@ const SummarySection: React.FC<SummarySectionProps> = ({
 }) => {
   const { t } = useLanguage();
   
+  // Ensure we have safeguarded arrays
+  const safeTimeEntries = Array.isArray(timeEntries) ? timeEntries : [];
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeClients = Array.isArray(clients) ? clients : [];
+  
   // Calculate total hours
-  const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
+  const totalHours = safeTimeEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
   
   // Helper function to get project name from project ID
   const getProjectName = (projectId: string): string => {
-    const project = projects.find(p => p.id === projectId);
+    const project = safeProjects.find(p => p.id === projectId);
     return project ? project.name : t('unknown_project');
   };
 
   // Helper function to get client name from project ID
   const getClientName = (projectId: string): string => {
-    const project = projects.find(p => p.id === projectId);
+    const project = safeProjects.find(p => p.id === projectId);
     if (!project) return t('unknown_client');
     
-    const client = clients.find(c => c.id === project.client_id);
+    const client = safeClients.find(c => c.id === project.client_id);
     return client ? client.name : t('unknown_client');
   };
   
   // Export to CSV
   const exportToCsv = () => {
-    if (timeEntries.length === 0) {
+    if (safeTimeEntries.length === 0) {
       toast.error(t('no_data_to_export'));
       return;
     }
@@ -69,7 +74,7 @@ const SummarySection: React.FC<SummarySectionProps> = ({
     // Format headers and data
     const headers = [t('date'), t('client'), t('project'), t('description'), t('hours')];
     
-    const rows = timeEntries.map(entry => [
+    const rows = safeTimeEntries.map(entry => [
       format(new Date(entry.date), 'dd.MM.yyyy'),
       getClientName(entry.project_id),
       getProjectName(entry.project_id),
@@ -97,6 +102,12 @@ const SummarySection: React.FC<SummarySectionProps> = ({
     toast.success(t('report_exported'));
   };
 
+  // Calculate unique dates for average hours calculation
+  const uniqueDates = [...new Set(safeTimeEntries.map(e => e.date))];
+  const avgHoursPerDay = uniqueDates.length > 0 
+    ? (totalHours / uniqueDates.length).toFixed(1) 
+    : '0.0';
+
   return (
     <div className="bg-white p-6 rounded-lg border mb-8">
       <div className="flex justify-between items-center mb-4">
@@ -105,7 +116,7 @@ const SummarySection: React.FC<SummarySectionProps> = ({
           variant="outline" 
           size="sm"
           onClick={exportToCsv}
-          disabled={timeEntries.length === 0 || isLoading}
+          disabled={safeTimeEntries.length === 0 || isLoading}
         >
           <Download className="mr-2 h-4 w-4" />
           {t('export_to_csv')}
@@ -115,7 +126,7 @@ const SummarySection: React.FC<SummarySectionProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gray-50 p-4 rounded-md border">
           <div className="text-sm text-gray-500">{t('total_entries')}</div>
-          <div className="text-2xl font-bold">{timeEntries.length}</div>
+          <div className="text-2xl font-bold">{safeTimeEntries.length}</div>
         </div>
         <div className="bg-gray-50 p-4 rounded-md border">
           <div className="text-sm text-gray-500">{t('total_hours')}</div>
@@ -123,11 +134,7 @@ const SummarySection: React.FC<SummarySectionProps> = ({
         </div>
         <div className="bg-gray-50 p-4 rounded-md border">
           <div className="text-sm text-gray-500">{t('avg_hours_per_day')}</div>
-          <div className="text-2xl font-bold">
-            {timeEntries.length > 0 
-              ? (totalHours / [...new Set(timeEntries.map(e => e.date))].length).toFixed(1) 
-              : '0.0'}
-          </div>
+          <div className="text-2xl font-bold">{avgHoursPerDay}</div>
         </div>
       </div>
     </div>

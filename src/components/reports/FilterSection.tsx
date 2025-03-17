@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -104,6 +105,9 @@ const FilterSection: React.FC<FilterSectionProps> = ({
     setFilterPeriod(period);
   };
 
+  // Ensure we have safeguarded arrays
+  const safeClients = Array.isArray(clients) ? clients : [];
+
   return (
     <div className="bg-white p-6 rounded-lg border mb-8">
       <h2 className="text-xl font-semibold mb-4">{t('filter_reports')}</h2>
@@ -125,7 +129,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">{t('all_clients')}</SelectItem>
-                  {clients.map((client) => (
+                  {safeClients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
                     </SelectItem>
