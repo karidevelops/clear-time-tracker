@@ -8,6 +8,7 @@ import { Save } from 'lucide-react';
 import ProjectSelect from './ProjectSelect';
 import { toast } from 'sonner';
 import { useLanguage } from '@/context/LanguageContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TimeEntryProps {
   initialDate?: string;
@@ -22,6 +23,7 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
   const [hours, setHours] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [project, setProject] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Update date when initialDate prop changes
   useEffect(() => {
@@ -30,7 +32,7 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
     }
   }, [initialDate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!hours || !description || !project) {
@@ -43,22 +45,43 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
       date,
       hours: parseFloat(hours),
       description,
-      project
+      project_id: project,
+      user_id: '00000000-0000-0000-0000-000000000000' // This will be replaced by auth.uid() when RLS is active
     };
     
-    // In a real app, this would send data to an API
-    console.log(entryData);
+    setIsLoading(true);
     
-    toast.success(t('time_entry_saved'));
-    
-    // Call the callback if provided
-    if (onEntrySaved) {
-      onEntrySaved(entryData);
+    try {
+      // Insert the time entry into Supabase
+      const { data, error } = await supabase
+        .from('time_entries')
+        .insert(entryData)
+        .select();
+      
+      if (error) {
+        console.error('Error saving time entry:', error);
+        toast.error(t('error_saving_time_entry'));
+        return;
+      }
+      
+      console.log('Time entry saved:', data);
+      toast.success(t('time_entry_saved'));
+      
+      // Call the callback if provided
+      if (onEntrySaved) {
+        onEntrySaved(data[0]);
+      }
+      
+      // Reset form
+      setHours('');
+      setDescription('');
+      
+    } catch (error) {
+      console.error('Exception saving time entry:', error);
+      toast.error(t('error_saving_time_entry'));
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Reset form
-    setHours('');
-    setDescription('');
   };
 
   return (
@@ -113,9 +136,10 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
       <Button 
         type="submit" 
         className="w-full md:w-auto bg-reportronic-500 hover:bg-reportronic-600 text-white"
+        disabled={isLoading}
       >
         <Save className="mr-2 h-4 w-4" />
-        {t('save_time_entry')}
+        {isLoading ? t('saving') : t('save_time_entry')}
       </Button>
     </form>
   );

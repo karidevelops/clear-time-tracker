@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, PieChart, ArrowUp, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
 import TimeEntry from '@/components/TimeEntry';
+import { supabase } from '@/integrations/supabase/client';
 
 // Target working hours
 const DAILY_TARGET_HOURS = 7.5;
@@ -28,30 +28,69 @@ const projects = [
   { id: '5', name: 'Documentation', hours: 15, color: 'bg-red-500' },
 ];
 
-// Mock data for recent time entries
-const recentEntries = [
-  { id: '1', date: '2023-07-14', hours: 4.5, project: 'Website Development' },
-  { id: '2', date: '2023-07-13', hours: 3, project: 'Mobile App' },
-  { id: '3', date: '2023-07-12', hours: 5, project: 'Backend API' },
-  { id: '4', date: '2023-07-10', hours: 7.5, project: 'UI/UX Design' },
-];
-
 const Index = () => {
   const { t } = useLanguage();
-  const [myRecentEntries, setMyRecentEntries] = useState(recentEntries);
+  const [recentEntries, setRecentEntries] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch recent time entries from Supabase
+  useEffect(() => {
+    async function fetchRecentEntries() {
+      try {
+        // For demonstration purposes using a static user ID
+        // This will be replaced by auth.uid() when authentication is implemented
+        const userId = '00000000-0000-0000-0000-000000000000';
+        
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('time_entries')
+          .select(`
+            id,
+            date,
+            hours,
+            description,
+            project_id
+          `)
+          .eq('user_id', userId)
+          .order('date', { ascending: false })
+          .limit(10);
+
+        if (error) {
+          console.error('Error fetching time entries:', error);
+          return;
+        }
+
+        // Transform the data to match the expected format
+        const mappedEntries = data.map(entry => ({
+          id: entry.id,
+          date: entry.date,
+          hours: entry.hours,
+          project: entry.project_id // This will be replaced with project name when project data is available
+        }));
+
+        setRecentEntries(mappedEntries);
+      } catch (error) {
+        console.error('Exception fetching time entries:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRecentEntries();
+  }, []);
 
   // Function to handle time entry submission
   const handleTimeEntrySaved = (newEntry: any) => {
-    // In a real app, this would add the entry to the database
-    // For now, we'll just add it to our local state
-    const entry = {
-      id: Date.now().toString(), // Generate a unique ID
-      date: newEntry.date,
-      hours: parseFloat(newEntry.hours),
-      project: newEntry.project
-    };
-    
-    setMyRecentEntries([entry, ...myRecentEntries]);
+    // After a new entry is saved, refresh the recent entries list
+    setRecentEntries([
+      {
+        id: newEntry.id,
+        date: newEntry.date,
+        hours: newEntry.hours,
+        project: newEntry.project_id // This will be replaced with project name when project data is available
+      },
+      ...recentEntries
+    ]);
   };
 
   return (
@@ -74,6 +113,7 @@ const Index = () => {
           </CardContent>
         </Card>
 
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -154,17 +194,23 @@ const Index = () => {
                 <CardTitle className="text-lg font-semibold text-reportronic-800">{t('recent_time_entries')}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="divide-y">
-                  {myRecentEntries.map((entry) => (
-                    <div key={entry.id} className="flex justify-between items-center p-4 hover:bg-gray-50">
-                      <div>
-                        <div className="font-medium">{entry.project}</div>
-                        <div className="text-sm text-gray-500">{entry.date}</div>
+                {isLoading ? (
+                  <div className="p-4 text-center text-gray-500">{t('loading')}...</div>
+                ) : recentEntries.length > 0 ? (
+                  <div className="divide-y">
+                    {recentEntries.map((entry) => (
+                      <div key={entry.id} className="flex justify-between items-center p-4 hover:bg-gray-50">
+                        <div>
+                          <div className="font-medium">{entry.project}</div>
+                          <div className="text-sm text-gray-500">{entry.date}</div>
+                        </div>
+                        <div className="text-reportronic-700 font-medium">{entry.hours}h</div>
                       </div>
-                      <div className="text-reportronic-700 font-medium">{entry.hours}h</div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-gray-500">{t('no_recent_entries')}</div>
+                )}
                 <div className="p-4 text-center">
                   <Link to="/weekly">
                     <Button variant="ghost" className="text-reportronic-600 hover:text-reportronic-700">
