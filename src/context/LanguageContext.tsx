@@ -104,6 +104,9 @@ interface Translations {
   clients_and_projects: string;
   calendar: string;
   inspired_by: string;
+  back_to_clients: string;
+  saving: string;
+  error_saving_time_entry: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -210,7 +213,10 @@ const translations: Record<string, Translations> = {
     "2fa_verified": "Code verified successfully",
     invalid_2fa_code: "Invalid verification code",
     "2fa_error": "Error verifying code",
-    login_required: "You need to be logged in"
+    login_required: "You need to be logged in",
+    back_to_clients: "Back to clients",
+    saving: "Saving...",
+    error_saving_time_entry: "Error saving time entry"
   },
   fi: {
     dashboard: 'Kojelauta',
@@ -309,7 +315,10 @@ const translations: Record<string, Translations> = {
     "2fa_verified": "Koodi vahvistettu onnistuneesti",
     invalid_2fa_code: "Virheellinen vahvistuskoodi",
     "2fa_error": "Virhe koodin vahvistamisessa",
-    login_required: "Sinun täytyy olla kirjautunut sisään"
+    login_required: "Sinun täytyy olla kirjautunut sisään",
+    back_to_clients: "Takaisin asiakkaisiin",
+    saving: "Tallennetaan...",
+    error_saving_time_entry: "Virhe tallennettaessa aikakirjausta"
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -382,7 +391,7 @@ const translations: Record<string, Translations> = {
     non_billable_hours: 'Icke-fakturerbara timmar',
     billable_amount: 'Fakturerbart belopp',
     daily_breakdown: 'Daglig fördelning',
-    project_breakdown: 'Projektierittely',
+    project_breakdown: 'Projektfördelning',
     no_data_available: 'Ingen data tillgänglig för den valda perioden',
     clients_and_projects: 'Kunder & Projekt',
     calendar: 'Kalender',
@@ -408,7 +417,10 @@ const translations: Record<string, Translations> = {
     "2fa_verified": "Kod verifierad framgångsrikt",
     invalid_2fa_code: "Ogiltig verifieringskod",
     "2fa_error": "Fel vid verifiering av kod",
-    login_required: "Du måste vara inloggad"
+    login_required: "Du måste vara inloggad",
+    back_to_clients: "Tillbaka till kunder",
+    saving: "Sparar...",
+    error_saving_time_entry: "Fel vid sparande av tidsinmatning"
   },
 };
 
