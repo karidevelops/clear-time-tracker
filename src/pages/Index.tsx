@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, PieChart, ArrowUp, ArrowRight } from 'lucide-react';
@@ -26,6 +25,7 @@ const projects = [
 const Index = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     today: 0,
@@ -34,6 +34,57 @@ const Index = () => {
     weeklyAverage: 0,
     previousWeeklyAverage: 0
   });
+
+  useEffect(() => {
+    async function fetchRecentEntries() {
+      try {
+        const userId = user?.id || '00000000-0000-0000-0000-000000000000';
+        
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('time_entries')
+          .select(`
+            id,
+            date,
+            hours,
+            description,
+            project_id,
+            projects (
+              name,
+              client_id,
+              clients (
+                name
+              )
+            )
+          `)
+          .eq('user_id', userId)
+          .order('date', { ascending: false })
+          .limit(10);
+
+        if (error) {
+          console.error('Error fetching time entries:', error);
+          return;
+        }
+
+        const mappedEntries = data.map(entry => ({
+          id: entry.id,
+          date: entry.date,
+          hours: entry.hours,
+          description: entry.description,
+          project: entry.projects?.name || 'Unknown Project',
+          client: entry.projects?.clients?.name || 'Unknown Client'
+        }));
+
+        setRecentEntries(mappedEntries);
+      } catch (error) {
+        console.error('Exception fetching time entries:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRecentEntries();
+  }, [user]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -107,16 +158,58 @@ const Index = () => {
         weeklyAverage: currentWeeklyAvg,
         previousWeeklyAverage: prevWeeklyAvg
       });
-      
-      setIsLoading(false);
     }
     
     fetchStats();
   }, [user]);
 
-  const handleTimeEntrySaved = () => {
-    // Refresh stats after new entry
-    fetchStats();
+  const handleTimeEntrySaved = (newEntry: any) => {
+    async function fetchEntryDetails() {
+      try {
+        const { data, error } = await supabase
+          .from('time_entries')
+          .select(`
+            id,
+            date,
+            hours,
+            description,
+            project_id,
+            projects (
+              name,
+              client_id,
+              clients (
+                name
+              )
+            )
+          `)
+          .eq('id', newEntry.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching entry details:', error);
+          return;
+        }
+
+        setRecentEntries([
+          {
+            id: data.id,
+            date: data.date,
+            hours: data.hours,
+            description: data.description,
+            project: data.projects?.name || 'Unknown Project',
+            client: data.projects?.clients?.name || 'Unknown Client'
+          },
+          ...recentEntries
+        ]);
+        
+        // Refresh stats after new entry
+        fetchStats();
+      } catch (error) {
+        console.error('Exception fetching entry details:', error);
+      }
+    }
+
+    fetchEntryDetails();
   };
   
   // Function to calculate if there's growth compared to previous period
@@ -289,7 +382,7 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div>
             <TodayEntries 
               onEntrySaved={handleTimeEntrySaved} 
@@ -297,6 +390,46 @@ const Index = () => {
             />
           </div>
           
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="pb-4 border-b">
+                <CardTitle className="text-lg font-semibold text-reportronic-800">{t('recent_time_entries')}</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isLoading ? (
+                  <div className="p-4 text-center text-gray-500">{t('loading')}...</div>
+                ) : recentEntries.length > 0 ? (
+                  <div className="divide-y">
+                    {recentEntries.map((entry) => (
+                      <div key={entry.id} className="flex justify-between items-center p-4 hover:bg-gray-50">
+                        <div className="flex-1">
+                          <div className="font-medium">{entry.client}: {entry.project}</div>
+                          <div className="text-sm text-gray-500 mt-1">{entry.date}</div>
+                          {entry.description && (
+                            <div className="text-sm text-gray-700 mt-1">{entry.description}</div>
+                          )}
+                        </div>
+                        <div className="text-reportronic-700 font-medium ml-4">{entry.hours}h</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-gray-500">
+                    {t('no_recent_entries') || 'No recent time entries found. Add a new entry above.'}
+                  </div>
+                )}
+                <div className="p-4 text-center">
+                  <Link to="/weekly">
+                    <Button variant="ghost" className="text-reportronic-600 hover:text-reportronic-700">
+                      {t('view_all_entries')}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <div>
             <Card>
               <CardHeader className="pb-4 border-b">

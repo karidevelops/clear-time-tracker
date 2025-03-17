@@ -1,7 +1,6 @@
 
 import React from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -37,7 +36,6 @@ interface AddProjectDialogProps {
 
 export function AddProjectDialog({ open, onOpenChange, clientId, clientName }: AddProjectDialogProps) {
   const { t } = useLanguage();
-  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   const formSchema = z.object({
@@ -56,10 +54,6 @@ export function AddProjectDialog({ open, onOpenChange, clientId, clientName }: A
     mutationFn: async (values: { name: string }) => {
       if (!clientId) {
         throw new Error('Client ID is required');
-      }
-      
-      if (!isAdmin) {
-        throw new Error('Admin access required');
       }
       
       console.log('Creating project for client:', clientId, 'with name:', values.name);
@@ -89,21 +83,13 @@ export function AddProjectDialog({ open, onOpenChange, clientId, clientName }: A
       onOpenChange(false);
       form.reset();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('Error creating project:', error);
-      if (error.message === 'Admin access required') {
-        toast.error(t('admin_only_feature') || 'This feature is for administrators only');
-      } else {
-        toast.error(t('error_adding_project'));
-      }
+      toast.error(t('error_adding_project'));
     }
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    if (!isAdmin) {
-      toast.error(t('admin_only_feature') || 'This feature is for administrators only');
-      return;
-    }
     createProjectMutation.mutate({ name: values.name });
   };
 
@@ -138,7 +124,7 @@ export function AddProjectDialog({ open, onOpenChange, clientId, clientName }: A
               </DialogClose>
               <Button 
                 type="submit"
-                disabled={createProjectMutation.isPending || !isAdmin}
+                disabled={createProjectMutation.isPending}
               >
                 {createProjectMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
