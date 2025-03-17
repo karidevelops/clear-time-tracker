@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,15 +31,22 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { clients } from "@/data/ClientsData";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+type Client = {
+  id: string;
+  name: string;
+  project_count?: number;
+};
 
 export const ClientsList = () => {
   const { t } = useLanguage();
-  const [localClients, setLocalClients] = useState(clients);
   const [editingClient, setEditingClient] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const formSchema = z.object({
     name: z.string().min(3, t('client_name_required'))
@@ -52,51 +59,140 @@ export const ClientsList = () => {
     }
   });
 
+  // Fetch clients from Supabase
+  const { data: clients = [], isLoading } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      // Fetch clients
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, name');
+      
+      if (clientsError) {
+        console.error('Error fetching clients:', clientsError);
+        toast.error(t('error_fetching_clients'));
+        return [];
+      }
+
+      // Fetch project counts for each client
+      const clientsWithProjects = await Promise.all(
+        clientsData.map(async (client) => {
+          const { count, error: countError } = await supabase
+            .from('projects')
+            .select('id', { count: 'exact', head: true })
+            .eq('client_id', client.id);
+          
+          return {
+            ...client,
+            project_count: count || 0
+          };
+        })
+      );
+      
+      return clientsWithProjects;
+    }
+  });
+
+  // Create client mutation
+  const createClientMutation = useMutation({
+    mutationFn: async (values: { name: string }) => {
+      const { data, error } = await supabase
+        .from('clients')
+        .insert({ name: values.name })
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success(t('client_added'));
+      setDialogOpen(false);
+      form.reset();
+    },
+    onError: (error) => {
+      console.error('Error creating client:', error);
+      toast.error(t('error_adding_client'));
+    }
+  });
+
+  // Update client mutation
+  const updateClientMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string, name: string }) => {
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ name, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success(t('client_updated'));
+      setDialogOpen(false);
+      setEditingClient(null);
+      form.reset();
+    },
+    onError: (error) => {
+      console.error('Error updating client:', error);
+      toast.error(t('error_updating_client'));
+    }
+  });
+
+  // Delete client mutation
+  const deleteClientMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // First check if client has projects
+      const { count, error: countError } = await supabase
+        .from('projects')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', id);
+      
+      if (countError) throw countError;
+      
+      if (count && count > 0) {
+        throw new Error('client_has_projects');
+      }
+      
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success(t('client_deleted'));
+    },
+    onError: (error: any) => {
+      console.error('Error deleting client:', error);
+      if (error.message === 'client_has_projects') {
+        toast.error(t('cannot_delete_client_with_projects'));
+      } else {
+        toast.error(t('error_deleting_client'));
+      }
+    }
+  });
+
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (editingClient) {
-      // Edit existing client
-      const updatedClients = localClients.map(client => 
-        client.id === editingClient 
-          ? { ...client, name: values.name } 
-          : client
-      );
-      setLocalClients(updatedClients);
-      toast.success(t('client_updated'));
+      updateClientMutation.mutate({ id: editingClient, name: values.name });
     } else {
-      // Add new client
-      const newClient = {
-        id: Date.now().toString(),
-        name: values.name,
-        projects: []
-      };
-      setLocalClients([...localClients, newClient]);
-      toast.success(t('client_added'));
+      createClientMutation.mutate(values);
     }
-    
-    setDialogOpen(false);
-    setEditingClient(null);
-    form.reset();
   };
 
-  const handleEdit = (clientId: string) => {
-    const client = localClients.find(c => c.id === clientId);
-    if (client) {
-      setEditingClient(clientId);
-      form.setValue("name", client.name);
-      setDialogOpen(true);
-    }
+  const handleEdit = (clientId: string, clientName: string) => {
+    setEditingClient(clientId);
+    form.setValue("name", clientName);
+    setDialogOpen(true);
   };
 
   const handleDelete = (clientId: string) => {
-    // Check if client has projects
-    const client = localClients.find(c => c.id === clientId);
-    if (client && client.projects.length > 0) {
-      toast.error(t('cannot_delete_client_with_projects'));
-      return;
-    }
-    
-    setLocalClients(localClients.filter(client => client.id !== clientId));
-    toast.success(t('client_deleted'));
+    deleteClientMutation.mutate(clientId);
   };
 
   const handleAddNew = () => {
@@ -143,7 +239,13 @@ export const ClientsList = () => {
                       {t('cancel')}
                     </Button>
                   </DialogClose>
-                  <Button type="submit">
+                  <Button 
+                    type="submit"
+                    disabled={createClientMutation.isPending || updateClientMutation.isPending}
+                  >
+                    {(createClientMutation.isPending || updateClientMutation.isPending) && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     {editingClient ? t('update') : t('add')}
                   </Button>
                 </DialogFooter>
@@ -163,22 +265,28 @@ export const ClientsList = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {localClients.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : clients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
                   {t('no_clients')}
                 </TableCell>
               </TableRow>
             ) : (
-              localClients.map((client) => (
+              clients.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.projects.length}</TableCell>
+                  <TableCell>{client.project_count}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleEdit(client.id)}
+                      onClick={() => handleEdit(client.id, client.name)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -186,8 +294,13 @@ export const ClientsList = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(client.id)}
+                      disabled={deleteClientMutation.isPending}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deleteClientMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>

@@ -38,115 +38,202 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { clients, Client, Project, getAllProjects } from "@/data/ClientsData";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+type Client = {
+  id: string;
+  name: string;
+};
+
+type Project = {
+  id: string;
+  name: string;
+  client_id: string;
+  client_name?: string;
+};
 
 export const ProjectsList = () => {
   const { t } = useLanguage();
-  const [localClients, setLocalClients] = useState<Client[]>(clients);
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const allProjects = getAllProjects();
+  const queryClient = useQueryClient();
 
   const formSchema = z.object({
     name: z.string().min(3, t('project_name_required')),
-    clientId: z.string().min(1, t('client_required'))
+    client_id: z.string().min(1, t('client_required'))
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      clientId: ""
+      client_id: ""
+    }
+  });
+
+  // Fetch clients
+  const { data: clients = [], isLoading: isLoadingClients } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name');
+      
+      if (error) {
+        console.error('Error fetching clients:', error);
+        toast.error(t('error_fetching_clients'));
+        return [];
+      }
+      
+      return data;
+    }
+  });
+
+  // Fetch projects with client info
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          id, 
+          name, 
+          client_id,
+          clients(name)
+        `);
+      
+      if (error) {
+        console.error('Error fetching projects:', error);
+        toast.error(t('error_fetching_projects'));
+        return [];
+      }
+      
+      // Format the data for easier use in the UI
+      return data.map(project => ({
+        id: project.id,
+        name: project.name,
+        client_id: project.client_id,
+        client_name: project.clients?.name
+      }));
+    },
+    enabled: clients.length > 0
+  });
+
+  // Create project mutation
+  const createProjectMutation = useMutation({
+    mutationFn: async (values: { name: string, client_id: string }) => {
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({
+          name: values.name,
+          client_id: values.client_id,
+          owner_id: '00000000-0000-0000-0000-000000000000' // Temporary owner ID until we implement auth
+        })
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success(t('project_added'));
+      setDialogOpen(false);
+      form.reset();
+    },
+    onError: (error) => {
+      console.error('Error creating project:', error);
+      toast.error(t('error_adding_project'));
+    }
+  });
+
+  // Update project mutation
+  const updateProjectMutation = useMutation({
+    mutationFn: async ({ id, name, client_id }: { id: string, name: string, client_id: string }) => {
+      const { data, error } = await supabase
+        .from('projects')
+        .update({ 
+          name,
+          client_id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select();
+      
+      if (error) throw error;
+      return data[0];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success(t('project_updated'));
+      setDialogOpen(false);
+      setEditingProject(null);
+      form.reset();
+    },
+    onError: (error) => {
+      console.error('Error updating project:', error);
+      toast.error(t('error_updating_project'));
+    }
+  });
+
+  // Delete project mutation
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // Check if project has time entries
+      const { count, error: countError } = await supabase
+        .from('time_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', id);
+      
+      if (countError) throw countError;
+      
+      if (count && count > 0) {
+        throw new Error('project_has_time_entries');
+      }
+      
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success(t('project_deleted'));
+    },
+    onError: (error: any) => {
+      console.error('Error deleting project:', error);
+      if (error.message === 'project_has_time_entries') {
+        toast.error(t('cannot_delete_project_with_time_entries'));
+      } else {
+        toast.error(t('error_deleting_project'));
+      }
     }
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    // Deep clone the clients array to avoid direct state mutation
-    const updatedClients = JSON.parse(JSON.stringify(localClients)) as Client[];
-    const clientIndex = updatedClients.findIndex(c => c.id === values.clientId);
-    
-    if (clientIndex === -1) {
-      toast.error(t('client_not_found'));
-      return;
-    }
-
     if (editingProject) {
-      // Edit existing project
-      // First, find which client has this project
-      let foundInClient: Client | undefined;
-      let projectToUpdate: Project | undefined;
-      
-      for (const client of updatedClients) {
-        const projectIndex = client.projects.findIndex(p => p.id === editingProject);
-        if (projectIndex !== -1) {
-          foundInClient = client;
-          projectToUpdate = client.projects[projectIndex];
-          
-          // Remove from old client if moving to a different client
-          if (client.id !== values.clientId) {
-            client.projects.splice(projectIndex, 1);
-          } else {
-            // Update in the same client
-            client.projects[projectIndex] = {
-              ...client.projects[projectIndex],
-              name: values.name
-            };
-          }
-          break;
-        }
-      }
-      
-      // If moving to a different client, add to the new one
-      if (foundInClient && projectToUpdate && foundInClient.id !== values.clientId) {
-        const targetClient = updatedClients.find(c => c.id === values.clientId);
-        if (targetClient) {
-          targetClient.projects.push({
-            ...projectToUpdate,
-            name: values.name,
-            clientId: values.clientId
-          });
-        }
-      }
-      
-      toast.success(t('project_updated'));
+      updateProjectMutation.mutate({ id: editingProject, ...values });
     } else {
-      // Add new project
-      const newProject = {
-        id: Date.now().toString(),
-        name: values.name,
-        clientId: values.clientId
-      };
-      
-      updatedClients[clientIndex].projects.push(newProject);
-      toast.success(t('project_added'));
+      createProjectMutation.mutate(values);
     }
-    
-    setLocalClients(updatedClients);
-    setDialogOpen(false);
-    setEditingProject(null);
-    form.reset();
   };
 
   const handleEdit = (projectId: string) => {
-    const project = allProjects.find(p => p.id === projectId);
+    const project = projects.find(p => p.id === projectId);
     if (project) {
       setEditingProject(projectId);
       form.setValue("name", project.name);
-      form.setValue("clientId", project.clientId);
+      form.setValue("client_id", project.client_id);
       setDialogOpen(true);
     }
   };
 
   const handleDelete = (projectId: string) => {
-    const updatedClients = localClients.map(client => ({
-      ...client,
-      projects: client.projects.filter(project => project.id !== projectId)
-    }));
-    
-    setLocalClients(updatedClients);
-    toast.success(t('project_deleted'));
+    deleteProjectMutation.mutate(projectId);
   };
 
   const handleAddNew = () => {
@@ -155,14 +242,7 @@ export const ProjectsList = () => {
     setDialogOpen(true);
   };
 
-  // Get all projects from all clients for the list view
-  const allProjectsWithClients = allProjects.map(project => {
-    const client = localClients.find(c => c.id === project.clientId);
-    return {
-      ...project,
-      clientName: client ? client.name : t('unknown_client')
-    };
-  });
+  const isLoading = isLoadingClients || isLoadingProjects;
 
   return (
     <div>
@@ -170,7 +250,7 @@ export const ProjectsList = () => {
         <h2 className="text-xl font-semibold">{t('manage_projects')}</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleAddNew} disabled={localClients.length === 0}>
+            <Button onClick={handleAddNew} disabled={clients.length === 0}>
               <Plus className="mr-2 h-4 w-4" />
               {t('add_project')}
             </Button>
@@ -185,7 +265,7 @@ export const ProjectsList = () => {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="clientId"
+                  name="client_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('client')}</FormLabel>
@@ -200,7 +280,7 @@ export const ProjectsList = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {localClients.map((client) => (
+                          {clients.map((client) => (
                             <SelectItem key={client.id} value={client.id}>
                               {client.name}
                             </SelectItem>
@@ -230,7 +310,13 @@ export const ProjectsList = () => {
                       {t('cancel')}
                     </Button>
                   </DialogClose>
-                  <Button type="submit">
+                  <Button 
+                    type="submit"
+                    disabled={createProjectMutation.isPending || updateProjectMutation.isPending}
+                  >
+                    {(createProjectMutation.isPending || updateProjectMutation.isPending) && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     {editingProject ? t('update') : t('add')}
                   </Button>
                 </DialogFooter>
@@ -250,17 +336,23 @@ export const ProjectsList = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {allProjectsWithClients.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : projects.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
                   {t('no_projects')}
                 </TableCell>
               </TableRow>
             ) : (
-              allProjectsWithClients.map((project) => (
+              projects.map((project) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">{project.name}</TableCell>
-                  <TableCell>{project.clientName}</TableCell>
+                  <TableCell>{project.client_name}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"
@@ -273,8 +365,13 @@ export const ProjectsList = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(project.id)}
+                      disabled={deleteProjectMutation.isPending}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deleteProjectMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>
