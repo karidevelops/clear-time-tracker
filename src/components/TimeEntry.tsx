@@ -9,6 +9,7 @@ import ProjectSelect from './ProjectSelect';
 import { toast } from 'sonner';
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 interface TimeEntryProps {
   initialDate?: string;
@@ -17,6 +18,7 @@ interface TimeEntryProps {
 
 const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [date, setDate] = useState<string>(
     initialDate || new Date().toISOString().split('T')[0]
   );
@@ -40,13 +42,18 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
       return;
     }
     
+    if (!user) {
+      toast.error(t('login_required'));
+      return;
+    }
+    
     // Create entry data object
     const entryData = {
       date,
       hours: parseFloat(hours),
       description,
       project_id: project,
-      user_id: '00000000-0000-0000-0000-000000000000' // This will be replaced by auth.uid() when RLS is active
+      user_id: user.id
     };
     
     setIsLoading(true);

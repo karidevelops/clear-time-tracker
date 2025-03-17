@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
@@ -12,8 +12,80 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import ClientsProjects from "./pages/ClientsProjects";
 import { LanguageProvider } from "./context/LanguageContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
+
+// Protected route component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isLoading } = useAuth();
+  
+  // Show nothing while checking authentication
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  // Redirect to login if not authenticated
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+const AppRoutes = () => {
+  const { user } = useAuth();
+  
+  return (
+    <Routes>
+      {/* Public route */}
+      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
+      
+      {/* Protected routes */}
+      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/clients-projects" element={<ProtectedRoute><ClientsProjects /></ProtectedRoute>} />
+      <Route 
+        path="/weekly" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <div className="py-6">
+                <WeeklyView />
+              </div>
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/reports" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <div className="py-6">
+                <Reports />
+              </div>
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <div className="py-6">
+                <Settings />
+              </div>
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      {/* Catch-all route */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -22,42 +94,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/clients-projects" element={<ClientsProjects />} />
-            <Route 
-              path="/weekly" 
-              element={
-                <Layout>
-                  <div className="py-6">
-                    <WeeklyView />
-                  </div>
-                </Layout>
-              } 
-            />
-            <Route 
-              path="/reports" 
-              element={
-                <Layout>
-                  <div className="py-6">
-                    <Reports />
-                  </div>
-                </Layout>
-              } 
-            />
-            <Route 
-              path="/settings" 
-              element={
-                <Layout>
-                  <div className="py-6">
-                    <Settings />
-                  </div>
-                </Layout>
-              } 
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </LanguageProvider>

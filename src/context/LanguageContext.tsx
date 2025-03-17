@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface LanguageContextType {
@@ -7,15 +6,38 @@ interface LanguageContextType {
   t: (key: string) => string;
 }
 
-// Create the context with a default value
+interface Translations {
+  login: string;
+  register: string;
+  email: string;
+  password: string;
+  logging_in: string;
+  registering: string;
+  login_successful: string;
+  registration_successful: string;
+  login_error: string;
+  registration_error: string;
+  enter_credentials: string;
+  create_account: string;
+  two_factor_authentication: string;
+  enter_2fa_code: string;
+  verification_code: string;
+  demo_use_code: string;
+  verify: string;
+  verifying: string;
+  2fa_verified: string;
+  invalid_2fa_code: string;
+  2fa_error: string;
+  login_required: string;
+}
+
 const LanguageContext = createContext<LanguageContextType>({
   language: 'en',
   setLanguage: () => {},
   t: (key: string) => key,
 });
 
-// Define the translations
-const translations: Record<string, Record<string, string>> = {
+const translations: Record<string, Translations> = {
   en: {
     dashboard: 'Dashboard',
     weekly_view: 'Weekly View',
@@ -91,7 +113,29 @@ const translations: Record<string, Record<string, string>> = {
     no_data_available: 'No data available for the selected period',
     clients_and_projects: 'Clients & Projects',
     calendar: 'Calendar',
-    inspired_by: 'Reportronic'
+    inspired_by: 'Reportronic',
+    login: "Login",
+    register: "Register",
+    email: "Email",
+    password: "Password",
+    logging_in: "Logging in...",
+    registering: "Registering...",
+    login_successful: "Login successful",
+    registration_successful: "Registration successful",
+    login_error: "Login failed",
+    registration_error: "Registration failed",
+    enter_credentials: "Enter your credentials to login",
+    create_account: "Create a new account",
+    two_factor_authentication: "Two-Factor Authentication",
+    enter_2fa_code: "Enter the verification code",
+    verification_code: "Verification Code",
+    demo_use_code: "For demo purposes, use code:",
+    verify: "Verify",
+    verifying: "Verifying...",
+    "2fa_verified": "Code verified successfully",
+    invalid_2fa_code: "Invalid verification code",
+    "2fa_error": "Error verifying code",
+    login_required: "You need to be logged in"
   },
   fi: {
     dashboard: 'Kojelauta',
@@ -168,7 +212,29 @@ const translations: Record<string, Record<string, string>> = {
     no_data_available: 'Ei dataa valitulle ajanjaksolle',
     clients_and_projects: 'Asiakkaat & Projektit',
     calendar: 'Kalenteri',
-    inspired_by: 'Reportronic'
+    inspired_by: 'Reportronic',
+    login: "Kirjaudu",
+    register: "Rekisteröidy",
+    email: "Sähköposti",
+    password: "Salasana",
+    logging_in: "Kirjaudutaan...",
+    registering: "Rekisteröidään...",
+    login_successful: "Kirjautuminen onnistui",
+    registration_successful: "Rekisteröityminen onnistui",
+    login_error: "Kirjautuminen epäonnistui",
+    registration_error: "Rekisteröityminen epäonnistui",
+    enter_credentials: "Syötä kirjautumistiedot",
+    create_account: "Luo uusi käyttäjätili",
+    two_factor_authentication: "Kaksivaiheinen tunnistautuminen",
+    enter_2fa_code: "Syötä vahvistuskoodi",
+    verification_code: "Vahvistuskoodi",
+    demo_use_code: "Demotarkoitukseen käytä koodia:",
+    verify: "Vahvista",
+    verifying: "Vahvistetaan...",
+    "2fa_verified": "Koodi vahvistettu onnistuneesti",
+    invalid_2fa_code: "Virheellinen vahvistuskoodi",
+    "2fa_error": "Virhe koodin vahvistamisessa",
+    login_required: "Sinun täytyy olla kirjautunut sisään"
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -241,25 +307,44 @@ const translations: Record<string, Record<string, string>> = {
     non_billable_hours: 'Icke-fakturerbara timmar',
     billable_amount: 'Fakturerbart belopp',
     daily_breakdown: 'Daglig fördelning',
-    project_breakdown: 'Projektfördelning',
+    project_breakdown: 'Projektierittely',
     no_data_available: 'Ingen data tillgänglig för den valda perioden',
     clients_and_projects: 'Kunder & Projekt',
     calendar: 'Kalender',
-    inspired_by: 'Reportronic'
+    inspired_by: 'Reportronic',
+    login: "Kirjaudu",
+    register: "Rekisteröidy",
+    email: "Sähköposti",
+    password: "Salasana",
+    logging_in: "Kirjaudutaan...",
+    registering: "Rekisteröidään...",
+    login_successful: "Kirjautuminen onnistui",
+    registration_successful: "Rekisteröityminen onnistui",
+    login_error: "Kirjautuminen epäonnistui",
+    registration_error: "Rekisteröityminen epäonnistui",
+    enter_credentials: "Syötä kirjautumistiedot",
+    create_account: "Luo uusi käyttäjätili",
+    two_factor_authentication: "Kaksivaiheinen tunnistautuminen",
+    enter_2fa_code: "Syötä vahvistuskoodi",
+    verification_code: "Vahvistuskoodi",
+    demo_use_code: "Demotarkoitukseen käytä koodia:",
+    verify: "Vahvista",
+    verifying: "Vahvistetaan...",
+    "2fa_verified": "Koodi vahvistettu onnistuneesti",
+    invalid_2fa_code: "Virheellinen vahvistuskoodi",
+    "2fa_error": "Virhe koodin vahvistamisessa",
+    login_required: "Sinun täytyy olla kirjautunut sisään"
   },
 };
 
-// Create the provider
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState('en');
 
-  // Load the user's language preference from localStorage on component mount
   useEffect(() => {
     const storedLanguage = localStorage.getItem('language');
     if (storedLanguage) {
       setLanguage(storedLanguage);
     } else {
-      // Try to detect the browser language
       const browserLang = navigator.language.split('-')[0];
       if (browserLang && translations[browserLang]) {
         setLanguage(browserLang);
@@ -267,21 +352,17 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, []);
 
-  // Save the language preference to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('language', language);
   }, [language]);
 
-  // Translate function
   const t = (key: string): string => {
     if (translations[language] && translations[language][key]) {
       return translations[language][key];
     }
-    // Fallback to English if the key doesn't exist in the current language
     if (translations.en && translations.en[key]) {
       return translations.en[key];
     }
-    // Return the key itself if it doesn't exist in any language
     return key;
   };
 
@@ -292,5 +373,4 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   );
 };
 
-// Create a custom hook to use the language context
 export const useLanguage = () => useContext(LanguageContext);
