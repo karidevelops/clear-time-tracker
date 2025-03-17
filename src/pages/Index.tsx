@@ -9,6 +9,7 @@ import TimeEntry from '@/components/TimeEntry';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns';
+import TodayEntries from '@/components/TodayEntries';
 
 const DAILY_TARGET_HOURS = 7.5;
 const WEEKLY_TARGET_HOURS = 37.5;
@@ -382,6 +383,13 @@ const Index = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div>
+            <TodayEntries 
+              onEntrySaved={handleTimeEntrySaved} 
+              onEntryDeleted={() => fetchStats()}
+            />
+          </div>
+          
           <div className="lg:col-span-2">
             <Card>
               <CardHeader className="pb-4 border-b">

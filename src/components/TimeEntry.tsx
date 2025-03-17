@@ -14,27 +14,40 @@ import { useNavigate } from 'react-router-dom';
 
 interface TimeEntryProps {
   initialDate?: string;
+  initialHours?: string;
+  initialDescription?: string;
+  initialProjectId?: string;
+  entryId?: string;
   onEntrySaved?: (entryData: any) => void;
 }
 
-const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
+const TimeEntry = ({ 
+  initialDate, 
+  initialHours = '', 
+  initialDescription = '', 
+  initialProjectId = '',
+  entryId,
+  onEntrySaved 
+}: TimeEntryProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [date, setDate] = useState<string>(
     initialDate || new Date().toISOString().split('T')[0]
   );
-  const [hours, setHours] = useState<string>('');
-  const [description, setDescription] = useState<string>('');
-  const [project, setProject] = useState<string>('');
+  const [hours, setHours] = useState<string>(initialHours);
+  const [description, setDescription] = useState<string>(initialDescription);
+  const [project, setProject] = useState<string>(initialProjectId);
   const [isLoading, setIsLoading] = useState(false);
+  const isEditing = !!entryId;
 
-  // Update date when initialDate prop changes
+  // Update state when props change
   useEffect(() => {
-    if (initialDate) {
-      setDate(initialDate);
-    }
-  }, [initialDate]);
+    if (initialDate) setDate(initialDate);
+    if (initialHours) setHours(initialHours);
+    if (initialDescription) setDescription(initialDescription);
+    if (initialProjectId) setProject(initialProjectId);
+  }, [initialDate, initialHours, initialDescription, initialProjectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,8 +68,6 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
       date,
       hours: parseFloat(hours),
       description,
-      // Convert project_id to a proper UUID format that matches Supabase expectations
-      // The project IDs from ProjectSelect need to be actual UUIDs, not numeric IDs
       project_id: project,
       user_id: user.id
     };
@@ -64,13 +75,30 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
     setIsLoading(true);
     
     try {
-      console.log("Saving time entry:", entryData);
+      console.log(isEditing ? "Updating time entry:" : "Saving time entry:", entryData);
       
-      // Insert the time entry into Supabase
-      const { data, error } = await supabase
-        .from('time_entries')
-        .insert(entryData)
-        .select();
+      let data, error;
+
+      if (isEditing && entryId) {
+        // Update existing entry
+        const response = await supabase
+          .from('time_entries')
+          .update(entryData)
+          .eq('id', entryId)
+          .select();
+
+        data = response.data;
+        error = response.error;
+      } else {
+        // Insert new entry
+        const response = await supabase
+          .from('time_entries')
+          .insert(entryData)
+          .select();
+
+        data = response.data;
+        error = response.error;
+      }
       
       if (error) {
         console.error('Error saving time entry:', error);
@@ -79,16 +107,18 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
       }
       
       console.log('Time entry saved successfully:', data);
-      toast.success(t('time_entry_saved'));
+      toast.success(isEditing ? t('time_entry_updated') : t('time_entry_saved'));
       
       // Call the callback if provided
       if (onEntrySaved && data) {
         onEntrySaved(data[0]);
       }
       
-      // Reset form
-      setHours('');
-      setDescription('');
+      // Reset form if not editing
+      if (!isEditing) {
+        setHours('');
+        setDescription('');
+      }
       
     } catch (error) {
       console.error('Exception saving time entry:', error);
@@ -153,7 +183,7 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
         disabled={isLoading}
       >
         <Save className="mr-2 h-4 w-4" />
-        {isLoading ? t('saving') : t('save_time_entry')}
+        {isLoading ? t('saving') : isEditing ? t('update_time_entry') : t('save_time_entry')}
       </Button>
     </form>
   );
