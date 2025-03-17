@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, PieChart, ArrowUp, ArrowRight } from 'lucide-react';
@@ -11,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns';
 import TodayEntries from '@/components/TodayEntries';
+import HoursCharts from '@/components/HoursCharts';
 
 const DAILY_TARGET_HOURS = 7.5;
 const WEEKLY_TARGET_HOURS = 37.5;
@@ -224,33 +224,9 @@ const Index = () => {
               onEntryDeleted={() => fetchStats()}
             />
           </div>
-          
-          <div>
-            <Card>
-              <CardHeader className="pb-4 border-b">
-                <CardTitle className="text-lg font-semibold text-reportronic-800">{t('hours_by_project')}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="space-y-4">
-                  {projects.map((project) => (
-                    <div key={project.id}>
-                      <div className="flex justify-between items-center mb-1">
-                        <div className="text-sm font-medium truncate max-w-[70%]">{project.name}</div>
-                        <div className="text-sm text-gray-500">{project.hours}h</div>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2">
-                        <div 
-                          className={`${project.color} h-2 rounded-full`} 
-                          style={{ width: `${(project.hours / stats.month) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
+        
+        <HoursCharts />
       </div>
     </Layout>
   );
