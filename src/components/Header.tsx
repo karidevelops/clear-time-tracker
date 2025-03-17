@@ -96,8 +96,6 @@ const Header = () => {
           </nav>
           
           <div className="flex items-center space-x-4">
-            <LanguageSwitcher />
-            
             <Popover>
               <PopoverTrigger asChild>
                 <Button size="sm" variant="outline" className="hidden md:flex items-center gap-2">
@@ -124,6 +122,10 @@ const Header = () => {
               <Calendar className="h-4 w-4 mr-2" />
               <span>{t('log_time')}</span>
             </Button>
+            
+            <div className="ml-2">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </div>

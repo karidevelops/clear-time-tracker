@@ -17,20 +17,20 @@ const LanguageSwitcher = () => {
   const getFlagIcon = () => {
     switch (language) {
       case 'fi':
-        return <FI className="h-5 w-5 mr-2" />;
+        return <FI className="h-5 w-5" />;
       case 'sv':
-        return <SV className="h-5 w-5 mr-2" />;
+        return <SV className="h-5 w-5" />;
       case 'en':
-        return <GB className="h-5 w-5 mr-2" />;
+        return <GB className="h-5 w-5" />;
       default:
-        return <GB className="h-5 w-5 mr-2" />;
+        return <GB className="h-5 w-5" />;
     }
   };
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 px-0">
+        <Button variant="ghost" size="sm" className="h-8 w-8 px-0 rounded-full">
           {getFlagIcon()}
         </Button>
       </DropdownMenuTrigger>
