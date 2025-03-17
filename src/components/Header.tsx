@@ -16,9 +16,54 @@ import {
   MenubarTrigger 
 } from "@/components/ui/menubar";
 import { clients } from '@/data/ClientsData';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { fi, sv, enUS } from 'date-fns/locale';
+import TimeEntry from './TimeEntry';
 
 const Header = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const navigate = useNavigate();
+  const [date, setDate] = useState<Date>(new Date());
+  const [showTimeEntry, setShowTimeEntry] = useState(false);
+  
+  // Get date-fns locale based on current language
+  const getLocale = () => {
+    switch (language) {
+      case 'fi':
+        return fi;
+      case 'sv':
+        return sv;
+      default:
+        return enUS;
+    }
+  };
+
+  const handleCalendarSelect = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+      setShowTimeEntry(true);
+    }
+  };
+
+  const handleLogTime = () => {
+    // Navigate to home page where the time entry form is
+    navigate('/');
+    // We can scroll to the time entry form if needed
+    setTimeout(() => {
+      const timeEntryCard = document.querySelector('.time-tracker-header + div .card');
+      if (timeEntryCard) {
+        timeEntryCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  const handleTimeEntrySaved = () => {
+    setShowTimeEntry(false);
+  };
   
   return (
     <header className="time-tracker-header sticky top-0 z-10 border-b border-gray-200 bg-white">
@@ -83,17 +128,53 @@ const Header = () => {
           
           <div className="flex items-center space-x-4">
             <LanguageSwitcher />
-            <Button size="sm" variant="outline" className="hidden md:flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              <span>{t('calendar')}</span>
-            </Button>
-            <Button size="sm" className="bg-reportronic-500 hover:bg-reportronic-600 text-white">
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="sm" variant="outline" className="hidden md:flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>{t('calendar')}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  mode="single"
+                  selected={date}
+                  onSelect={handleCalendarSelect}
+                  locale={getLocale()}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Button 
+              size="sm" 
+              className="bg-reportronic-500 hover:bg-reportronic-600 text-white"
+              onClick={handleLogTime}
+            >
               <Calendar className="h-4 w-4 mr-2" />
               <span>{t('log_time')}</span>
             </Button>
           </div>
         </div>
       </div>
+      
+      {showTimeEntry && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white rounded-lg w-full max-w-md p-6">
+            <h2 className="text-lg font-semibold mb-4">{format(date, 'PPP', { locale: getLocale() })}</h2>
+            <TimeEntry 
+              initialDate={format(date, 'yyyy-MM-dd')}
+              onEntrySaved={handleTimeEntrySaved}
+            />
+            <div className="mt-4 flex justify-end">
+              <Button variant="outline" onClick={() => setShowTimeEntry(false)}>
+                {t('cancel')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

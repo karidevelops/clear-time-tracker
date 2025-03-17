@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,17 +10,25 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface TimeEntryProps {
+  initialDate?: string;
   onEntrySaved?: (entryData: any) => void;
 }
 
-const TimeEntry = ({ onEntrySaved }: TimeEntryProps) => {
+const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
   const { t } = useLanguage();
   const [date, setDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    initialDate || new Date().toISOString().split('T')[0]
   );
   const [hours, setHours] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [project, setProject] = useState<string>('');
+
+  // Update date when initialDate prop changes
+  useEffect(() => {
+    if (initialDate) {
+      setDate(initialDate);
+    }
+  }, [initialDate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
