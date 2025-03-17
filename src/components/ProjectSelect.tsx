@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger 
+  DialogTrigger,
+  DialogDescription 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from '@/context/LanguageContext';
@@ -95,10 +96,12 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
   };
 
   const handleClientSelect = (clientId: string) => {
+    console.log('Selected client ID:', clientId);
     setSelectedClient(clientId);
   };
 
   const handleProjectSelect = (projectId: string) => {
+    console.log('Selected project ID:', projectId);
     onChange(projectId);
     setOpen(false);
     setSelectedClient(null);
@@ -128,6 +131,9 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{selectedClient ? t('select_project') : t('select_client')}</DialogTitle>
+          <DialogDescription>
+            {selectedClient ? t('select_project_desc') : t('select_client_first')}
+          </DialogDescription>
         </DialogHeader>
         
         {isLoading ? (
