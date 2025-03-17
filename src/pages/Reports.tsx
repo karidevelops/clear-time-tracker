@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, FileText, Download } from "lucide-react";
+import { Calendar as CalendarIcon, FileText, Download, FileSpreadsheet, FilePdf } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -24,8 +23,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-// Time entry interface matching the database schema
 interface TimeEntry {
   id: string;
   date: string;
@@ -35,14 +36,12 @@ interface TimeEntry {
   user_id: string;
 }
 
-// Project interface for the data from Supabase
 interface Project {
   id: string;
   name: string;
   client_id: string;
 }
 
-// Client interface for the data from Supabase
 interface Client {
   id: string;
   name: string;
@@ -67,7 +66,6 @@ const Reports = () => {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Fetch clients from Supabase
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ['clients'],
     queryFn: async () => {
@@ -85,7 +83,6 @@ const Reports = () => {
     }
   });
   
-  // Fetch projects from Supabase
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: async () => {
@@ -103,21 +100,18 @@ const Reports = () => {
     }
   });
 
-  // Fetch time entries from Supabase
   useEffect(() => {
     if (!user) return;
     
     const fetchTimeEntries = async () => {
       setIsLoading(true);
       try {
-        // Build the query
         let query = supabase
           .from('time_entries')
           .select('*')
           .eq('user_id', user.id)
           .order('date', { ascending: false });
         
-        // Add date range filters if set
         if (dateRange.from) {
           const fromDateStr = format(dateRange.from, 'yyyy-MM-dd');
           query = query.gte('date', fromDateStr);
@@ -128,7 +122,6 @@ const Reports = () => {
           query = query.lte('date', toDateStr);
         }
         
-        // Add project filter if set and not "all"
         if (selectedProject && selectedProject !== 'all') {
           query = query.eq('project_id', selectedProject);
         }
@@ -155,7 +148,6 @@ const Reports = () => {
     fetchTimeEntries();
   }, [user, dateRange, selectedProject, t]);
 
-  // Apply date range filters based on selected period
   const applyDateFilter = (period: FilterPeriod) => {
     const today = new Date();
     
@@ -185,7 +177,6 @@ const Reports = () => {
           to: undefined,
         });
         break;
-      // When custom is selected, we keep the existing range if it exists
       case "custom":
         break;
     }
@@ -193,13 +184,11 @@ const Reports = () => {
     setFilterPeriod(period);
   };
 
-  // Helper function to get project name from project ID
   const getProjectName = (projectId: string): string => {
     const project = projects.find(p => p.id === projectId);
     return project ? project.name : t('unknown_project');
   };
 
-  // Helper function to get client name from project ID
   const getClientName = (projectId: string): string => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return t('unknown_client');
@@ -208,34 +197,42 @@ const Reports = () => {
     return client ? client.name : t('unknown_client');
   };
 
-  // Calculate total hours
   const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
 
-  // Export to CSV
-  const exportToCsv = () => {
+  const prepareReportData = () => {
     if (timeEntries.length === 0) {
       toast.error(t('no_data_to_export'));
-      return;
+      return null;
     }
     
-    // Format headers and data
+    return timeEntries.map(entry => ({
+      date: format(parseISO(entry.date), 'dd.MM.yyyy'),
+      client: getClientName(entry.project_id),
+      project: getProjectName(entry.project_id),
+      description: entry.description || '',
+      hours: Number(entry.hours).toFixed(1)
+    }));
+  };
+
+  const exportToCsv = () => {
+    const data = prepareReportData();
+    if (!data) return;
+    
     const headers = [t('date'), t('client'), t('project'), t('description'), t('hours')];
     
-    const rows = timeEntries.map(entry => [
-      format(parseISO(entry.date), 'dd.MM.yyyy'),
-      getClientName(entry.project_id),
-      getProjectName(entry.project_id),
-      entry.description || '',
-      Number(entry.hours).toFixed(1)
+    const rows = data.map(row => [
+      row.date,
+      row.client,
+      row.project,
+      row.description,
+      row.hours
     ]);
     
-    // Build CSV content
     const csvContent = [
       headers.join(','),
       ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
     
-    // Create blob and download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -249,6 +246,94 @@ const Reports = () => {
     toast.success(t('report_exported'));
   };
 
+  const exportToExcel = () => {
+    const data = prepareReportData();
+    if (!data) return;
+    
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, t('time_report'));
+    
+    const headers = [t('date'), t('client'), t('project'), t('description'), t('hours')];
+    XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: 'A1' });
+    
+    const maxWidths = [
+      10,
+      20,
+      20,
+      40,
+      8,
+    ];
+    
+    const colWidths = {};
+    maxWidths.forEach((width, i) => {
+      const col = String.fromCharCode(65 + i);
+      colWidths[col] = { width };
+    });
+    worksheet['!cols'] = Object.values(colWidths);
+    
+    XLSX.writeFile(workbook, `time-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    
+    toast.success(t('report_exported'));
+  };
+
+  const exportToPdf = () => {
+    const data = prepareReportData();
+    if (!data) return;
+    
+    const doc = new jsPDF();
+    
+    const title = t('time_report');
+    doc.setFontSize(18);
+    doc.text(title, 14, 20);
+    
+    const dateRangeText = dateRange.from && dateRange.to
+      ? `${format(dateRange.from, 'dd.MM.yyyy')} - ${format(dateRange.to, 'dd.MM.yyyy')}`
+      : t('all_time');
+    doc.setFontSize(12);
+    doc.text(dateRangeText, 14, 30);
+    
+    doc.text(`${t('total_entries')}: ${timeEntries.length}`, 14, 40);
+    doc.text(`${t('total_hours')}: ${totalHours.toFixed(1)}`, 14, 48);
+    
+    const tableData = data.map(row => [
+      row.date,
+      row.client,
+      row.project,
+      row.description,
+      row.hours
+    ]);
+    
+    const headers = [t('date'), t('client'), t('project'), t('description'), t('hours')];
+    
+    autoTable(doc, {
+      head: [headers],
+      body: tableData,
+      startY: 60,
+      theme: 'grid',
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+      },
+      columnStyles: {
+        0: { cellWidth: 25 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 'auto' },
+        4: { cellWidth: 20, halign: 'center' },
+      },
+      headStyles: {
+        fillColor: [253, 126, 30],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+    });
+    
+    doc.save(`time-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    
+    toast.success(t('report_exported'));
+  };
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex items-center gap-3 mb-8">
@@ -256,12 +341,10 @@ const Reports = () => {
         <h1 className="text-3xl font-bold text-reportronic-800">{t('reports')}</h1>
       </div>
 
-      {/* Filters */}
       <div className="bg-white p-6 rounded-lg border mb-8">
         <h2 className="text-xl font-semibold mb-4">{t('filter_reports')}</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {/* Project filter */}
           <div>
             <label className="block text-sm font-medium mb-2">{t('project')}</label>
             <ProjectSelect 
@@ -270,7 +353,6 @@ const Reports = () => {
             />
           </div>
           
-          {/* Date range filter */}
           <div>
             <label className="block text-sm font-medium mb-2">{t('date_range')}</label>
             <div className="flex space-x-2">
@@ -315,7 +397,6 @@ const Reports = () => {
             </div>
           </div>
           
-          {/* Quick date filters */}
           <div className="lg:col-span-2">
             <label className="block text-sm font-medium mb-2">{t('quick_filters')}</label>
             <div className="flex flex-wrap gap-2">
@@ -352,19 +433,38 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Summary */}
       <div className="bg-white p-6 rounded-lg border mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">{t('summary')}</h2>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={exportToCsv}
-            disabled={timeEntries.length === 0 || isLoading}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            {t('export_to_csv')}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={exportToCsv}
+              disabled={timeEntries.length === 0 || isLoading}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {t('export_to_csv')}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={exportToExcel}
+              disabled={timeEntries.length === 0 || isLoading}
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              {t('export_to_excel')}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={exportToPdf}
+              disabled={timeEntries.length === 0 || isLoading}
+            >
+              <FilePdf className="mr-2 h-4 w-4" />
+              {t('export_to_pdf')}
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -387,7 +487,6 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Results Table */}
       <div className="border rounded-md">
         {isLoading ? (
           <div className="p-8 text-center">
