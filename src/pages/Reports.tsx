@@ -58,6 +58,7 @@ const Reports = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [selectedProject, setSelectedProject] = useState<string>("");
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
@@ -124,6 +125,14 @@ const Reports = () => {
         
         if (selectedProject && selectedProject !== 'all') {
           query = query.eq('project_id', selectedProject);
+        } else if (selectedClientId) {
+          const clientProjects = projects
+            .filter(p => p.client_id === selectedClientId)
+            .map(p => p.id);
+          
+          if (clientProjects.length > 0) {
+            query = query.in('project_id', clientProjects);
+          }
         }
         
         const { data, error } = await query;
@@ -146,7 +155,7 @@ const Reports = () => {
     };
     
     fetchTimeEntries();
-  }, [user, dateRange, selectedProject, t]);
+  }, [user, dateRange, selectedProject, selectedClientId, projects, t]);
 
   const applyDateFilter = (period: FilterPeriod) => {
     const today = new Date();
@@ -195,6 +204,11 @@ const Reports = () => {
     
     const client = clients.find(c => c.id === project.client_id);
     return client ? client.name : t('unknown_client');
+  };
+
+  const handleProjectSelect = (projectId: string, clientId: string | null) => {
+    setSelectedProject(projectId);
+    setSelectedClientId(clientId);
   };
 
   const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
@@ -349,7 +363,7 @@ const Reports = () => {
             <label className="block text-sm font-medium mb-2">{t('project')}</label>
             <ProjectSelect 
               value={selectedProject} 
-              onChange={setSelectedProject} 
+              onChange={(projectId, clientId) => handleProjectSelect(projectId, clientId)} 
             />
           </div>
           

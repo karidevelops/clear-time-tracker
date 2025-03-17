@@ -16,7 +16,7 @@ import {
 
 interface ProjectSelectProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, clientId: string | null) => void;
 }
 
 const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
@@ -95,7 +95,18 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
 
   const handleClientChange = (clientId: string) => {
     setSelectedClient(clientId);
-    onChange(''); // Clear project selection when client changes
+    onChange('all', clientId); // When client changes, select "all" projects but pass clientId
+  };
+
+  const handleProjectChange = (projectId: string) => {
+    if (projectId === 'all') {
+      // For "all" option, pass the current client ID
+      onChange(projectId, selectedClient);
+    } else {
+      // For specific project, find its client ID from projects list
+      const project = clientProjects.find(p => p.id === projectId);
+      onChange(projectId, selectedClient);
+    }
   };
 
   return (
@@ -125,7 +136,7 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
           <Label htmlFor="project">{t('project')}</Label>
           <Select 
             value={value} 
-            onValueChange={onChange}
+            onValueChange={handleProjectChange}
             disabled={isLoadingProjects}
           >
             <SelectTrigger id="project" className="w-full">
