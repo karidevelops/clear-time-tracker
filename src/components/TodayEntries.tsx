@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Clock } from 'lucide-react';
@@ -82,10 +82,10 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
     }
   };
 
-  // Load today's entries on component mount
-  useState(() => {
+  // Fixed: Use useEffect instead of useState to load data on component mount
+  useEffect(() => {
     fetchTodayEntries();
-  });
+  }, [user]); // Added user as a dependency
 
   const handleEdit = (entry: TimeEntryItem) => {
     setCurrentEntry(entry);
