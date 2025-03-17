@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { BarChart, Calendar, FileText, Settings as SettingsIcon } from 'lucide-react';
+import { BarChart, Calendar, FileText, Settings as SettingsIcon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -23,12 +23,14 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { fi, sv, enUS } from 'date-fns/locale';
 import TimeEntry from './TimeEntry';
+import { useAuth } from '@/context/AuthContext';
 
 const Header = () => {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [date, setDate] = useState<Date>(new Date());
   const [showTimeEntry, setShowTimeEntry] = useState(false);
+  const { signOut } = useAuth();
   
   // Get date-fns locale based on current language
   const getLocale = () => {
@@ -110,8 +112,18 @@ const Header = () => {
               </PopoverContent>
             </Popover>
 
-            <div className="ml-2">
+            <div className="flex items-center space-x-3">
               <LanguageSwitcher />
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={signOut}
+                className="text-gray-500 hover:text-reportronic-600"
+                title={t('logout') || 'Logout'}
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         </div>
