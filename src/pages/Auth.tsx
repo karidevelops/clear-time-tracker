@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -22,14 +21,42 @@ const Auth = () => {
   const [sessionData, setSessionData] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  useEffect(() => {
+    const setupRedirectUrl = async () => {
+      const currentUrl = window.location.origin;
+      
+      await supabase.auth.setSession({
+        access_token: "",
+        refresh_token: "",
+      });
+      
+      const { error } = await supabase.auth.setSession({
+        access_token: "",
+        refresh_token: "",
+        redirect_to: currentUrl,
+      });
+      
+      if (error) {
+        console.error('Error setting redirect URL:', error);
+      }
+    };
+    
+    setupRedirectUrl();
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
+      const redirectTo = window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: {
+          redirectTo
+        }
       });
 
       if (error) {
@@ -38,17 +65,14 @@ const Auth = () => {
         return;
       }
 
-      // Check if user is admin
       if (email === "kari.vatka@sebitti.fi") {
         setIsAdmin(true);
       }
 
-      // For demo purposes, always show 2FA for the admin
       if (email === "kari.vatka@sebitti.fi") {
         setShowOTP(true);
         setSessionData(data);
       } else {
-        // For regular users, just log them in directly
         toast.success(t('login_successful'));
         navigate("/");
       }
@@ -65,13 +89,16 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      const redirectTo = window.location.origin;
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: email.split('@')[0], // Basic name from email
-          }
+            full_name: email.split('@')[0],
+          },
+          redirectTo
         }
       });
 
@@ -83,8 +110,6 @@ const Auth = () => {
 
       toast.success(t('registration_successful'));
       
-      // In a real system, you might want to verify email first
-      // For now, we'll just redirect to login tab
       setEmail("");
       setPassword("");
       document.getElementById("login-tab")?.click();
@@ -102,8 +127,6 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      // In a real 2FA system, you would verify the code with a service
-      // For this demo, we'll just check if it matches a hardcoded value for the admin
       if (isAdmin && otp === "123456") {
         toast.success(t('2fa_verified'));
         navigate("/");

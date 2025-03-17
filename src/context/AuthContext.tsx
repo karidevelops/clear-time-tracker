@@ -29,6 +29,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Set up auth redirect URL to current window location (instead of localhost)
+    const setAuthRedirectUrl = async () => {
+      const currentUrl = window.location.origin;
+      const { error } = await supabase.auth.setSession({
+        access_token: "",
+        refresh_token: "",
+      });
+      
+      if (error) {
+        console.error('Error setting session:', error);
+      }
+      
+      const { error: redirectError } = await supabase.auth.setSession({
+        access_token: "",
+        refresh_token: "",
+        redirect_to: currentUrl,
+      });
+      
+      if (redirectError) {
+        console.error('Error setting redirect URL:', redirectError);
+      }
+    };
+    
+    setAuthRedirectUrl();
+    
     // Get initial session
     const getInitialSession = async () => {
       try {
