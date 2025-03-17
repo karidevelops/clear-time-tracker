@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { 
@@ -9,39 +10,30 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { Calendar as CalendarIcon, FileText, BarChart3, Download } from "lucide-react";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
+import { Calendar as CalendarIcon, FileText, Download } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { clients, getAllProjects, Project, getClientById } from "@/data/ClientsData";
+import { getAllProjects, getClientById } from "@/data/ClientsData";
 import ProjectSelect from "@/components/ProjectSelect";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
-// Mock time entries data
+// Time entry interface matching the database schema
 interface TimeEntry {
   id: string;
-  date: Date;
+  date: string;
   hours: number;
-  projectId: string;
-  description: string;
+  project_id: string;
+  description: string | null;
+  user_id: string;
 }
-
-const mockTimeEntries: TimeEntry[] = [
-  { id: "1", date: new Date(2023, 5, 1), hours: 4.5, projectId: "101", description: "Development work" },
-  { id: "2", date: new Date(2023, 5, 1), hours: 3, projectId: "202", description: "Design updates" },
-  { id: "3", date: new Date(2023, 5, 2), hours: 7.5, projectId: "101", description: "API implementation" },
-  { id: "4", date: new Date(2023, 5, 3), hours: 6, projectId: "302", description: "Documentation" },
-  { id: "5", date: new Date(2023, 5, 5), hours: 8, projectId: "201", description: "Backend work" },
-  { id: "6", date: new Date(2023, 5, 8), hours: 5, projectId: "102", description: "Mobile app updates" },
-  { id: "7", date: new Date(2023, 5, 10), hours: 4, projectId: "301", description: "Testing" },
-  { id: "8", date: new Date(2023, 5, 12), hours: 7, projectId: "102", description: "UI improvements" },
-  { id: "9", date: new Date(2023, 5, 15), hours: 6.5, projectId: "201", description: "API debugging" },
-  { id: "10", date: new Date(2023, 6, 1), hours: 8, projectId: "301", description: "Documentation updates" },
-];
 
 type DateRange = {
   from: Date | undefined;
@@ -52,12 +44,67 @@ type FilterPeriod = "all" | "week" | "month" | "last-month" | "custom";
 
 const Reports = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
   });
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>("month");
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch time entries from Supabase
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchTimeEntries = async () => {
+      setIsLoading(true);
+      try {
+        // Build the query
+        let query = supabase
+          .from('time_entries')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false });
+        
+        // Add date range filters if set
+        if (dateRange.from) {
+          const fromDateStr = format(dateRange.from, 'yyyy-MM-dd');
+          query = query.gte('date', fromDateStr);
+        }
+        
+        if (dateRange.to) {
+          const toDateStr = format(dateRange.to, 'yyyy-MM-dd');
+          query = query.lte('date', toDateStr);
+        }
+        
+        // Add project filter if set
+        if (selectedProject) {
+          query = query.eq('project_id', selectedProject);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching time entries:", error);
+          toast.error(t('error_fetching_time_entries'));
+          return;
+        }
+        
+        if (data) {
+          setTimeEntries(data as TimeEntry[]);
+        }
+      } catch (error) {
+        console.error("Exception fetching time entries:", error);
+        toast.error(t('error_fetching_time_entries'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTimeEntries();
+  }, [user, dateRange, selectedProject, t]);
 
   // Apply date range filters based on selected period
   const applyDateFilter = (period: FilterPeriod) => {
@@ -97,33 +144,6 @@ const Reports = () => {
     setFilterPeriod(period);
   };
 
-  // Filter entries based on selected project and date range
-  const filteredEntries = mockTimeEntries.filter(entry => {
-    // Filter by project if selected
-    if (selectedProject && entry.projectId !== selectedProject) {
-      return false;
-    }
-    
-    // Filter by date range if set
-    if (dateRange.from && entry.date < dateRange.from) {
-      return false;
-    }
-    
-    if (dateRange.to) {
-      // Include the entire day for the end date
-      const endDate = new Date(dateRange.to);
-      endDate.setHours(23, 59, 59, 999);
-      if (entry.date > endDate) {
-        return false;
-      }
-    }
-    
-    return true;
-  });
-
-  // Calculate total hours
-  const totalHours = filteredEntries.reduce((sum, entry) => sum + entry.hours, 0);
-
   // Helper function to get project name
   const getProjectName = (projectId: string): string => {
     const allProjects = getAllProjects();
@@ -139,6 +159,47 @@ const Reports = () => {
     
     const client = getClientById(project.clientId);
     return client ? client.name : t('unknown_client');
+  };
+
+  // Calculate total hours
+  const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
+
+  // Export to CSV
+  const exportToCsv = () => {
+    if (timeEntries.length === 0) {
+      toast.error(t('no_data_to_export'));
+      return;
+    }
+    
+    // Format headers and data
+    const headers = [t('date'), t('client'), t('project'), t('description'), t('hours')];
+    
+    const rows = timeEntries.map(entry => [
+      format(parseISO(entry.date), 'dd.MM.yyyy'),
+      getClientName(entry.project_id),
+      getProjectName(entry.project_id),
+      entry.description || '',
+      Number(entry.hours).toFixed(1)
+    ]);
+    
+    // Build CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    // Create blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `time-report-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success(t('report_exported'));
   };
 
   return (
@@ -248,7 +309,12 @@ const Reports = () => {
       <div className="bg-white p-6 rounded-lg border mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">{t('summary')}</h2>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={exportToCsv}
+            disabled={timeEntries.length === 0 || isLoading}
+          >
             <Download className="mr-2 h-4 w-4" />
             {t('export_to_csv')}
           </Button>
@@ -257,7 +323,7 @@ const Reports = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-gray-50 p-4 rounded-md border">
             <div className="text-sm text-gray-500">{t('total_entries')}</div>
-            <div className="text-2xl font-bold">{filteredEntries.length}</div>
+            <div className="text-2xl font-bold">{timeEntries.length}</div>
           </div>
           <div className="bg-gray-50 p-4 rounded-md border">
             <div className="text-sm text-gray-500">{t('total_hours')}</div>
@@ -266,9 +332,8 @@ const Reports = () => {
           <div className="bg-gray-50 p-4 rounded-md border">
             <div className="text-sm text-gray-500">{t('avg_hours_per_day')}</div>
             <div className="text-2xl font-bold">
-              {filteredEntries.length > 0 
-                ? (totalHours / [...new Set(filteredEntries.map(e => 
-                    format(e.date, 'yyyy-MM-dd')))].length).toFixed(1) 
+              {timeEntries.length > 0 
+                ? (totalHours / [...new Set(timeEntries.map(e => e.date))].length).toFixed(1) 
                 : '0.0'}
             </div>
           </div>
@@ -277,36 +342,43 @@ const Reports = () => {
 
       {/* Results Table */}
       <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('date')}</TableHead>
-              <TableHead>{t('client')}</TableHead>
-              <TableHead>{t('project')}</TableHead>
-              <TableHead>{t('description')}</TableHead>
-              <TableHead className="text-right">{t('hours')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredEntries.length === 0 ? (
+        {isLoading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-reportronic-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-500">{t('loading_time_entries')}</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                  {t('no_time_entries_found')}
-                </TableCell>
+                <TableHead>{t('date')}</TableHead>
+                <TableHead>{t('client')}</TableHead>
+                <TableHead>{t('project')}</TableHead>
+                <TableHead>{t('description')}</TableHead>
+                <TableHead className="text-right">{t('hours')}</TableHead>
               </TableRow>
-            ) : (
-              filteredEntries.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell>{format(entry.date, 'dd.MM.yyyy')}</TableCell>
-                  <TableCell>{getClientName(entry.projectId)}</TableCell>
-                  <TableCell>{getProjectName(entry.projectId)}</TableCell>
-                  <TableCell>{entry.description}</TableCell>
-                  <TableCell className="text-right font-medium">{entry.hours.toFixed(1)}</TableCell>
+            </TableHeader>
+            <TableBody>
+              {timeEntries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                    {t('no_time_entries_found')}
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                timeEntries.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell>{format(parseISO(entry.date), 'dd.MM.yyyy')}</TableCell>
+                    <TableCell>{getClientName(entry.project_id)}</TableCell>
+                    <TableCell>{getProjectName(entry.project_id)}</TableCell>
+                    <TableCell>{entry.description || "-"}</TableCell>
+                    <TableCell className="text-right font-medium">{Number(entry.hours).toFixed(1)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );
