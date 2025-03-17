@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, PieChart, ArrowUp, ArrowRight } from 'lucide-react';
@@ -7,6 +8,7 @@ import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
 import TimeEntry from '@/components/TimeEntry';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 // Target working hours
 const DAILY_TARGET_HOURS = 7.5;
@@ -30,6 +32,7 @@ const projects = [
 
 const Index = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,7 +42,7 @@ const Index = () => {
       try {
         // For demonstration purposes using a static user ID
         // This will be replaced by auth.uid() when authentication is implemented
-        const userId = '00000000-0000-0000-0000-000000000000';
+        const userId = user?.id || '00000000-0000-0000-0000-000000000000';
         
         setIsLoading(true);
         const { data, error } = await supabase
@@ -85,7 +88,7 @@ const Index = () => {
     }
 
     fetchRecentEntries();
-  }, []);
+  }, [user]);
 
   // Function to handle time entry submission
   const handleTimeEntrySaved = (newEntry: any) => {
@@ -252,7 +255,9 @@ const Index = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-4 text-center text-gray-500">{t('no_recent_entries')}</div>
+                  <div className="p-4 text-center text-gray-500">
+                    {t('no_recent_entries') || 'No recent time entries found. Add a new entry above.'}
+                  </div>
                 )}
                 <div className="p-4 text-center">
                   <Link to="/weekly">
