@@ -18,12 +18,20 @@ import { toast } from "sonner";
 interface ProjectSelectProps {
   value: string;
   onChange: (value: string) => void;
+  clientId?: string;
 }
 
-const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
+const ProjectSelect = ({ value, onChange, clientId }: ProjectSelectProps) => {
   const { t } = useLanguage();
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  
+  // Set the preselected client from props if provided
+  useEffect(() => {
+    if (clientId) {
+      setSelectedClient(clientId);
+    }
+  }, [clientId]);
   
   // Fetch clients
   const { data: clients = [], isLoading: isLoadingClients } = useQuery({
@@ -104,13 +112,16 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
     console.log('Selected project ID:', projectId);
     onChange(projectId);
     setOpen(false);
-    setSelectedClient(null);
+    // Do not reset client selection if clientId is provided from props
+    if (!clientId) {
+      setSelectedClient(null);
+    }
   };
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
-    // Reset client selection when dialog is closed
-    if (!newOpen) {
+    // Reset client selection when dialog is closed, unless clientId is provided
+    if (!newOpen && !clientId) {
       setSelectedClient(null);
     }
   };
@@ -161,13 +172,15 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
         ) : (
           // Show projects for selected client
           <div className="grid gap-2 py-4">
-            <Button 
-              variant="outline" 
-              className="mb-2" 
-              onClick={() => setSelectedClient(null)}
-            >
-              ← {t('back_to_clients')}
-            </Button>
+            {!clientId && (
+              <Button 
+                variant="outline" 
+                className="mb-2" 
+                onClick={() => setSelectedClient(null)}
+              >
+                ← {t('back_to_clients')}
+              </Button>
+            )}
             
             {clientProjects.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">{t('no_projects_for_client')}</p>

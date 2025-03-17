@@ -24,6 +24,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Time entry interface matching the database schema
 interface TimeEntry {
@@ -59,6 +66,7 @@ const Reports = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [selectedProject, setSelectedProject] = useState<string>("");
+  const [selectedClient, setSelectedClient] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
@@ -103,6 +111,16 @@ const Reports = () => {
     }
   });
 
+  // Get filtered projects for the selected client
+  const clientProjects = selectedClient 
+    ? projects.filter(project => project.client_id === selectedClient)
+    : [];
+
+  // Reset selected project when client changes
+  useEffect(() => {
+    setSelectedProject("");
+  }, [selectedClient]);
+
   // Fetch time entries from Supabase
   useEffect(() => {
     if (!user) return;
@@ -131,6 +149,11 @@ const Reports = () => {
         // Add project filter if set
         if (selectedProject) {
           query = query.eq('project_id', selectedProject);
+        } 
+        // If client is selected but no project, filter by all projects of the client
+        else if (selectedClient && clientProjects.length > 0) {
+          const projectIds = clientProjects.map(p => p.id);
+          query = query.in('project_id', projectIds);
         }
         
         const { data, error } = await query;
@@ -153,7 +176,7 @@ const Reports = () => {
     };
     
     fetchTimeEntries();
-  }, [user, dateRange, selectedProject, t]);
+  }, [user, dateRange, selectedProject, selectedClient, clientProjects, t]);
 
   // Apply date range filters based on selected period
   const applyDateFilter = (period: FilterPeriod) => {
@@ -261,12 +284,34 @@ const Reports = () => {
         <h2 className="text-xl font-semibold mb-4">{t('filter_reports')}</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Client filter */}
+          <div>
+            <label className="block text-sm font-medium mb-2">{t('client')}</label>
+            <Select 
+              value={selectedClient} 
+              onValueChange={setSelectedClient}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('select_client')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">{t('all_clients')}</SelectItem>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           {/* Project filter */}
           <div>
             <label className="block text-sm font-medium mb-2">{t('project')}</label>
             <ProjectSelect 
               value={selectedProject} 
               onChange={setSelectedProject} 
+              clientId={selectedClient}
             />
           </div>
           
@@ -316,7 +361,7 @@ const Reports = () => {
           </div>
           
           {/* Quick date filters */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <label className="block text-sm font-medium mb-2">{t('quick_filters')}</label>
             <div className="flex flex-wrap gap-2">
               <Button 
