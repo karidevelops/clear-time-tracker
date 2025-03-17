@@ -31,24 +31,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     // Set up auth redirect URL to current window location (instead of localhost)
     const setAuthRedirectUrl = async () => {
-      const currentUrl = window.location.origin;
-      // Clear previous session
-      const { error } = await supabase.auth.setSession({
-        access_token: "",
-        refresh_token: "",
-      });
-      
-      if (error) {
-        console.error('Error setting session:', error);
-      }
-      
-      // Set the site URL for redirects
-      const { data: settingsData, error: settingsError } = await supabase.auth.updateUser({
-        data: { redirect_url: currentUrl }
-      });
-      
-      if (settingsError) {
-        console.error('Error setting redirect URL:', settingsError);
+      try {
+        const currentUrl = window.location.origin;
+        console.log("Setting redirect URL in AuthContext:", currentUrl);
+        
+        // Set the site URL for redirects
+        const { data: settingsData, error: settingsError } = await supabase.auth.updateUser({
+          data: { redirect_url: currentUrl }
+        });
+        
+        if (settingsError) {
+          console.error('Error setting redirect URL:', settingsError);
+        }
+      } catch (err) {
+        console.error('Exception in setAuthRedirectUrl:', err);
       }
     };
     
@@ -82,6 +78,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         setIsLoading(false);
+        
+        if (event === 'SIGNED_IN') {
+          toast.success('Signed in successfully');
+        }
       }
     );
 

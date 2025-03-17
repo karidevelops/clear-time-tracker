@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,21 +24,20 @@ const Auth = () => {
 
   useEffect(() => {
     const setupRedirectUrl = async () => {
-      const currentUrl = window.location.origin;
-      
-      // Clear previous session
-      await supabase.auth.setSession({
-        access_token: "",
-        refresh_token: "",
-      });
-      
-      // Set the site URL for redirects
-      const { data: userData, error } = await supabase.auth.updateUser({
-        data: { redirect_url: currentUrl }
-      });
-      
-      if (error) {
-        console.error('Error setting redirect URL:', error);
+      try {
+        const currentUrl = window.location.origin;
+        console.log("Setting redirect URL to:", currentUrl);
+        
+        // Set the site URL for redirects
+        const { data: userData, error } = await supabase.auth.updateUser({
+          data: { redirect_url: currentUrl }
+        });
+        
+        if (error) {
+          console.error('Error setting redirect URL:', error);
+        }
+      } catch (err) {
+        console.error('Exception during setupRedirectUrl:', err);
       }
     };
     
@@ -53,7 +53,10 @@ const Auth = () => {
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
+        options: {
+          redirectTo: redirectUrl
+        }
       });
 
       if (error) {
@@ -86,14 +89,17 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      const redirectUrl = window.location.origin;
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: email.split('@')[0],
-            redirect_url: window.location.origin
-          }
+            redirect_url: redirectUrl
+          },
+          emailRedirectTo: redirectUrl
         }
       });
 
@@ -104,6 +110,7 @@ const Auth = () => {
       }
 
       toast.success(t('registration_successful'));
+      toast.info(t('check_email_for_confirmation'));
       
       setEmail("");
       setPassword("");
