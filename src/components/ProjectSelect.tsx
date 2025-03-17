@@ -12,6 +12,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface ProjectSelectProps {
   value: string;
@@ -33,6 +34,7 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
       
       if (error) {
         console.error('Error fetching clients:', error);
+        toast.error(t('error_fetching_clients'));
         return [];
       }
       
@@ -53,6 +55,7 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
       
       if (error) {
         console.error('Error fetching client projects:', error);
+        toast.error(t('error_fetching_projects'));
         return [];
       }
       
@@ -69,12 +72,13 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
       
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name')
+        .select('id, name, client_id')
         .eq('id', value)
         .maybeSingle();
       
       if (error) {
         console.error('Error fetching selected project:', error);
+        toast.error(t('error_fetching_project_details'));
         return null;
       }
       
@@ -100,10 +104,18 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
     setSelectedClient(null);
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    // Reset client selection when dialog is closed
+    if (!newOpen) {
+      setSelectedClient(null);
+    }
+  };
+
   const isLoading = isLoadingClients || (!!selectedClient && isLoadingProjects);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button 
           variant="outline" 
