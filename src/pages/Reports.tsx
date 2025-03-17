@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
-// Import new components
+// Import components
 import FilterSection, { DateRange, FilterPeriod } from "@/components/reports/FilterSection";
 import SummarySection from "@/components/reports/SummarySection";
 import ResultsTable from "@/components/reports/ResultsTable";
@@ -53,17 +53,23 @@ const Reports = () => {
   const { data: clients = [], isLoading: isLoadingClients } = useQuery<Client[]>({
     queryKey: ['clients'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, name');
-      
-      if (error) {
-        console.error('Error fetching clients:', error);
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('id, name');
+        
+        if (error) {
+          console.error('Error fetching clients:', error);
+          toast.error(t('error_fetching_clients'));
+          return [];
+        }
+        
+        return data || [];
+      } catch (err) {
+        console.error('Exception fetching clients:', err);
         toast.error(t('error_fetching_clients'));
         return [];
       }
-      
-      return data || [];
     }
   });
   
@@ -71,22 +77,28 @@ const Reports = () => {
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, name, client_id');
-      
-      if (error) {
-        console.error('Error fetching projects:', error);
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('id, name, client_id');
+        
+        if (error) {
+          console.error('Error fetching projects:', error);
+          toast.error(t('error_fetching_projects'));
+          return [];
+        }
+        
+        return data || [];
+      } catch (err) {
+        console.error('Exception fetching projects:', err);
         toast.error(t('error_fetching_projects'));
         return [];
       }
-      
-      return data || [];
     }
   });
 
   // Get filtered projects for the selected client
-  const clientProjects = selectedClient 
+  const clientProjects = selectedClient && Array.isArray(projects)
     ? projects.filter(project => project.client_id === selectedClient)
     : [];
 
@@ -147,6 +159,14 @@ const Reports = () => {
     fetchTimeEntries();
   }, [user, dateRange, selectedProject, selectedClient, clientProjects, t]);
 
+  // Debug logging
+  console.log("Reports data:", {
+    timeEntries: timeEntries?.length || 0,
+    projects: projects?.length || 0,
+    clients: clients?.length || 0,
+    isLoading
+  });
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex items-center gap-3 mb-8">
@@ -164,24 +184,24 @@ const Reports = () => {
         setSelectedClient={setSelectedClient}
         selectedProject={selectedProject}
         setSelectedProject={setSelectedProject}
-        clients={clients}
+        clients={clients || []}
         isLoadingClients={isLoadingClients}
         isLoadingProjects={isLoadingProjects}
       />
 
       {/* Summary */}
       <SummarySection
-        timeEntries={timeEntries}
-        projects={projects}
-        clients={clients}
+        timeEntries={timeEntries || []}
+        projects={projects || []}
+        clients={clients || []}
         isLoading={isLoading}
       />
 
       {/* Results Table */}
       <ResultsTable
-        timeEntries={timeEntries}
-        projects={projects}
-        clients={clients}
+        timeEntries={timeEntries || []}
+        projects={projects || []}
+        clients={clients || []}
         isLoading={isLoading}
       />
     </div>

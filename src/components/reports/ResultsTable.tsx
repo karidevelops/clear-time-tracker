@@ -10,6 +10,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TimeEntry {
   id: string;
@@ -48,16 +49,16 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   
   // Helper function to get project name from project ID
   const getProjectName = (projectId: string): string => {
-    const project = projects.find(p => p.id === projectId);
+    const project = projects?.find(p => p.id === projectId);
     return project ? project.name : t('unknown_project');
   };
 
   // Helper function to get client name from project ID
   const getClientName = (projectId: string): string => {
-    const project = projects.find(p => p.id === projectId);
+    const project = projects?.find(p => p.id === projectId);
     if (!project) return t('unknown_client');
     
-    const client = clients.find(c => c.id === project.client_id);
+    const client = clients?.find(c => c.id === project.client_id);
     return client ? client.name : t('unknown_client');
   };
 
@@ -72,6 +73,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
     );
   }
 
+  // Safeguard against undefined arrays
+  const safeTimeEntries = Array.isArray(timeEntries) ? timeEntries : [];
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeClients = Array.isArray(clients) ? clients : [];
+
   return (
     <div className="border rounded-md">
       <Table>
@@ -85,14 +91,14 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {timeEntries.length === 0 ? (
+          {safeTimeEntries.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
                 {t('no_time_entries_found')}
               </TableCell>
             </TableRow>
           ) : (
-            timeEntries.map((entry) => (
+            safeTimeEntries.map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell>{format(parseISO(entry.date), 'dd.MM.yyyy')}</TableCell>
                 <TableCell>{getClientName(entry.project_id)}</TableCell>
