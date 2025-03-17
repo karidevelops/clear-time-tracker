@@ -110,15 +110,6 @@ const Header = () => {
               </PopoverContent>
             </Popover>
 
-            <Button 
-              size="sm" 
-              className="bg-reportronic-500 hover:bg-reportronic-600 text-white"
-              onClick={handleLogTime}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              <span>{t('log_time')}</span>
-            </Button>
-            
             <div className="ml-2">
               <LanguageSwitcher />
             </div>
