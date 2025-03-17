@@ -399,19 +399,8 @@ const Index = () => {
                 {isLoading ? (
                   <div className="p-4 text-center text-gray-500">{t('loading')}...</div>
                 ) : recentEntries.length > 0 ? (
-                  <div className="divide-y">
-                    {recentEntries.map((entry) => (
-                      <div key={entry.id} className="flex justify-between items-center p-4 hover:bg-gray-50">
-                        <div className="flex-1">
-                          <div className="font-medium">{entry.client}: {entry.project}</div>
-                          <div className="text-sm text-gray-500 mt-1">{entry.date}</div>
-                          {entry.description && (
-                            <div className="text-sm text-gray-700 mt-1">{entry.description}</div>
-                          )}
-                        </div>
-                        <div className="text-reportronic-700 font-medium ml-4">{entry.hours}h</div>
-                      </div>
-                    ))}
+                  <div className="p-4 text-center text-gray-500">
+                    {t('entries_removed') || 'Entries removed'}
                   </div>
                 ) : (
                   <div className="p-4 text-center text-gray-500">
