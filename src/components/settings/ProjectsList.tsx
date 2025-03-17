@@ -15,7 +15,8 @@ import {
   Dialog, 
   DialogContent, 
   DialogHeader, 
-  DialogTitle,
+  DialogTitle, 
+  DialogTrigger,
   DialogFooter,
   DialogClose
 } from "@/components/ui/dialog";
@@ -41,7 +42,6 @@ import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
 
 type Client = {
   id: string;
@@ -55,16 +55,10 @@ type Project = {
   client_name?: string;
 };
 
-interface ProjectsListProps {
-  selectedClientId?: string | null;
-}
-
-export const ProjectsList = ({ selectedClientId }: ProjectsListProps) => {
+export const ProjectsList = () => {
   const { t } = useLanguage();
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedClient, setSelectedClient] = useState<string | null>(selectedClientId || null);
   const queryClient = useQueryClient();
 
   const formSchema = z.object({
@@ -76,7 +70,7 @@ export const ProjectsList = ({ selectedClientId }: ProjectsListProps) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      client_id: selectedClientId || ""
+      client_id: ""
     }
   });
 
@@ -252,72 +246,91 @@ export const ProjectsList = ({ selectedClientId }: ProjectsListProps) => {
   const handleAddNew = () => {
     setEditingProject(null);
     form.reset();
-    if (selectedClient) {
-      form.setValue("client_id", selectedClient);
-    }
     setDialogOpen(true);
   };
 
-  const handleClientSelect = (clientId: string) => {
-    const newClientId = clientId === "all" ? null : clientId;
-    setSelectedClient(newClientId);
-    
-    // Update URL
-    if (newClientId) {
-      setSearchParams(params => {
-        params.set("client_id", newClientId);
-        return params;
-      });
-    } else {
-      setSearchParams(params => {
-        params.delete("client_id");
-        return params;
-      });
-    }
-  };
-
-  // Use the selected client from props if provided
-  React.useEffect(() => {
-    if (selectedClientId && selectedClientId !== selectedClient) {
-      setSelectedClient(selectedClientId);
-    }
-  }, [selectedClientId]);
-
   const isLoading = isLoadingClients || isLoadingProjects;
-
-  // Filter projects by selected client
-  const filteredProjects = selectedClient 
-    ? projects.filter(project => project.client_id === selectedClient)
-    : projects;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">{t('manage_projects')}</h2>
-        <Button onClick={handleAddNew} disabled={clients.length === 0}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('add_project')}
-        </Button>
-      </div>
-
-      <div className="mb-6">
-        <FormLabel>{t('filter_by_client')}</FormLabel>
-        <Select 
-          onValueChange={handleClientSelect} 
-          value={selectedClient || "all"}
-        >
-          <SelectTrigger className="w-full md:w-80">
-            <SelectValue placeholder={t('select_client')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('all_clients')}</SelectItem>
-            {clients.map((client) => (
-              <SelectItem key={client.id} value={client.id}>
-                {client.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={handleAddNew} disabled={clients.length === 0}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t('add_project')}
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingProject ? t('edit_project') : t('add_project')}
+              </DialogTitle>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="client_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('client')}</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('select_client')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {clients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('project_name')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('enter_project_name')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline" type="button">
+                      {t('cancel')}
+                    </Button>
+                  </DialogClose>
+                  <Button 
+                    type="submit"
+                    disabled={createProjectMutation.isPending || updateProjectMutation.isPending}
+                  >
+                    {(createProjectMutation.isPending || updateProjectMutation.isPending) && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {editingProject ? t('update') : t('add')}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="border rounded-md">
@@ -336,16 +349,14 @@ export const ProjectsList = ({ selectedClientId }: ProjectsListProps) => {
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                 </TableCell>
               </TableRow>
-            ) : filteredProjects.length === 0 ? (
+            ) : projects.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
-                  {selectedClient 
-                    ? t('no_projects_for_selected_client') 
-                    : t('no_projects')}
+                  {t('no_projects')}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredProjects.map((project) => (
+              projects.map((project) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">{project.name}</TableCell>
                   <TableCell>{project.client_name}</TableCell>
@@ -376,78 +387,6 @@ export const ProjectsList = ({ selectedClientId }: ProjectsListProps) => {
           </TableBody>
         </Table>
       </div>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingProject ? t('edit_project') : t('add_project')}
-            </DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="client_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('client')}</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('select_client')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('project_name')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('enter_project_name')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline" type="button">
-                    {t('cancel')}
-                  </Button>
-                </DialogClose>
-                <Button 
-                  type="submit"
-                  disabled={createProjectMutation.isPending || updateProjectMutation.isPending}
-                >
-                  {(createProjectMutation.isPending || updateProjectMutation.isPending) && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {editingProject ? t('update') : t('add')}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
-
