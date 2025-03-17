@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface TimeEntryProps {
   initialDate?: string;
@@ -19,6 +20,7 @@ interface TimeEntryProps {
 const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [date, setDate] = useState<string>(
     initialDate || new Date().toISOString().split('T')[0]
   );
@@ -44,6 +46,7 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
     
     if (!user) {
       toast.error(t('login_required'));
+      navigate('/auth');
       return;
     }
     
@@ -59,6 +62,8 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
     setIsLoading(true);
     
     try {
+      console.log("Saving time entry:", entryData);
+      
       // Insert the time entry into Supabase
       const { data, error } = await supabase
         .from('time_entries')
@@ -71,11 +76,11 @@ const TimeEntry = ({ initialDate, onEntrySaved }: TimeEntryProps) => {
         return;
       }
       
-      console.log('Time entry saved:', data);
+      console.log('Time entry saved successfully:', data);
       toast.success(t('time_entry_saved'));
       
       // Call the callback if provided
-      if (onEntrySaved) {
+      if (onEntrySaved && data) {
         onEntrySaved(data[0]);
       }
       
