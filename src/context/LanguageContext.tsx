@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface LanguageContextType {
@@ -260,7 +261,7 @@ const translations: Record<string, Translations> = {
     add_project_for: 'Add project for',
   },
   fi: {
-    dashboard: 'Kojelauta',
+    dashboard: 'Tuntikirjaus',
     weekly_view: 'Viikkonäkymä',
     reports: 'Raportit',
     settings: 'Asetukset',
