@@ -18,12 +18,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { getAllProjects, getClientById } from "@/data/ClientsData";
 import ProjectSelect from "@/components/ProjectSelect";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 // Time entry interface matching the database schema
 interface TimeEntry {
@@ -33,6 +33,19 @@ interface TimeEntry {
   project_id: string;
   description: string | null;
   user_id: string;
+}
+
+// Project interface for the data from Supabase
+interface Project {
+  id: string;
+  name: string;
+  client_id: string;
+}
+
+// Client interface for the data from Supabase
+interface Client {
+  id: string;
+  name: string;
 }
 
 type DateRange = {
@@ -53,6 +66,42 @@ const Reports = () => {
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>("month");
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Fetch clients from Supabase
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name');
+      
+      if (error) {
+        console.error('Error fetching clients:', error);
+        toast.error(t('error_fetching_clients'));
+        return [];
+      }
+      
+      return data || [];
+    }
+  });
+  
+  // Fetch projects from Supabase
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ['projects'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name, client_id');
+      
+      if (error) {
+        console.error('Error fetching projects:', error);
+        toast.error(t('error_fetching_projects'));
+        return [];
+      }
+      
+      return data || [];
+    }
+  });
 
   // Fetch time entries from Supabase
   useEffect(() => {
@@ -144,20 +193,18 @@ const Reports = () => {
     setFilterPeriod(period);
   };
 
-  // Helper function to get project name
+  // Helper function to get project name from project ID
   const getProjectName = (projectId: string): string => {
-    const allProjects = getAllProjects();
-    const project = allProjects.find(p => p.id === projectId);
+    const project = projects.find(p => p.id === projectId);
     return project ? project.name : t('unknown_project');
   };
 
-  // Helper function to get client name
+  // Helper function to get client name from project ID
   const getClientName = (projectId: string): string => {
-    const allProjects = getAllProjects();
-    const project = allProjects.find(p => p.id === projectId);
+    const project = projects.find(p => p.id === projectId);
     if (!project) return t('unknown_client');
     
-    const client = getClientById(project.clientId);
+    const client = clients.find(c => c.id === project.client_id);
     return client ? client.name : t('unknown_client');
   };
 
