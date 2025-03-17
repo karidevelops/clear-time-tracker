@@ -116,6 +116,7 @@ const Index = () => {
             id: data.id,
             date: data.date,
             hours: data.hours,
+            description: data.description,
             project: data.projects?.name || 'Unknown Project',
             client: data.projects?.clients?.name || 'Unknown Client'
           },
