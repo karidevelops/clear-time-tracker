@@ -181,7 +181,7 @@ export const ClientsList = () => {
     if (editingClient) {
       updateClientMutation.mutate({ id: editingClient, name: values.name });
     } else {
-      createClientMutation.mutate(values);
+      createClientMutation.mutate({ name: values.name });
     }
   };
 

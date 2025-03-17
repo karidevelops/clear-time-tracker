@@ -216,9 +216,16 @@ export const ProjectsList = () => {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     if (editingProject) {
-      updateProjectMutation.mutate({ id: editingProject, ...values });
+      updateProjectMutation.mutate({ 
+        id: editingProject, 
+        name: values.name, 
+        client_id: values.client_id 
+      });
     } else {
-      createProjectMutation.mutate(values);
+      createProjectMutation.mutate({ 
+        name: values.name, 
+        client_id: values.client_id 
+      });
     }
   };
 
@@ -227,7 +234,7 @@ export const ProjectsList = () => {
     if (project) {
       setEditingProject(projectId);
       form.setValue("name", project.name);
-      form.setValue("client_id", project.client_id);
+      form.setValue("client_id", project.client_id || "");
       setDialogOpen(true);
     }
   };
