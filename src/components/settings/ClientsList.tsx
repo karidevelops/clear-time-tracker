@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,6 @@ import { Plus, Pencil, Trash2, Loader2, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AddProjectDialog } from "./AddProjectDialog";
 
 type Client = {
   id: string;
@@ -43,7 +41,11 @@ type Client = {
   project_count?: number;
 };
 
-export const ClientsList = () => {
+interface ClientsListProps {
+  onAddProject?: (client: { id: string; name: string }) => void;
+}
+
+export const ClientsList = ({ onAddProject }: ClientsListProps) => {
   const { t } = useLanguage();
   const [editingClient, setEditingClient] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -63,12 +65,10 @@ export const ClientsList = () => {
     }
   });
 
-  // Fetch clients from Supabase
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
       console.log('Fetching clients...');
-      // Fetch clients
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('id, name');
@@ -81,7 +81,6 @@ export const ClientsList = () => {
 
       console.log('Clients data:', clientsData);
 
-      // Fetch project counts for each client
       const clientsWithProjects = await Promise.all(
         clientsData.map(async (client) => {
           const { count, error: countError } = await supabase
@@ -104,7 +103,6 @@ export const ClientsList = () => {
     }
   });
 
-  // Create client mutation
   const createClientMutation = useMutation({
     mutationFn: async (values: { name: string }) => {
       console.log('Creating client with name:', values.name);
@@ -132,7 +130,6 @@ export const ClientsList = () => {
     }
   });
 
-  // Update client mutation
   const updateClientMutation = useMutation({
     mutationFn: async ({ id, name }: { id: string, name: string }) => {
       console.log('Updating client with id:', id, 'new name:', name);
@@ -162,11 +159,9 @@ export const ClientsList = () => {
     }
   });
 
-  // Delete client mutation
   const deleteClientMutation = useMutation({
     mutationFn: async (id: string) => {
       console.log('Deleting client with id:', id);
-      // First check if client has projects
       const { count, error: countError } = await supabase
         .from('projects')
         .select('id', { count: 'exact', head: true })
@@ -233,12 +228,15 @@ export const ClientsList = () => {
   };
 
   const handleAddProject = (clientId: string, clientName: string) => {
-    setSelectedClientId(clientId);
-    setSelectedClientName(clientName);
-    setAddProjectDialogOpen(true);
+    if (onAddProject) {
+      onAddProject({ id: clientId, name: clientName });
+    } else {
+      setSelectedClientId(clientId);
+      setSelectedClientName(clientName);
+      setAddProjectDialogOpen(true);
+    }
   };
 
-  // Add this to debug the form state
   useEffect(() => {
     const subscription = form.watch((value) => {
       console.log('Form values changed:', value);
@@ -364,14 +362,6 @@ export const ClientsList = () => {
           </TableBody>
         </Table>
       </div>
-
-      {/* Dialog to add a project for the selected client */}
-      <AddProjectDialog 
-        open={addProjectDialogOpen} 
-        onOpenChange={setAddProjectDialogOpen} 
-        clientId={selectedClientId} 
-        clientName={selectedClientName}
-      />
     </div>
   );
 };
