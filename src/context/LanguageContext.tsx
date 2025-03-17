@@ -107,6 +107,25 @@ interface Translations {
   back_to_clients: string;
   saving: string;
   error_saving_time_entry: string;
+  not_found: string;
+  page_not_found: string;
+  return_to_home: string;
+  client_updated_successfully: string;
+  edit: string;
+  remove: string;
+  no_projects: string;
+  add: string;
+  save_changes: string;
+  project_id: string;
+  manage_clients: string;
+  enter_client_name: string;
+  update: string;
+  no_clients: string;
+  projects_count: string;
+  client_updated: string;
+  client_added: string;
+  client_deleted: string;
+  cannot_delete_client_with_projects: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -194,7 +213,6 @@ const translations: Record<string, Translations> = {
     inspired_by: 'Reportronic',
     login: "Login",
     register: "Register",
-    email: "Email",
     password: "Password",
     logging_in: "Logging in...",
     registering: "Registering...",
@@ -216,7 +234,26 @@ const translations: Record<string, Translations> = {
     login_required: "You need to be logged in",
     back_to_clients: "Back to clients",
     saving: "Saving...",
-    error_saving_time_entry: "Error saving time entry"
+    error_saving_time_entry: "Error saving time entry",
+    not_found: "404 Not Found",
+    page_not_found: "The page you're looking for doesn't exist.",
+    return_to_home: "Return to Home",
+    client_updated_successfully: "Client updated successfully",
+    edit: "Edit",
+    remove: "Remove",
+    no_projects: "No projects",
+    add: "Add",
+    save_changes: "Save Changes",
+    project_id: "Project ID",
+    manage_clients: "Manage Clients",
+    enter_client_name: "Enter client name",
+    update: "Update",
+    no_clients: "No clients available",
+    projects_count: "Projects Count",
+    client_updated: "Client updated successfully",
+    client_added: "Client added successfully",
+    client_deleted: "Client deleted successfully",
+    cannot_delete_client_with_projects: "Cannot delete client with projects"
   },
   fi: {
     dashboard: 'Kojelauta',
@@ -296,7 +333,6 @@ const translations: Record<string, Translations> = {
     inspired_by: 'Reportronic',
     login: "Kirjaudu",
     register: "Rekisteröidy",
-    email: "Sähköposti",
     password: "Salasana",
     logging_in: "Kirjaudutaan...",
     registering: "Rekisteröidään...",
@@ -318,7 +354,26 @@ const translations: Record<string, Translations> = {
     login_required: "Sinun täytyy olla kirjautunut sisään",
     back_to_clients: "Takaisin asiakkaisiin",
     saving: "Tallennetaan...",
-    error_saving_time_entry: "Virhe tallennettaessa aikakirjausta"
+    error_saving_time_entry: "Virhe tallennettaessa aikakirjausta",
+    not_found: "404 Sivua ei löydy",
+    page_not_found: "Hakemaasi sivua ei löydy.",
+    return_to_home: "Palaa etusivulle",
+    client_updated_successfully: "Asiakas päivitetty onnistuneesti",
+    edit: "Muokkaa",
+    remove: "Poista",
+    no_projects: "Ei projekteja",
+    add: "Lisää",
+    save_changes: "Tallenna muutokset",
+    project_id: "Projektin tunnus",
+    manage_clients: "Hallinnoi asiakkaita",
+    enter_client_name: "Syötä asiakkaan nimi",
+    update: "Päivitä",
+    no_clients: "Ei asiakkaita saatavilla",
+    projects_count: "Projektien määrä",
+    client_updated: "Asiakas päivitetty onnistuneesti",
+    client_added: "Asiakas lisätty onnistuneesti",
+    client_deleted: "Asiakas poistettu onnistuneesti",
+    cannot_delete_client_with_projects: "Asiakasta, jolla on projekteja, ei voi poistaa"
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -398,7 +453,6 @@ const translations: Record<string, Translations> = {
     inspired_by: 'Reportronic',
     login: "Logga in",
     register: "Registrera",
-    email: "E-post",
     password: "Lösenord",
     logging_in: "Loggar in...",
     registering: "Registrerar...",
@@ -420,7 +474,26 @@ const translations: Record<string, Translations> = {
     login_required: "Du måste vara inloggad",
     back_to_clients: "Tillbaka till kunder",
     saving: "Sparar...",
-    error_saving_time_entry: "Fel vid sparande av tidsinmatning"
+    error_saving_time_entry: "Fel vid sparande av tidsinmatning",
+    not_found: "404 Sidan hittades inte",
+    page_not_found: "Sidan du söker finns inte.",
+    return_to_home: "Återgå till startsidan",
+    client_updated_successfully: "Kund uppdaterad framgångsrikt",
+    edit: "Redigera",
+    remove: "Ta bort",
+    no_projects: "Inga projekt",
+    add: "Lägg till",
+    save_changes: "Spara ändringar",
+    project_id: "Projekt-ID",
+    manage_clients: "Hantera kunder",
+    enter_client_name: "Ange kundnamn",
+    update: "Uppdatera",
+    no_clients: "Inga kunder tillgängliga",
+    projects_count: "Antal projekt",
+    client_updated: "Kund uppdaterad framgångsrikt",
+    client_added: "Kund tillagd framgångsrikt",
+    client_deleted: "Kund borttagen framgångsrikt",
+    cannot_delete_client_with_projects: "Kan inte ta bort kund med projekt"
   },
 };
 
