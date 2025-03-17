@@ -126,6 +126,8 @@ interface Translations {
   client_added: string;
   client_deleted: string;
   cannot_delete_client_with_projects: string;
+  error_adding_project: string;
+  add_project_for: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -253,7 +255,9 @@ const translations: Record<string, Translations> = {
     client_updated: "Client updated successfully",
     client_added: "Client added successfully",
     client_deleted: "Client deleted successfully",
-    cannot_delete_client_with_projects: "Cannot delete client with projects"
+    cannot_delete_client_with_projects: "Cannot delete client with projects",
+    error_adding_project: "Error adding project",
+    add_project_for: 'Add project for',
   },
   fi: {
     dashboard: 'Kojelauta',
@@ -373,7 +377,9 @@ const translations: Record<string, Translations> = {
     client_updated: "Asiakas päivitetty onnistuneesti",
     client_added: "Asiakas lisätty onnistuneesti",
     client_deleted: "Asiakas poistettu onnistuneesti",
-    cannot_delete_client_with_projects: "Asiakasta, jolla on projekteja, ei voi poistaa"
+    cannot_delete_client_with_projects: "Asiakasta, jolla on projekteja, ei voi poistaa",
+    error_adding_project: "Virhe lisättäessä projektia",
+    add_project_for: 'Lisää projekti asiakkaalle',
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -493,7 +499,9 @@ const translations: Record<string, Translations> = {
     client_updated: "Kund uppdaterad framgångsrikt",
     client_added: "Kund tillagd framgångsrikt",
     client_deleted: "Kund borttagen framgångsrikt",
-    cannot_delete_client_with_projects: "Kan inte ta bort kund med projekt"
+    cannot_delete_client_with_projects: "Kan inte ta bort kund med projekt",
+    error_adding_project: "Fel vid tilläggning av projekt",
+    add_project_for: 'Lägg till projekt för',
   },
 };
 

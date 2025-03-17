@@ -98,7 +98,7 @@ export function AddProjectDialog({ open, onOpenChange, clientId, clientName }: A
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {t('add_project_for_client', { client: clientName })}
+            {t('add_project_for')} {clientName}
           </DialogTitle>
         </DialogHeader>
         <Form {...form}>
