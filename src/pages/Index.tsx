@@ -49,7 +49,14 @@ const Index = () => {
             date,
             hours,
             description,
-            project_id
+            project_id,
+            projects (
+              name,
+              client_id,
+              clients (
+                name
+              )
+            )
           `)
           .eq('user_id', userId)
           .order('date', { ascending: false })
@@ -60,12 +67,13 @@ const Index = () => {
           return;
         }
 
-        // Transform the data to match the expected format
+        // Transform the data to include client and project names
         const mappedEntries = data.map(entry => ({
           id: entry.id,
           date: entry.date,
           hours: entry.hours,
-          project: entry.project_id // This will be replaced with project name when project data is available
+          project: entry.projects?.name || 'Unknown Project',
+          client: entry.projects?.clients?.name || 'Unknown Client'
         }));
 
         setRecentEntries(mappedEntries);
@@ -82,15 +90,50 @@ const Index = () => {
   // Function to handle time entry submission
   const handleTimeEntrySaved = (newEntry: any) => {
     // After a new entry is saved, refresh the recent entries list
-    setRecentEntries([
-      {
-        id: newEntry.id,
-        date: newEntry.date,
-        hours: newEntry.hours,
-        project: newEntry.project_id // This will be replaced with project name when project data is available
-      },
-      ...recentEntries
-    ]);
+    // We'll need to fetch the complete entry with project and client info
+    async function fetchEntryDetails() {
+      try {
+        const { data, error } = await supabase
+          .from('time_entries')
+          .select(`
+            id,
+            date,
+            hours,
+            description,
+            project_id,
+            projects (
+              name,
+              client_id,
+              clients (
+                name
+              )
+            )
+          `)
+          .eq('id', newEntry.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching entry details:', error);
+          return;
+        }
+
+        // Add the new entry with project and client names to the list
+        setRecentEntries([
+          {
+            id: data.id,
+            date: data.date,
+            hours: data.hours,
+            project: data.projects?.name || 'Unknown Project',
+            client: data.projects?.clients?.name || 'Unknown Client'
+          },
+          ...recentEntries
+        ]);
+      } catch (error) {
+        console.error('Exception fetching entry details:', error);
+      }
+    }
+
+    fetchEntryDetails();
   };
 
   return (
@@ -201,7 +244,7 @@ const Index = () => {
                     {recentEntries.map((entry) => (
                       <div key={entry.id} className="flex justify-between items-center p-4 hover:bg-gray-50">
                         <div>
-                          <div className="font-medium">{entry.project}</div>
+                          <div className="font-medium">{entry.client}: {entry.project}</div>
                           <div className="text-sm text-gray-500">{entry.date}</div>
                         </div>
                         <div className="text-reportronic-700 font-medium">{entry.hours}h</div>
