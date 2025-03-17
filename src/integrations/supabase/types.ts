@@ -135,7 +135,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_default_projects_to_client: {
+        Args: {
+          client_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
