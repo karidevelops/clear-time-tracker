@@ -291,22 +291,24 @@ const Reports = () => {
             {isLoadingClients ? (
               <Skeleton className="h-10 w-full" />
             ) : (
-              <Select 
-                value={selectedClient} 
-                onValueChange={setSelectedClient}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t('select_client')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">{t('all_clients')}</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div>
+                <Select 
+                  value={selectedClient} 
+                  onValueChange={setSelectedClient}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t('select_client')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">{t('all_clients')}</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
           </div>
           
@@ -486,3 +488,4 @@ const Reports = () => {
 };
 
 export default Reports;
+
