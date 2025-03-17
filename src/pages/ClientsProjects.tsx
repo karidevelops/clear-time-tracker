@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { clients, Client, Project } from '@/data/ClientsData';
 import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const ClientsProjects = () => {
   const { t } = useLanguage();
@@ -21,6 +22,10 @@ const ClientsProjects = () => {
   const [editedName, setEditedName] = useState('');
   const [editedProjects, setEditedProjects] = useState<Project[]>([]);
   const [newProjectName, setNewProjectName] = useState('');
+  
+  // New state for add project dialog
+  const [addProjectDialog, setAddProjectDialog] = useState(false);
+  const [newProject, setNewProject] = useState({ name: '', clientId: '' });
 
   const handleEditClient = (client: Client) => {
     setCurrentClient(client);
@@ -65,10 +70,51 @@ const ClientsProjects = () => {
     setEditedProjects(editedProjects.filter(project => project.id !== projectId));
   };
 
+  // New handler for opening add project dialog
+  const handleAddNewProject = () => {
+    setNewProject({ name: '', clientId: '' });
+    setAddProjectDialog(true);
+  };
+
+  // New handler for saving a new project
+  const handleSaveNewProject = () => {
+    if (!newProject.name.trim() || !newProject.clientId) {
+      toast.error(t('please_fill_all_fields') || 'Please fill all fields');
+      return;
+    }
+
+    const projectToAdd: Project = {
+      id: `proj-${Date.now()}`,
+      name: newProject.name,
+      clientId: newProject.clientId
+    };
+
+    // Find the client and add the project
+    const updatedClients = localClients.map(client => {
+      if (client.id === newProject.clientId) {
+        return {
+          ...client,
+          projects: [...client.projects, projectToAdd]
+        };
+      }
+      return client;
+    });
+
+    setLocalClients(updatedClients);
+    setAddProjectDialog(false);
+    toast.success(t('project_added_successfully') || 'Project added successfully');
+  };
+
   return (
     <Layout>
       <div className="py-6 reportronic-container">
-        <h1 className="text-2xl font-bold mb-6">{t('clients_and_projects')}</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">{t('clients_and_projects')}</h1>
+          <Button onClick={handleAddNewProject}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('add_project') || 'Add Project'}
+          </Button>
+        </div>
         
         <Tabs defaultValue="clients" onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6">
@@ -192,6 +238,53 @@ const ClientsProjects = () => {
             </Button>
             <Button onClick={handleSaveClient}>
               {t('save_changes') || 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add New Project Dialog */}
+      <Dialog open={addProjectDialog} onOpenChange={setAddProjectDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('add_new_project') || 'Add New Project'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="project-client">{t('client') || 'Client'}</Label>
+              <Select 
+                onValueChange={(value) => setNewProject({...newProject, clientId: value})} 
+                value={newProject.clientId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('select_client') || 'Select client'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {localClients.map(client => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="project-name">{t('project_name') || 'Project Name'}</Label>
+              <Input 
+                id="project-name" 
+                value={newProject.name} 
+                onChange={(e) => setNewProject({...newProject, name: e.target.value})}
+                placeholder={t('enter_project_name') || 'Enter project name'} 
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddProjectDialog(false)}>
+              {t('cancel') || 'Cancel'}
+            </Button>
+            <Button onClick={handleSaveNewProject}>
+              {t('add_project') || 'Add Project'}
             </Button>
           </DialogFooter>
         </DialogContent>
