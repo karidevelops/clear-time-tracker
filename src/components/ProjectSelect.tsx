@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useLanguage } from '@/context/LanguageContext';
-import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -67,7 +67,7 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
   const { data: selectedProject, isLoading: isLoadingSelectedProject } = useQuery({
     queryKey: ['project', value],
     queryFn: async () => {
-      if (!value) return null;
+      if (!value || value === 'all') return null;
       
       const { data, error } = await supabase
         .from('projects')
@@ -83,7 +83,7 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
       
       return data;
     },
-    enabled: !!value
+    enabled: !!value && value !== 'all'
   });
 
   // Set selected client when project is selected
@@ -132,6 +132,7 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
               <SelectValue placeholder={t('select_project')} />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">{t('all_projects')}</SelectItem>
               {clientProjects.map((project) => (
                 <SelectItem key={project.id} value={project.id}>
                   {project.name}

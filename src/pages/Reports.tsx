@@ -128,8 +128,8 @@ const Reports = () => {
           query = query.lte('date', toDateStr);
         }
         
-        // Add project filter if set
-        if (selectedProject) {
+        // Add project filter if set and not "all"
+        if (selectedProject && selectedProject !== 'all') {
           query = query.eq('project_id', selectedProject);
         }
         
