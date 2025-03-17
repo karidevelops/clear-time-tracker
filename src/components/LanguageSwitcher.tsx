@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { FI, SV, GB } from 'country-flag-icons/react/3x2';
+import { FI, SE, GB } from 'country-flag-icons/react/3x2';
 
 const LanguageSwitcher = () => {
   const { language, setLanguage } = useLanguage();
@@ -19,7 +19,7 @@ const LanguageSwitcher = () => {
       case 'fi':
         return <FI className="h-5 w-5" />;
       case 'sv':
-        return <SV className="h-5 w-5" />;
+        return <SE className="h-5 w-5" />;
       case 'en':
         return <GB className="h-5 w-5" />;
       default:
@@ -40,7 +40,7 @@ const LanguageSwitcher = () => {
           Suomi
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleLanguageChange('sv')}>
-          <SV className="h-4 w-4 mr-2" />
+          <SE className="h-4 w-4 mr-2" />
           Svenska
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleLanguageChange('en')}>
