@@ -63,8 +63,7 @@ export function AddProjectDialog({ open, onOpenChange, clientId, clientName }: A
         .insert({
           name: values.name,
           client_id: clientId,
-          // Remove the invalid owner_id value and allow it to be null
-          // The database schema should be updated to make owner_id nullable
+          // owner_id is now nullable in the database, so we don't need to provide it
         })
         .select();
       
