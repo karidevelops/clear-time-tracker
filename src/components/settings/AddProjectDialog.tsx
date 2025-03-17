@@ -63,7 +63,8 @@ export function AddProjectDialog({ open, onOpenChange, clientId, clientName }: A
         .insert({
           name: values.name,
           client_id: clientId,
-          owner_id: '00000000-0000-0000-0000-000000000000' // Temporary owner ID until we implement auth
+          // Remove the invalid owner_id value and allow it to be null
+          // The database schema should be updated to make owner_id nullable
         })
         .select();
       
