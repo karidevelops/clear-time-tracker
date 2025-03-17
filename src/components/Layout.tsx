@@ -14,14 +14,14 @@ const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 pb-8">
-        <div className="time-tracker-container">
+        <div className="reportronic-container">
           {children}
         </div>
       </main>
       <footer className="bg-reportronic-500 text-white py-6">
-        <div className="time-tracker-container">
+        <div className="reportronic-container">
           <div className="text-sm text-center">
-            © {new Date().getFullYear()} Time Tracker - {t('inspired_by')}
+            © {new Date().getFullYear()} Reportronic - {t('inspired_by')}
           </div>
         </div>
       </footer>

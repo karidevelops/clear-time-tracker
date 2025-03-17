@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface LanguageContextType {
@@ -89,7 +90,8 @@ const translations: Record<string, Record<string, string>> = {
     project_breakdown: 'Project Breakdown',
     no_data_available: 'No data available for the selected period',
     clients_and_projects: 'Clients & Projects',
-    calendar: 'Calendar'
+    calendar: 'Calendar',
+    inspired_by: 'Reportronic'
   },
   fi: {
     dashboard: 'Kojelauta',
@@ -165,7 +167,8 @@ const translations: Record<string, Record<string, string>> = {
     project_breakdown: 'Projektierittely',
     no_data_available: 'Ei dataa valitulle ajanjaksolle',
     clients_and_projects: 'Asiakkaat & Projektit',
-    calendar: 'Kalenteri'
+    calendar: 'Kalenteri',
+    inspired_by: 'Reportronic'
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -241,7 +244,8 @@ const translations: Record<string, Record<string, string>> = {
     project_breakdown: 'Projektfördelning',
     no_data_available: 'Ingen data tillgänglig för den valda perioden',
     clients_and_projects: 'Kunder & Projekt',
-    calendar: 'Kalender'
+    calendar: 'Kalender',
+    inspired_by: 'Reportronic'
   },
 };
 

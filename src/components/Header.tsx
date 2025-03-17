@@ -66,8 +66,8 @@ const Header = () => {
   };
   
   return (
-    <header className="time-tracker-header sticky top-0 z-10 border-b border-gray-200 bg-white">
-      <div className="time-tracker-container">
+    <header className="reportronic-header sticky top-0 z-10 border-b border-gray-200 bg-white">
+      <div className="reportronic-container">
         <div className="flex justify-between items-center py-4">
           <Link to="/" className="flex items-center space-x-2">
             <img 
