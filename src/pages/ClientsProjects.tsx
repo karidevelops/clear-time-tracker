@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { clients, Client, Project } from '@/data/ClientsData';
 import { Button } from '@/components/ui/button';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, UserPlus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,10 @@ const ClientsProjects = () => {
   // New state for add project dialog
   const [addProjectDialog, setAddProjectDialog] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', clientId: '' });
+  
+  // New state for add client dialog
+  const [addClientDialog, setAddClientDialog] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
 
   const handleEditClient = (client: Client) => {
     setCurrentClient(client);
@@ -104,16 +108,46 @@ const ClientsProjects = () => {
     setAddProjectDialog(false);
     toast.success(t('project_added_successfully') || 'Project added successfully');
   };
+  
+  // New handler for opening add client dialog
+  const handleAddNewClient = () => {
+    setNewClientName('');
+    setAddClientDialog(true);
+  };
+  
+  // New handler for saving a new client
+  const handleSaveNewClient = () => {
+    if (!newClientName.trim()) {
+      toast.error(t('please_enter_client_name') || 'Please enter client name');
+      return;
+    }
+    
+    const clientToAdd: Client = {
+      id: `client-${Date.now()}`,
+      name: newClientName,
+      projects: []
+    };
+    
+    setLocalClients([...localClients, clientToAdd]);
+    setAddClientDialog(false);
+    toast.success(t('client_added_successfully') || 'Client added successfully');
+  };
 
   return (
     <Layout>
       <div className="py-6 reportronic-container">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">{t('clients_and_projects')}</h1>
-          <Button onClick={handleAddNewProject}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t('add_project') || 'Add Project'}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleAddNewClient}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              {t('add_client') || 'Add Client'}
+            </Button>
+            <Button onClick={handleAddNewProject}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t('add_project') || 'Add Project'}
+            </Button>
+          </div>
         </div>
         
         <Tabs defaultValue="clients" onValueChange={setActiveTab} className="w-full">
@@ -285,6 +319,34 @@ const ClientsProjects = () => {
             </Button>
             <Button onClick={handleSaveNewProject}>
               {t('add_project') || 'Add Project'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add New Client Dialog */}
+      <Dialog open={addClientDialog} onOpenChange={setAddClientDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('add_new_client') || 'Add New Client'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="client-name">{t('client_name') || 'Client Name'}</Label>
+              <Input 
+                id="client-name" 
+                value={newClientName} 
+                onChange={(e) => setNewClientName(e.target.value)}
+                placeholder={t('enter_client_name') || 'Enter client name'} 
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddClientDialog(false)}>
+              {t('cancel') || 'Cancel'}
+            </Button>
+            <Button onClick={handleSaveNewClient}>
+              {t('add_client') || 'Add Client'}
             </Button>
           </DialogFooter>
         </DialogContent>
