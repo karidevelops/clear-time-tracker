@@ -75,7 +75,7 @@ const Header = () => {
               alt="Reportronic Logo" 
               className="h-8 w-auto" 
             />
-            <span className="text-xl font-bold text-reportronic-600 hidden md:inline-flex">{t('timetracker')}</span>
+            <span className="text-xl font-bold text-reportronic-600 hidden md:inline-flex">Reportronic</span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-2">
