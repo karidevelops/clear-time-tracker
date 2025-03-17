@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, PieChart, ArrowUp, ArrowRight } from 'lucide-react';
@@ -10,11 +9,9 @@ import TimeEntry from '@/components/TimeEntry';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 
-// Target working hours
 const DAILY_TARGET_HOURS = 7.5;
 const WEEKLY_TARGET_HOURS = 37.5;
 
-// Mock data for the dashboard
 const hours = {
   today: 6.5,
   week: 32.5,
@@ -36,12 +33,9 @@ const Index = () => {
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch recent time entries from Supabase
   useEffect(() => {
     async function fetchRecentEntries() {
       try {
-        // For demonstration purposes using a static user ID
-        // This will be replaced by auth.uid() when authentication is implemented
         const userId = user?.id || '00000000-0000-0000-0000-000000000000';
         
         setIsLoading(true);
@@ -70,11 +64,11 @@ const Index = () => {
           return;
         }
 
-        // Transform the data to include client and project names
         const mappedEntries = data.map(entry => ({
           id: entry.id,
           date: entry.date,
           hours: entry.hours,
+          description: entry.description,
           project: entry.projects?.name || 'Unknown Project',
           client: entry.projects?.clients?.name || 'Unknown Client'
         }));
@@ -90,10 +84,7 @@ const Index = () => {
     fetchRecentEntries();
   }, [user]);
 
-  // Function to handle time entry submission
   const handleTimeEntrySaved = (newEntry: any) => {
-    // After a new entry is saved, refresh the recent entries list
-    // We'll need to fetch the complete entry with project and client info
     async function fetchEntryDetails() {
       try {
         const { data, error } = await supabase
@@ -120,7 +111,6 @@ const Index = () => {
           return;
         }
 
-        // Add the new entry with project and client names to the list
         setRecentEntries([
           {
             id: data.id,
@@ -146,7 +136,6 @@ const Index = () => {
           <h1 className="text-3xl font-bold text-reportronic-800">{t('dashboard')}</h1>
         </div>
 
-        {/* Time Entry Form */}
         <Card className="mb-6">
           <CardHeader className="bg-reportronic-50 border-b">
             <CardTitle className="flex items-center text-reportronic-800">
@@ -159,7 +148,6 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -246,11 +234,14 @@ const Index = () => {
                   <div className="divide-y">
                     {recentEntries.map((entry) => (
                       <div key={entry.id} className="flex justify-between items-center p-4 hover:bg-gray-50">
-                        <div>
+                        <div className="flex-1">
                           <div className="font-medium">{entry.client}: {entry.project}</div>
-                          <div className="text-sm text-gray-500">{entry.date}</div>
+                          <div className="text-sm text-gray-500 mt-1">{entry.date}</div>
+                          {entry.description && (
+                            <div className="text-sm text-gray-700 mt-1">{entry.description}</div>
+                          )}
                         </div>
-                        <div className="text-reportronic-700 font-medium">{entry.hours}h</div>
+                        <div className="text-reportronic-700 font-medium ml-4">{entry.hours}h</div>
                       </div>
                     ))}
                   </div>
