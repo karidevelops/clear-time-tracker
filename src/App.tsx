@@ -10,6 +10,7 @@ import Layout from "./components/Layout";
 import WeeklyView from "./components/WeeklyView";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import ClientsProjects from "./pages/ClientsProjects";
 import { LanguageProvider } from "./context/LanguageContext";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/clients-projects" element={<ClientsProjects />} />
             <Route 
               path="/weekly" 
               element={

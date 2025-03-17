@@ -82,39 +82,9 @@ const Header = () => {
               {t('dashboard')}
             </Link>
             
-            <Menubar className="border-none">
-              <MenubarMenu>
-                <MenubarTrigger className="cursor-pointer font-normal">{t('clients_and_projects')}</MenubarTrigger>
-                <MenubarContent>
-                  {clients.map((client) => (
-                    <MenubarSub key={client.id}>
-                      <MenubarSubTrigger>{client.name}</MenubarSubTrigger>
-                      <MenubarSubContent>
-                        {client.projects.map((project) => (
-                          <MenubarItem key={project.id}>{project.name}</MenubarItem>
-                        ))}
-                      </MenubarSubContent>
-                    </MenubarSub>
-                  ))}
-                  <MenubarSeparator />
-                  <MenubarItem>
-                    <Link to="/weekly" className="w-full block">
-                      {t('weekly_view')}
-                    </Link>
-                  </MenubarItem>
-                  <MenubarItem>
-                    <Link to="/reports" className="w-full block">
-                      {t('reports')}
-                    </Link>
-                  </MenubarItem>
-                  <MenubarItem>
-                    <Link to="/settings" className="w-full block">
-                      {t('settings')}
-                    </Link>
-                  </MenubarItem>
-                </MenubarContent>
-              </MenubarMenu>
-            </Menubar>
+            <Link to="/clients-projects" className="text-gray-700 hover:text-reportronic-500 transition-colors px-3 py-2">
+              {t('clients_and_projects')}
+            </Link>
             
             <Link to="/reports" className="text-gray-700 hover:text-reportronic-500 transition-colors px-3 py-2">
               {t('reports')}
