@@ -129,7 +129,7 @@ const TimeEntry = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="date">{t('date')}</Label>
@@ -157,13 +157,10 @@ const TimeEntry = ({
         </div>
       </div>
       
-      <div className="space-y-2">
-        <Label htmlFor="project">{t('project')}</Label>
-        <ProjectSelect 
-          value={project} 
-          onChange={setProject} 
-        />
-      </div>
+      <ProjectSelect 
+        value={project} 
+        onChange={setProject} 
+      />
       
       <div className="space-y-2">
         <Label htmlFor="description">{t('description')}</Label>

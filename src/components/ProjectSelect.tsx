@@ -1,19 +1,18 @@
 
 import { useState, useEffect } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger,
-  DialogDescription 
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { useLanguage } from '@/context/LanguageContext';
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ProjectSelectProps {
   value: string;
@@ -23,7 +22,6 @@ interface ProjectSelectProps {
 const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
   const { t } = useLanguage();
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
   
   // Fetch clients
   const { data: clients = [], isLoading: isLoadingClients } = useQuery({
@@ -65,7 +63,7 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
     enabled: !!selectedClient
   });
 
-  // Fetch project details if value is provided
+  // Fetch selected project details
   const { data: selectedProject, isLoading: isLoadingSelectedProject } = useQuery({
     queryKey: ['project', value],
     queryFn: async () => {
@@ -87,106 +85,69 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
     },
     enabled: !!value
   });
-  
-  // Get the selected project's name to display
-  const getProjectName = () => {
-    if (isLoadingSelectedProject) return t('loading');
-    if (!value || !selectedProject) return t('select_project');
-    return selectedProject.name;
-  };
 
-  const handleClientSelect = (clientId: string) => {
-    console.log('Selected client ID:', clientId);
-    setSelectedClient(clientId);
-  };
-
-  const handleProjectSelect = (projectId: string) => {
-    console.log('Selected project ID:', projectId);
-    onChange(projectId);
-    setOpen(false);
-    setSelectedClient(null);
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    // Reset client selection when dialog is closed
-    if (!newOpen) {
-      setSelectedClient(null);
+  // Set selected client when project is selected
+  useEffect(() => {
+    if (selectedProject && !selectedClient) {
+      setSelectedClient(selectedProject.client_id);
     }
-  };
+  }, [selectedProject, selectedClient]);
 
-  const isLoading = isLoadingClients || (!!selectedClient && isLoadingProjects);
+  const handleClientChange = (clientId: string) => {
+    setSelectedClient(clientId);
+    onChange(''); // Clear project selection when client changes
+  };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          className="w-full justify-between border-gray-300 bg-white text-left font-normal"
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="client">{t('client')}</Label>
+        <Select 
+          value={selectedClient || ''} 
+          onValueChange={handleClientChange}
+          disabled={isLoadingClients}
         >
-          {getProjectName()}
-          <span className="opacity-50">▼</span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{selectedClient ? t('select_project') : t('select_client')}</DialogTitle>
-          <DialogDescription>
-            {selectedClient ? t('select_project_desc') : t('select_client_first')}
-          </DialogDescription>
-        </DialogHeader>
-        
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : !selectedClient ? (
-          // Show client selection
-          <div className="grid gap-2 py-4">
-            {clients.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">{t('no_clients')}</p>
-            ) : (
-              clients.map((client) => (
-                <Button
-                  key={client.id}
-                  variant="outline"
-                  className="w-full justify-start text-left"
-                  onClick={() => handleClientSelect(client.id)}
-                >
-                  {client.name}
-                </Button>
-              ))
-            )}
-          </div>
-        ) : (
-          // Show projects for selected client
-          <div className="grid gap-2 py-4">
-            <Button 
-              variant="outline" 
-              className="mb-2" 
-              onClick={() => setSelectedClient(null)}
-            >
-              ← {t('back_to_clients')}
-            </Button>
-            
-            {clientProjects.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">{t('no_projects_for_client')}</p>
-            ) : (
-              clientProjects.map((project) => (
-                <Button
-                  key={project.id}
-                  variant="outline"
-                  className="w-full justify-start text-left"
-                  onClick={() => handleProjectSelect(project.id)}
-                >
+          <SelectTrigger id="client" className="w-full">
+            <SelectValue placeholder={t('select_client')} />
+          </SelectTrigger>
+          <SelectContent>
+            {clients.map((client) => (
+              <SelectItem key={client.id} value={client.id}>
+                {client.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {selectedClient && (
+        <div className="space-y-2">
+          <Label htmlFor="project">{t('project')}</Label>
+          <Select 
+            value={value} 
+            onValueChange={onChange}
+            disabled={isLoadingProjects}
+          >
+            <SelectTrigger id="project" className="w-full">
+              <SelectValue placeholder={t('select_project')} />
+            </SelectTrigger>
+            <SelectContent>
+              {clientProjects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
                   {project.name}
-                </Button>
-              ))
-            )}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {(isLoadingClients || isLoadingProjects) && (
+        <div className="flex items-center justify-center py-2">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
+    </div>
   );
 };
 
