@@ -2,13 +2,68 @@
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { clients, Client, Project } from '@/data/ClientsData';
+import { Button } from '@/components/ui/button';
+import { Pencil } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 const ClientsProjects = () => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('clients');
+  const [localClients, setLocalClients] = useState<Client[]>(clients);
+  const [editClientDialog, setEditClientDialog] = useState(false);
+  const [currentClient, setCurrentClient] = useState<Client | null>(null);
+  const [editedName, setEditedName] = useState('');
+  const [editedProjects, setEditedProjects] = useState<Project[]>([]);
+  const [newProjectName, setNewProjectName] = useState('');
+
+  const handleEditClient = (client: Client) => {
+    setCurrentClient(client);
+    setEditedName(client.name);
+    setEditedProjects([...client.projects]);
+    setEditClientDialog(true);
+  };
+
+  const handleSaveClient = () => {
+    if (!currentClient) return;
+
+    const updatedClients = localClients.map(client => {
+      if (client.id === currentClient.id) {
+        return {
+          ...client,
+          name: editedName,
+          projects: editedProjects
+        };
+      }
+      return client;
+    });
+
+    setLocalClients(updatedClients);
+    setEditClientDialog(false);
+    toast.success(t('client_updated_successfully') || 'Client updated successfully');
+  };
+
+  const handleAddProject = () => {
+    if (!newProjectName.trim() || !currentClient) return;
+
+    const newProject: Project = {
+      id: `proj-${Date.now()}`,
+      name: newProjectName,
+      clientId: currentClient.id
+    };
+
+    setEditedProjects([...editedProjects, newProject]);
+    setNewProjectName('');
+  };
+
+  const handleRemoveProject = (projectId: string) => {
+    setEditedProjects(editedProjects.filter(project => project.id !== projectId));
+  };
 
   return (
     <Layout>
@@ -22,13 +77,24 @@ const ClientsProjects = () => {
           </TabsList>
           
           <TabsContent value="clients" className="space-y-6">
-            {clients.map((client) => (
+            {localClients.map((client) => (
               <Card key={client.id} className="shadow-sm hover:shadow transition-shadow">
                 <CardHeader>
-                  <CardTitle>{client.name}</CardTitle>
-                  <CardDescription>
-                    {t('projects')}: {client.projects.length}
-                  </CardDescription>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle>{client.name}</CardTitle>
+                      <CardDescription>
+                        {t('projects')}: {client.projects.length}
+                      </CardDescription>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleEditClient(client)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" /> {t('edit') || 'Edit'}
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <h3 className="font-medium mb-2">{t('projects')}:</h3>
@@ -46,7 +112,7 @@ const ClientsProjects = () => {
           
           <TabsContent value="projects" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {clients.flatMap(client => 
+              {localClients.flatMap(client => 
                 client.projects.map(project => (
                   <Card key={project.id} className="shadow-sm hover:shadow transition-shadow">
                     <CardHeader>
@@ -67,6 +133,69 @@ const ClientsProjects = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Client Edit Dialog */}
+      <Dialog open={editClientDialog} onOpenChange={setEditClientDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('edit_client') || 'Edit Client'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="client-name">{t('client_name') || 'Client Name'}</Label>
+              <Input 
+                id="client-name" 
+                value={editedName} 
+                onChange={(e) => setEditedName(e.target.value)} 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>{t('projects') || 'Projects'}</Label>
+              <div className="border rounded-md p-3 max-h-60 overflow-y-auto space-y-2">
+                {editedProjects.map(project => (
+                  <div key={project.id} className="flex items-center justify-between">
+                    <span>{project.name}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleRemoveProject(project.id)}
+                    >
+                      {t('remove') || 'Remove'}
+                    </Button>
+                  </div>
+                ))}
+                {editedProjects.length === 0 && (
+                  <p className="text-sm text-gray-500">{t('no_projects') || 'No projects'}</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-project">{t('add_project') || 'Add Project'}</Label>
+              <div className="flex gap-2">
+                <Input 
+                  id="new-project" 
+                  value={newProjectName} 
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder={t('project_name') || 'Project name'} 
+                />
+                <Button onClick={handleAddProject} type="button">
+                  {t('add') || 'Add'}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditClientDialog(false)}>
+              {t('cancel') || 'Cancel'}
+            </Button>
+            <Button onClick={handleSaveClient}>
+              {t('save_changes') || 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
