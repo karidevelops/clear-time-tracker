@@ -18,7 +18,8 @@ import {
   DialogTitle, 
   DialogTrigger,
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { 
   Form, 
@@ -130,7 +131,7 @@ export const ProjectsList = () => {
         .insert({
           name: values.name,
           client_id: values.client_id,
-          owner_id: '00000000-0000-0000-0000-000000000000' // Temporary owner ID until we implement auth
+          // Completely remove owner_id to let it be null in the database
         })
         .select();
       
@@ -267,6 +268,9 @@ export const ProjectsList = () => {
               <DialogTitle>
                 {editingProject ? t('edit_project') : t('add_project')}
               </DialogTitle>
+              <DialogDescription>
+                {editingProject ? t('edit_project_description') : t('add_project_description')}
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

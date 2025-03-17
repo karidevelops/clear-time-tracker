@@ -9,7 +9,8 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogFooter,
-  DialogClose
+  DialogClose,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { 
   Form, 
@@ -63,7 +64,7 @@ export function AddProjectDialog({ open, onOpenChange, clientId, clientName }: A
         .insert({
           name: values.name,
           client_id: clientId,
-          // owner_id is now nullable in the database, so we don't need to provide it
+          // Completely remove owner_id field to let it be null in the database
         })
         .select();
       
@@ -100,6 +101,9 @@ export function AddProjectDialog({ open, onOpenChange, clientId, clientName }: A
           <DialogTitle>
             {t('add_project_for')} {clientName}
           </DialogTitle>
+          <DialogDescription>
+            {t('add_new_project_description')}
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { 
   Tabs, 
@@ -10,9 +10,17 @@ import {
 import { ClientsList } from "@/components/settings/ClientsList";
 import { ProjectsList } from "@/components/settings/ProjectsList";
 import { Settings as SettingsIcon } from "lucide-react";
+import { AddProjectDialog } from "@/components/settings/AddProjectDialog";
 
 const Settings = () => {
   const { t } = useLanguage();
+  const [selectedClient, setSelectedClient] = useState<{ id: string, name: string } | null>(null);
+  const [addProjectDialogOpen, setAddProjectDialogOpen] = useState(false);
+
+  const handleAddProject = (client: { id: string, name: string }) => {
+    setSelectedClient(client);
+    setAddProjectDialogOpen(true);
+  };
 
   return (
     <div className="container mx-auto py-8">
@@ -28,13 +36,22 @@ const Settings = () => {
         </TabsList>
         
         <TabsContent value="clients">
-          <ClientsList />
+          <ClientsList onAddProject={handleAddProject} />
         </TabsContent>
         
         <TabsContent value="projects">
           <ProjectsList />
         </TabsContent>
       </Tabs>
+
+      {selectedClient && (
+        <AddProjectDialog
+          open={addProjectDialogOpen}
+          onOpenChange={setAddProjectDialogOpen}
+          clientId={selectedClient.id}
+          clientName={selectedClient.name}
+        />
+      )}
     </div>
   );
 };
