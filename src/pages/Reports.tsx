@@ -10,7 +10,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, FileText, Download, FileSpreadsheet, FilePdf } from "lucide-react";
+import { Calendar as CalendarIcon, FileText, Download, FileSpreadsheet, FileType } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -461,7 +461,7 @@ const Reports = () => {
               onClick={exportToPdf}
               disabled={timeEntries.length === 0 || isLoading}
             >
-              <FilePdf className="mr-2 h-4 w-4" />
+              <FileType className="mr-2 h-4 w-4" />
               {t('export_to_pdf')}
             </Button>
           </div>
