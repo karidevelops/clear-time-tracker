@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,15 +26,15 @@ const Auth = () => {
     const setupRedirectUrl = async () => {
       const currentUrl = window.location.origin;
       
+      // Clear previous session
       await supabase.auth.setSession({
         access_token: "",
         refresh_token: "",
       });
       
-      const { error } = await supabase.auth.setSession({
-        access_token: "",
-        refresh_token: "",
-        redirect_to: currentUrl,
+      // Set the site URL for redirects
+      const { data: userData, error } = await supabase.auth.updateUser({
+        data: { redirect_url: currentUrl }
       });
       
       if (error) {
@@ -49,13 +50,13 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const redirectTo = window.location.origin;
+      const redirectUrl = window.location.origin;
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
         options: {
-          redirectTo
+          emailRedirectTo: redirectUrl
         }
       });
 
@@ -89,7 +90,7 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const redirectTo = window.location.origin;
+      const redirectUrl = window.location.origin;
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -98,7 +99,7 @@ const Auth = () => {
           data: {
             full_name: email.split('@')[0],
           },
-          redirectTo
+          emailRedirectTo: redirectUrl
         }
       });
 
