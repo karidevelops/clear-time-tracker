@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +12,16 @@ import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TimeEntryProps {
   initialDate?: string;
@@ -46,6 +55,7 @@ const TimeEntry = ({
   const [project, setProject] = useState<string>(initialProjectId);
   const [status, setStatus] = useState<'draft' | 'pending' | 'approved'>(initialStatus);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const isEditing = !!entryId;
 
   useEffect(() => {
@@ -108,7 +118,6 @@ const TimeEntry = ({
       if (error) {
         console.error('Error saving time entry:', error);
         
-        // Provide more specific error messages based on error codes
         if (error.code === '42P17') {
           toast.error(t('database_policy_error'));
         } else if (error.code === '23505') {
@@ -161,6 +170,53 @@ const TimeEntry = ({
     
     const event = { preventDefault: () => {} } as React.FormEvent;
     await handleSubmit(event);
+  };
+
+  const handleSubmitMonthEntries = async () => {
+    if (!user) {
+      toast.error(t('login_required'));
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const currentDate = new Date(date);
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      
+      const startDateStr = startOfMonth.toISOString().split('T')[0];
+      const endDateStr = endOfMonth.toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({ status: 'pending' })
+        .eq('user_id', user.id)
+        .eq('status', 'draft')
+        .gte('date', startDateStr)
+        .lte('date', endDateStr);
+        
+      if (error) {
+        console.error('Error submitting month entries:', error);
+        toast.error(t('error_submitting_entries'));
+        return;
+      }
+      
+      toast.success(t('month_entries_submitted'));
+      
+      if (status === 'draft') {
+        setStatus('pending');
+        
+        if (onEntrySaved) {
+          onEntrySaved({ ...status, status: 'pending' });
+        }
+      }
+    } catch (error) {
+      console.error('Exception submitting month entries:', error);
+      toast.error(t('error_submitting_entries'));
+    } finally {
+      setIsLoading(false);
+      setShowSubmitDialog(false);
+    }
   };
 
   const renderStatusBadge = (status: string) => {
@@ -267,19 +323,6 @@ const TimeEntry = ({
           </Button>
         )}
         
-        {status === 'draft' && canEdit && (
-          <Button 
-            type="button"
-            variant="outline"
-            className="border-orange-500 text-orange-600 hover:bg-orange-50"
-            disabled={isLoading}
-            onClick={handleSubmitForApproval}
-          >
-            <Clock4 className="mr-2 h-4 w-4" />
-            {t('submit_for_approval')}
-          </Button>
-        )}
-        
         {isAdmin && status === 'pending' && (
           <Button 
             type="button"
@@ -293,6 +336,42 @@ const TimeEntry = ({
           </Button>
         )}
       </div>
+
+      {status === 'draft' && canEdit && (
+        <div className="pt-4 border-t border-gray-200 mt-4">
+          <Button 
+            type="button"
+            variant="outline"
+            className="border-orange-500 text-orange-600 hover:bg-orange-50 w-full"
+            disabled={isLoading}
+            onClick={() => setShowSubmitDialog(true)}
+          >
+            <Clock4 className="mr-2 h-4 w-4" />
+            {t('submit_all_month_entries')}
+          </Button>
+        </div>
+      )}
+
+      <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('submit_month_entries')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('submit_month_entries_confirmation')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleSubmitMonthEntries}
+              disabled={isLoading}
+              className="bg-orange-500 text-white hover:bg-orange-600"
+            >
+              {isLoading ? t('submitting') : t('submit')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 };
