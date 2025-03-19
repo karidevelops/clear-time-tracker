@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Calendar } from "@/components/ui/calendar";
@@ -175,55 +176,55 @@ const Reports = () => {
       <Card>
         <CardHeader>
           <CardTitle>{t('generate_report')}</CardTitle>
-          <CardDescription>{t('time_period')}</CardDescription>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end mt-4">
+            <div className="space-y-2">
+              <div className="text-sm font-medium">{t('from_date')}</div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(fromDate, "PPP", { locale: getLocale() })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={fromDate}
+                    onSelect={(date) => date && setFromDate(date)}
+                    initialFocus
+                    locale={getLocale()}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="text-sm font-medium">{t('to_date')}</div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(toDate, "PPP", { locale: getLocale() })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={toDate}
+                    onSelect={(date) => date && setToDate(date)}
+                    initialFocus
+                    locale={getLocale()}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-              <div className="space-y-2">
-                <div className="text-sm font-medium">{t('from_date')}</div>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(fromDate, "PPP", { locale: getLocale() })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={fromDate}
-                      onSelect={(date) => date && setFromDate(date)}
-                      initialFocus
-                      locale={getLocale()}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="text-sm font-medium">{t('to_date')}</div>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(toDate, "PPP", { locale: getLocale() })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={toDate}
-                      onSelect={(date) => date && setToDate(date)}
-                      initialFocus
-                      locale={getLocale()}
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
               <div className="space-y-2 w-full max-w-sm">
                 <ProjectSelect 
                   value={selectedProject}
