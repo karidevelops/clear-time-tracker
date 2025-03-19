@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
@@ -16,6 +15,11 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
+type DateRange = {
+  from: Date;
+  to: Date;
+};
+
 const Reports = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -30,7 +34,7 @@ const Reports = () => {
     dateRange: {
       from: startOfMonth(subMonths(new Date(), 1)),
       to: endOfMonth(subMonths(new Date(), 1))
-    },
+    } as DateRange,
     userId: '',
     projectId: '',
     clientId: '',
@@ -145,7 +149,6 @@ const Reports = () => {
       }
       
       const mappedEntries = filteredData.map(entry => {
-        // Fix for Type 'null' is not assignable to type 'object'
         const entryWithStatus: TimeEntry = {
           ...entry,
           user_full_name: entry.profiles && typeof entry.profiles === 'object' ? 
@@ -158,7 +161,6 @@ const Reports = () => {
       setTimeEntries(mappedEntries);
       setFilteredEntries(mappedEntries);
       
-      // Group pending entries by user for the approval section
       if (isAdmin) {
         const pendingEntries = mappedEntries.filter(entry => entry.status === 'pending');
         const grouped = pendingEntries.reduce((acc: { [key: string]: TimeEntry[] }, entry) => {
@@ -182,7 +184,6 @@ const Reports = () => {
     }
   };
 
-  // Functions for the approval section
   const approveMonthEntries = async () => {
     if (!user || !isAdmin) return;
     setApprovingEntries(true);
@@ -421,17 +422,35 @@ const Reports = () => {
           <CardContent>
             <ReportFilters 
               dateRange={filters.dateRange}
-              setDateRange={(newDateRange) => setFilters({...filters, dateRange: newDateRange})}
+              setDateRange={(newDateRange) => {
+                if (typeof newDateRange === 'function') {
+                  setFilters(prev => {
+                    const updatedDateRange = newDateRange(prev.dateRange);
+                    return {...prev, dateRange: updatedDateRange};
+                  });
+                } else {
+                  setFilters(prev => ({...prev, dateRange: newDateRange}));
+                }
+              }}
               filterPeriod="last-month"
               setFilterPeriod={() => {}}
               selectedProject={filters.projectId}
-              handleProjectSelect={(projectId) => setFilters({...filters, projectId})}
+              handleProjectSelect={(projectId) => setFilters(prev => ({...prev, projectId}))}
               clients={clients}
               projects={projects}
               users={users}
               isAdmin={isAdmin}
               selectedUser={filters.userId}
-              setSelectedUser={(userId) => setFilters({...filters, userId})}
+              setSelectedUser={(userId) => {
+                if (typeof userId === 'function') {
+                  setFilters(prev => {
+                    const updatedUserId = userId(prev.userId);
+                    return {...prev, userId: updatedUserId};
+                  });
+                } else {
+                  setFilters(prev => ({...prev, userId}));
+                }
+              }}
             />
           </CardContent>
         </Card>
