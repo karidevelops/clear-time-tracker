@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -207,7 +208,17 @@ const TimeEntry = ({
         setStatus('pending');
         
         if (onEntrySaved) {
-          onEntrySaved({ ...status, status: 'pending' });
+          // Fix: Create a proper object to pass to onEntrySaved instead of spreading status
+          const updatedEntry = {
+            id: entryId,
+            date,
+            hours: parseFloat(hours),
+            description,
+            project_id: project,
+            user_id: user?.id,
+            status: 'pending'
+          };
+          onEntrySaved(updatedEntry);
         }
       }
     } catch (error) {
