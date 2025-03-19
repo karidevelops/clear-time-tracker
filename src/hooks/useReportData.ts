@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +15,24 @@ interface ReportFilters {
   projectId: string;
   clientId: string;
   status: TimeEntryStatus[];
+}
+
+// Define the type for the time entry response from Supabase
+interface TimeEntryWithProfile {
+  id: string;
+  date: string;
+  hours: number;
+  project_id: string;
+  description: string | null;
+  user_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  status: string;
+  profiles: {
+    full_name: string | null;
+  } | null;
 }
 
 export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
@@ -94,7 +113,7 @@ export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
         .from('time_entries')
         .select(`
           *,
-          profiles(full_name)
+          profiles (full_name)
         `)
         .gte('date', fromDate)
         .lte('date', toDate)
@@ -118,7 +137,7 @@ export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
       
       if (error) throw error;
       
-      let filteredData = data || [];
+      let filteredData = data as TimeEntryWithProfile[] || [];
       if (filters.clientId) {
         filteredData = filteredData.filter(entry => {
           const project = projects.find(p => p.id === entry.project_id);
@@ -129,10 +148,9 @@ export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
       const mappedEntries = filteredData.map(entry => {
         let profileFullName = 'Unknown User';
         
-        if (entry.profiles !== null && entry.profiles !== undefined) {
-          if (entry.profiles.full_name !== null && entry.profiles.full_name !== undefined) {
-            profileFullName = entry.profiles.full_name;
-          }
+        // Check if profiles data exists and has full_name property
+        if (entry.profiles) {
+          profileFullName = entry.profiles.full_name || 'Unknown User';
         }
         
         const entryWithStatus: TimeEntry = {
