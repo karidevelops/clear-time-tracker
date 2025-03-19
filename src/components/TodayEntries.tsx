@@ -6,7 +6,7 @@ import { Edit, Trash2, Clock, BarChart3, CheckCircle2, Clock4 } from 'lucide-rea
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { format, startOfToday, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfToday, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import TimeEntry from './TimeEntry';
 import { toast } from 'sonner';
@@ -25,6 +25,11 @@ interface TimeEntryItem {
   approved_at?: string;
 }
 
+interface MonthlyHoursData {
+  date: string;
+  hours: number;
+}
+
 const TodayEntries = ({ onEntrySaved, onEntryDeleted }: { 
   onEntrySaved?: (entry: any) => void;
   onEntryDeleted?: () => void;
@@ -33,6 +38,8 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
   const { user } = useAuth();
   const [entries, setEntries] = useState<TimeEntryItem[]>([]);
   const [weeklyAverage, setWeeklyAverage] = useState<number>(0);
+  const [monthlyHours, setMonthlyHours] = useState<MonthlyHoursData[]>([]);
+  const [totalMonthlyHours, setTotalMonthlyHours] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<TimeEntryItem | null>(null);
@@ -112,56 +119,63 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
     }
   };
 
-  const fetchWeeklyAverage = async () => {
+  const fetchMonthlyHours = async () => {
     if (!user?.id) return;
     
     try {
-      const weekStart = format(startOfWeek(today), 'yyyy-MM-dd');
-      const weekEnd = format(endOfWeek(today), 'yyyy-MM-dd');
+      const monthStart = startOfMonth(today);
+      const monthEnd = endOfMonth(today);
+      
+      const monthStartStr = format(monthStart, 'yyyy-MM-dd');
+      const monthEndStr = format(monthEnd, 'yyyy-MM-dd');
       
       const { data, error } = await supabase
         .from('time_entries')
         .select('hours, date')
         .eq('user_id', user.id)
-        .gte('date', weekStart)
-        .lte('date', weekEnd);
+        .gte('date', monthStartStr)
+        .lte('date', monthEndStr)
+        .order('date', { ascending: true });
         
       if (error) {
-        console.error('Error fetching weekly data:', error);
+        console.error('Error fetching monthly data:', error);
         return;
       }
       
       // Group entries by date
-      const entriesByDate = new Map();
+      const entriesByDate = new Map<string, number>();
+      
       data.forEach(entry => {
-        const date = entry.date;
-        if (!entriesByDate.has(date)) {
-          entriesByDate.set(date, []);
-        }
-        entriesByDate.get(date).push(entry);
+        const dateKey = entry.date;
+        const currentHours = entriesByDate.get(dateKey) || 0;
+        entriesByDate.set(dateKey, currentHours + entry.hours);
       });
       
-      // Calculate daily totals
-      const dailyTotals = Array.from(entriesByDate.entries()).map(([date, entries]) => {
-        const total = entries.reduce((sum: number, entry: any) => sum + entry.hours, 0);
-        return { date, total };
-      });
+      // Convert to array format
+      const hoursData: MonthlyHoursData[] = Array.from(entriesByDate.entries()).map(
+        ([date, hours]) => ({ date, hours })
+      );
       
-      // Calculate average
-      const totalDays = dailyTotals.length || 1; // Avoid division by zero
-      const totalHours = dailyTotals.reduce((sum, day) => sum + day.total, 0);
-      const average = totalHours / totalDays;
+      // Calculate total
+      const total = hoursData.reduce((sum, day) => sum + day.hours, 0);
       
+      setMonthlyHours(hoursData);
+      setTotalMonthlyHours(total);
+      
+      // Continue calculating weekly average for backward compatibility
+      const totalDays = hoursData.length || 1;
+      const average = total / 4; // Simplified weekly average calculation
       setWeeklyAverage(average);
+      
     } catch (error) {
-      console.error('Exception fetching weekly average:', error);
+      console.error('Exception fetching monthly hours:', error);
     }
   };
 
-  // Fixed: Use useEffect instead of useState to load data on component mount
+  // Use useEffect instead of useState to load data on component mount
   useEffect(() => {
     fetchTodayEntries();
-    fetchWeeklyAverage();
+    fetchMonthlyHours();
     checkUserRole();
   }, [user]); // Added user as a dependency
 
@@ -199,7 +213,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
 
       toast.success(t('entry_deleted'));
       fetchTodayEntries();
-      fetchWeeklyAverage();
+      fetchMonthlyHours();
       
       if (onEntryDeleted) {
         onEntryDeleted();
@@ -212,7 +226,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
 
   const handleEntrySaved = (entry: any) => {
     fetchTodayEntries();
-    fetchWeeklyAverage();
+    fetchMonthlyHours();
     setEditDialogOpen(false);
     
     if (onEntrySaved) {
@@ -288,6 +302,16 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
     }
   };
 
+  // Format date for display
+  const formatDate = (dateStr: string) => {
+    try {
+      const date = parseISO(dateStr);
+      return format(date, 'dd.MM');
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   return (
     <>
       <Card>
@@ -317,18 +341,6 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="text-reportronic-700 font-medium">{entry.hours}h</div>
-                      
-                      {entry.status === 'draft' && (
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-7 w-7 text-blue-600" 
-                          onClick={() => handleSubmitForApproval(entry.id)}
-                          title={t('submit_for_approval')}
-                        >
-                          <Clock4 className="h-4 w-4" />
-                        </Button>
-                      )}
                       
                       {isAdmin && entry.status === 'pending' && (
                         <Button 
@@ -377,12 +389,50 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
           )}
           
           <div className="border-t p-3 bg-gray-50">
-            <div className="flex justify-between items-center">
+            <div className="space-y-3">
               <div className="flex items-center text-sm font-medium text-gray-600">
                 <BarChart3 className="mr-2 h-4 w-4 text-reportronic-500" />
-                {t('weekly_average')}
+                {t('this_month')}
               </div>
-              <div className="text-reportronic-700 font-medium">{weeklyAverage.toFixed(1)}h</div>
+              
+              <div className="max-h-[150px] overflow-y-auto text-sm">
+                {monthlyHours.length > 0 ? (
+                  <div className="space-y-1">
+                    {monthlyHours.map((day) => (
+                      <div key={day.date} className="flex justify-between">
+                        <span>{formatDate(day.date)}</span>
+                        <span className="font-medium">{day.hours.toFixed(1)}h</span>
+                      </div>
+                    ))}
+                    <div className="border-t pt-1 mt-2 flex justify-between font-semibold">
+                      <span>{t('total')}</span>
+                      <span>{totalMonthlyHours.toFixed(1)}h</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500">{t('no_entries_this_month')}</div>
+                )}
+              </div>
+              
+              {entries.some(entry => entry.status === 'draft') && (
+                <div className="pt-2">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
+                    onClick={() => {
+                      // Find the first draft entry and submit it for approval
+                      const draftEntry = entries.find(e => e.status === 'draft');
+                      if (draftEntry) {
+                        handleSubmitForApproval(draftEntry.id);
+                      }
+                    }}
+                  >
+                    <Clock4 className="mr-2 h-4 w-4" />
+                    {t('submit_for_approval')}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
