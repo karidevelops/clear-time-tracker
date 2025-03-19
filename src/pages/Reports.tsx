@@ -154,14 +154,17 @@ const Reports = () => {
       }
       
       const mappedEntries = filteredData.map(entry => {
-        const profileData = entry.profiles;
-        const profileFullName = profileData && typeof profileData === 'object' && profileData !== null 
-          ? profileData.full_name 
-          : null;
+        let profileFullName = 'Unknown User';
+        
+        if (entry.profiles !== null && 
+            entry.profiles !== undefined && 
+            typeof entry.profiles === 'object') {
+          profileFullName = entry.profiles.full_name || 'Unknown User';
+        }
         
         const entryWithStatus: TimeEntry = {
           ...entry,
-          user_full_name: profileFullName || 'Unknown User',
+          user_full_name: profileFullName,
           status: (entry.status as TimeEntryStatus) || 'draft'
         };
         return entryWithStatus;
