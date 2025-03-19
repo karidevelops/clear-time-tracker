@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -11,16 +10,13 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, FileText, Download, FileSpreadsheet, FileType, CheckCircle, Clock4 } from "lucide-react";
+import { Calendar as CalendarIcon, FileText, Download, FileSpreadsheet, FileType } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import ProjectSelect from "@/components/ProjectSelect";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,12 +34,6 @@ interface TimeEntry {
   project_id: string;
   description: string | null;
   user_id: string;
-  status: 'draft' | 'pending' | 'approved';
-  user_full_name?: string;
-  created_at?: string | null;
-  updated_at?: string | null;
-  approved_by?: string | null;
-  approved_at?: string | null;
 }
 
 interface Project {
@@ -75,13 +65,7 @@ const Reports = () => {
   });
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>("month");
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
-  const [pendingEntries, setPendingEntries] = useState<TimeEntry[]>([]);
-  const [pendingUsers, setPendingUsers] = useState<string[]>([]);
-  const [selectedPendingUser, setSelectedPendingUser] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(false);
-  const [isPendingLoading, setIsPendingLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [activeTab, setActiveTab] = useState("reports");
   
   const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ['clients'],
@@ -116,31 +100,6 @@ const Reports = () => {
       return data || [];
     }
   });
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase.rpc('is_admin');
-        
-        if (error) {
-          console.error('Error checking admin status:', error);
-          return;
-        }
-        
-        setIsAdmin(data || false);
-        
-        if (data && activeTab === "reports") {
-          setActiveTab("approval");
-        }
-      } catch (error) {
-        console.error('Exception checking admin status:', error);
-      }
-    };
-    
-    checkAdminStatus();
-  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -198,79 +157,6 @@ const Reports = () => {
     fetchTimeEntries();
   }, [user, dateRange, selectedProject, selectedClientId, projects, t]);
 
-  const fetchPendingEntries = async () => {
-    if (!user || !isAdmin) return;
-    
-    setIsPendingLoading(true);
-    try {
-      // Use a JOIN query instead of nested select to get user full names
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select(`
-          *,
-          profiles:user_id(full_name)
-        `)
-        .eq('status', 'pending')
-        .order('date', { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching pending entries:", error);
-        toast.error(t('error_fetching_pending_entries'));
-        return;
-      }
-      
-      // Process the data to extract the full_name from profiles
-      const transformedData = data.map(entry => {
-        // Extract user_full_name safely to avoid type errors with proper null checks
-        let userFullName = t('unknown_user');
-        
-        // Check if profiles exists before accessing properties
-        if (entry.profiles !== null) {
-          // Check if it's an object and has full_name property
-          if (typeof entry.profiles === 'object' && 'full_name' in entry.profiles) {
-            userFullName = entry.profiles.full_name || t('unknown_user');
-          }
-        }
-        
-        // Create a proper TimeEntry object with explicit typing
-        const timeEntry: TimeEntry = {
-          id: entry.id,
-          date: entry.date,
-          hours: entry.hours,
-          project_id: entry.project_id,
-          description: entry.description,
-          user_id: entry.user_id,
-          status: entry.status as 'draft' | 'pending' | 'approved',
-          user_full_name: userFullName,
-          created_at: entry.created_at,
-          updated_at: entry.updated_at,
-          approved_by: entry.approved_by,
-          approved_at: entry.approved_at
-        };
-        
-        return timeEntry;
-      });
-      
-      const uniqueUsers = Array.from(
-        new Set(transformedData.map(entry => entry.user_id))
-      );
-      
-      setPendingEntries(transformedData);
-      setPendingUsers(uniqueUsers);
-    } catch (error) {
-      console.error("Exception fetching pending entries:", error);
-      toast.error(t('error_fetching_pending_entries'));
-    } finally {
-      setIsPendingLoading(false);
-    }
-  };
-  
-  useEffect(() => {
-    if (activeTab === "approval" && isAdmin) {
-      fetchPendingEntries();
-    }
-  }, [activeTab, isAdmin]);
-
   const applyDateFilter = (period: FilterPeriod) => {
     const today = new Date();
     
@@ -323,92 +209,6 @@ const Reports = () => {
   const handleProjectSelect = (projectId: string, clientId: string | null) => {
     setSelectedProject(projectId);
     setSelectedClientId(clientId);
-  };
-
-  const handleApproveEntry = async (entryId: string) => {
-    if (!isAdmin) {
-      toast.error(t('only_admins_can_approve'));
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('time_entries')
-        .update({ 
-          status: 'approved',
-          approved_by: user?.id,
-          approved_at: new Date().toISOString()
-        })
-        .eq('id', entryId);
-
-      if (error) {
-        console.error('Error approving entry:', error);
-        toast.error(t('error_approving_entry'));
-        return;
-      }
-
-      toast.success(t('entry_approved'));
-      fetchPendingEntries();
-    } catch (error) {
-      console.error('Exception approving entry:', error);
-      toast.error(t('error_approving_entry'));
-    }
-  };
-
-  const handleBulkApprove = async () => {
-    if (!isAdmin) {
-      toast.error(t('only_admins_can_approve'));
-      return;
-    }
-
-    const entriesToApprove = pendingEntries
-      .filter(entry => selectedPendingUser === "all" || entry.user_id === selectedPendingUser)
-      .map(entry => entry.id);
-
-    if (entriesToApprove.length === 0) {
-      toast.info(t('no_entries_to_approve'));
-      return;
-    }
-
-    const confirmMessage = t('confirm_bulk_approve').replace('{count}', entriesToApprove.length.toString());
-    if (!confirm(confirmMessage)) return;
-
-    setIsPendingLoading(true);
-    try {
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const entryId of entriesToApprove) {
-        const { error } = await supabase
-          .from('time_entries')
-          .update({ 
-            status: 'approved', 
-            approved_by: user?.id,
-            approved_at: new Date().toISOString()
-          })
-          .eq('id', entryId);
-
-        if (error) {
-          console.error(`Error approving entry ${entryId}:`, error);
-          errorCount++;
-        } else {
-          successCount++;
-        }
-      }
-
-      if (errorCount > 0) {
-        toast.error(t('partial_approval_error').replace('{success}', successCount.toString()).replace('{error}', errorCount.toString()));
-      } else {
-        toast.success(t('entries_approved').replace('{count}', successCount.toString()));
-      }
-
-      fetchPendingEntries();
-    } catch (error) {
-      console.error('Exception in bulk approval:', error);
-      toast.error(t('error_approving_entries'));
-    } finally {
-      setIsPendingLoading(false);
-    }
   };
 
   const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
@@ -548,323 +348,198 @@ const Reports = () => {
     toast.success(t('report_exported'));
   };
 
-  const filteredPendingEntries = pendingEntries.filter(entry => 
-    selectedPendingUser === "all" || entry.user_id === selectedPendingUser
-  );
-
-  const pendingTotalHours = filteredPendingEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
-
   return (
     <div className="container mx-auto py-8">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-8">
         <FileText className="h-7 w-7 text-reportronic-600" />
         <h1 className="text-3xl font-bold text-reportronic-800">{t('reports')}</h1>
       </div>
 
-      {isAdmin && (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid w-full md:w-auto grid-cols-2">
-            <TabsTrigger value="reports">{t('my_reports')}</TabsTrigger>
-            <TabsTrigger value="approval">{t('time_approval')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      )}
-
-      <TabsContent value="reports" className={activeTab !== "reports" ? "hidden" : ""}>
-        <div className="bg-white p-6 rounded-lg border mb-8">
-          <h2 className="text-xl font-semibold mb-4">{t('filter_reports')}</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium mb-2">{t('project')}</label>
-              <ProjectSelect 
-                value={selectedProject} 
-                onChange={(projectId, clientId) => handleProjectSelect(projectId, clientId)} 
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">{t('date_range')}</label>
-              <div className="flex space-x-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !dateRange.from && !dateRange.to && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange.from ? (
-                        dateRange.to ? (
-                          <>
-                            {format(dateRange.from, "PPP")} - {format(dateRange.to, "PPP")}
-                          </>
-                        ) : (
-                          format(dateRange.from, "PPP")
-                        )
-                      ) : (
-                        <span>{t('select_date_range')}</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      initialFocus
-                      mode="range"
-                      defaultMonth={dateRange.from}
-                      selected={dateRange}
-                      onSelect={(range) => {
-                        setDateRange(range as DateRange);
-                        if (range?.from) setFilterPeriod("custom");
-                      }}
-                      numberOfMonths={2}
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium mb-2">{t('quick_filters')}</label>
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant={filterPeriod === "week" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => applyDateFilter("week")}
-                >
-                  {t('this_week')}
-                </Button>
-                <Button 
-                  variant={filterPeriod === "month" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => applyDateFilter("month")}
-                >
-                  {t('this_month')}
-                </Button>
-                <Button 
-                  variant={filterPeriod === "last-month" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => applyDateFilter("last-month")}
-                >
-                  {t('last_month')}
-                </Button>
-                <Button 
-                  variant={filterPeriod === "all" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => applyDateFilter("all")}
-                >
-                  {t('all_time')}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg border mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">{t('summary')}</h2>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={exportToCsv}
-                disabled={timeEntries.length === 0 || isLoading}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                {t('export_to_csv')}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={exportToExcel}
-                disabled={timeEntries.length === 0 || isLoading}
-              >
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                {t('export_to_excel')}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={exportToPdf}
-                disabled={timeEntries.length === 0 || isLoading}
-              >
-                <FileType className="mr-2 h-4 w-4" />
-                {t('export_to_pdf')}
-              </Button>
-            </div>
+      <div className="bg-white p-6 rounded-lg border mb-8">
+        <h2 className="text-xl font-semibold mb-4">{t('filter_reports')}</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">{t('project')}</label>
+            <ProjectSelect 
+              value={selectedProject} 
+              onChange={(projectId, clientId) => handleProjectSelect(projectId, clientId)} 
+            />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-50 p-4 rounded-md border">
-              <div className="text-sm text-gray-500">{t('total_entries')}</div>
-              <div className="text-2xl font-bold">{timeEntries.length}</div>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-md border">
-              <div className="text-sm text-gray-500">{t('total_hours')}</div>
-              <div className="text-2xl font-bold">{totalHours.toFixed(1)}</div>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-md border">
-              <div className="text-sm text-gray-500">{t('avg_hours_per_day')}</div>
-              <div className="text-2xl font-bold">
-                {timeEntries.length > 0 
-                  ? (totalHours / [...new Set(timeEntries.map(e => e.date))].length).toFixed(1) 
-                  : '0.0'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="border rounded-md">
-          {isLoading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin h-8 w-8 border-4 border-reportronic-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-gray-500">{t('loading_time_entries')}</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('date')}</TableHead>
-                  <TableHead>{t('client')}</TableHead>
-                  <TableHead>{t('project')}</TableHead>
-                  <TableHead>{t('description')}</TableHead>
-                  <TableHead className="text-right">{t('hours')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {timeEntries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                      {t('no_time_entries_found')}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  timeEntries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>{format(parseISO(entry.date), 'dd.MM.yyyy')}</TableCell>
-                      <TableCell>{getClientName(entry.project_id)}</TableCell>
-                      <TableCell>{getProjectName(entry.project_id)}</TableCell>
-                      <TableCell>{entry.description || "-"}</TableCell>
-                      <TableCell className="text-right font-medium">{Number(entry.hours).toFixed(1)}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </div>
-      </TabsContent>
-
-      <TabsContent value="approval" className={activeTab !== "approval" ? "hidden" : ""}>
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                {t('time_approval')}
-              </div>
-              
-              <Button 
-                onClick={handleBulkApprove}
-                disabled={filteredPendingEntries.length === 0 || isPendingLoading}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle className="mr-2 h-4 w-4" />
-                {t('approve_all_selected')}
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">{t('filter_by_user')}</label>
-              <select
-                className="w-full md:w-80 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={selectedPendingUser}
-                onChange={(e) => setSelectedPendingUser(e.target.value)}
-              >
-                <option value="all">{t('all_users')}</option>
-                {pendingUsers.map(userId => {
-                  const user = pendingEntries.find(e => e.user_id === userId);
-                  return (
-                    <option key={userId} value={userId}>
-                      {user?.user_full_name || userId}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            
-            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-4 rounded-md border">
-                <div className="text-sm text-gray-500">{t('pending_entries')}</div>
-                <div className="text-2xl font-bold">{filteredPendingEntries.length}</div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-md border">
-                <div className="text-sm text-gray-500">{t('total_pending_hours')}</div>
-                <div className="text-2xl font-bold">{pendingTotalHours.toFixed(1)}</div>
-              </div>
-            </div>
-            
-            <div className="border rounded-md">
-              {isPendingLoading ? (
-                <div className="p-8 text-center">
-                  <div className="animate-spin h-8 w-8 border-4 border-reportronic-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                  <p className="text-gray-500">{t('loading_pending_entries')}</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('date')}</TableHead>
-                      <TableHead>{t('user')}</TableHead>
-                      <TableHead>{t('client')}</TableHead>
-                      <TableHead>{t('project')}</TableHead>
-                      <TableHead>{t('description')}</TableHead>
-                      <TableHead className="text-right">{t('hours')}</TableHead>
-                      <TableHead className="text-right">{t('actions')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPendingEntries.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
-                          {t('no_pending_entries')}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredPendingEntries.map((entry) => (
-                        <TableRow key={entry.id}>
-                          <TableCell>{format(parseISO(entry.date), 'dd.MM.yyyy')}</TableCell>
-                          <TableCell>
-                            <div className="font-medium">{entry.user_full_name}</div>
-                          </TableCell>
-                          <TableCell>{getClientName(entry.project_id)}</TableCell>
-                          <TableCell>{getProjectName(entry.project_id)}</TableCell>
-                          <TableCell>{entry.description || "-"}</TableCell>
-                          <TableCell className="text-right font-medium">{Number(entry.hours).toFixed(1)}</TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleApproveEntry(entry.id)}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              <span className="sr-only">{t('approve')}</span>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
+          <div>
+            <label className="block text-sm font-medium mb-2">{t('date_range')}</label>
+            <div className="flex space-x-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dateRange.from && !dateRange.to && "text-muted-foreground"
                     )}
-                  </TableBody>
-                </Table>
-              )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "PPP")} - {format(dateRange.to, "PPP")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "PPP")
+                      )
+                    ) : (
+                      <span>{t('select_date_range')}</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange.from}
+                    selected={dateRange}
+                    onSelect={(range) => {
+                      setDateRange(range as DateRange);
+                      if (range?.from) setFilterPeriod("custom");
+                    }}
+                    numberOfMonths={2}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+          </div>
+          
+          <div className="lg:col-span-2">
+            <label className="block text-sm font-medium mb-2">{t('quick_filters')}</label>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant={filterPeriod === "week" ? "default" : "outline"}
+                size="sm"
+                onClick={() => applyDateFilter("week")}
+              >
+                {t('this_week')}
+              </Button>
+              <Button 
+                variant={filterPeriod === "month" ? "default" : "outline"}
+                size="sm"
+                onClick={() => applyDateFilter("month")}
+              >
+                {t('this_month')}
+              </Button>
+              <Button 
+                variant={filterPeriod === "last-month" ? "default" : "outline"}
+                size="sm"
+                onClick={() => applyDateFilter("last-month")}
+              >
+                {t('last_month')}
+              </Button>
+              <Button 
+                variant={filterPeriod === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => applyDateFilter("all")}
+              >
+                {t('all_time')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg border mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">{t('summary')}</h2>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={exportToCsv}
+              disabled={timeEntries.length === 0 || isLoading}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {t('export_to_csv')}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={exportToExcel}
+              disabled={timeEntries.length === 0 || isLoading}
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              {t('export_to_excel')}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={exportToPdf}
+              disabled={timeEntries.length === 0 || isLoading}
+            >
+              <FileType className="mr-2 h-4 w-4" />
+              {t('export_to_pdf')}
+            </Button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gray-50 p-4 rounded-md border">
+            <div className="text-sm text-gray-500">{t('total_entries')}</div>
+            <div className="text-2xl font-bold">{timeEntries.length}</div>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-md border">
+            <div className="text-sm text-gray-500">{t('total_hours')}</div>
+            <div className="text-2xl font-bold">{totalHours.toFixed(1)}</div>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-md border">
+            <div className="text-sm text-gray-500">{t('avg_hours_per_day')}</div>
+            <div className="text-2xl font-bold">
+              {timeEntries.length > 0 
+                ? (totalHours / [...new Set(timeEntries.map(e => e.date))].length).toFixed(1) 
+                : '0.0'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="border rounded-md">
+        {isLoading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-reportronic-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-500">{t('loading_time_entries')}</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('date')}</TableHead>
+                <TableHead>{t('client')}</TableHead>
+                <TableHead>{t('project')}</TableHead>
+                <TableHead>{t('description')}</TableHead>
+                <TableHead className="text-right">{t('hours')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {timeEntries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                    {t('no_time_entries_found')}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                timeEntries.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell>{format(parseISO(entry.date), 'dd.MM.yyyy')}</TableCell>
+                    <TableCell>{getClientName(entry.project_id)}</TableCell>
+                    <TableCell>{getProjectName(entry.project_id)}</TableCell>
+                    <TableCell>{entry.description || "-"}</TableCell>
+                    <TableCell className="text-right font-medium">{Number(entry.hours).toFixed(1)}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </div>
   );
 };
