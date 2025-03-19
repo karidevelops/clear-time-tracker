@@ -221,12 +221,16 @@ const Reports = () => {
       
       // Process the data to extract the full_name from profiles
       const transformedData = data.map(entry => {
-        // Extract user_full_name safely to avoid type errors
-        const userFullName = entry.profiles && 
-          typeof entry.profiles === 'object' && 
-          'full_name' in entry.profiles ? 
-          entry.profiles.full_name : 
-          t('unknown_user');
+        // Extract user_full_name safely to avoid type errors with proper null checks
+        let userFullName = t('unknown_user');
+        
+        // Check if profiles exists before accessing properties
+        if (entry.profiles !== null) {
+          // Check if it's an object and has full_name property
+          if (typeof entry.profiles === 'object' && 'full_name' in entry.profiles) {
+            userFullName = entry.profiles.full_name || t('unknown_user');
+          }
+        }
         
         // Create a proper TimeEntry object with explicit typing
         const timeEntry: TimeEntry = {
@@ -237,7 +241,7 @@ const Reports = () => {
           description: entry.description,
           user_id: entry.user_id,
           status: entry.status as 'draft' | 'pending' | 'approved',
-          user_full_name: userFullName as string,
+          user_full_name: userFullName,
           created_at: entry.created_at,
           updated_at: entry.updated_at,
           approved_by: entry.approved_by,
