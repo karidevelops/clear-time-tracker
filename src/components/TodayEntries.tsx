@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,8 @@ import { Edit, Trash2, Clock, BarChart3, CheckCircle2, Clock4 } from 'lucide-rea
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { format, startOfToday, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { format, startOfToday, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, getWeek, getWeekOfMonth } from 'date-fns';
+import { fi } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import TimeEntry from './TimeEntry';
 import { toast } from 'sonner';
@@ -30,6 +30,17 @@ interface MonthlyHoursData {
   hours: number;
 }
 
+interface WeeklyHoursData {
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+  hours: number;
+  entries: {
+    date: string;
+    hours: number;
+  }[];
+}
+
 const TodayEntries = ({ onEntrySaved, onEntryDeleted }: { 
   onEntrySaved?: (entry: any) => void;
   onEntryDeleted?: () => void;
@@ -39,6 +50,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
   const [entries, setEntries] = useState<TimeEntryItem[]>([]);
   const [weeklyAverage, setWeeklyAverage] = useState<number>(0);
   const [monthlyHours, setMonthlyHours] = useState<MonthlyHoursData[]>([]);
+  const [weeklyHours, setWeeklyHours] = useState<WeeklyHoursData[]>([]);
   const [totalMonthlyHours, setTotalMonthlyHours] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -47,7 +59,6 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
   const today = startOfToday();
   const todayStr = format(today, 'yyyy-MM-dd');
 
-  // Check if the current user is an admin
   const checkUserRole = async () => {
     if (!user?.id) return;
     
@@ -156,14 +167,46 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
         ([date, hours]) => ({ date, hours })
       );
       
+      // Group by weeks
+      const entriesByWeek = new Map<number, WeeklyHoursData>();
+      
+      hoursData.forEach(entry => {
+        const entryDate = parseISO(entry.date);
+        const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(entryDate, { weekStartsOn: 1 });
+        const weekNumber = getWeekOfMonth(entryDate, { weekStartsOn: 1 });
+        
+        if (!entriesByWeek.has(weekNumber)) {
+          entriesByWeek.set(weekNumber, {
+            weekNumber,
+            startDate: format(weekStart, 'yyyy-MM-dd'),
+            endDate: format(weekEnd, 'yyyy-MM-dd'),
+            hours: 0,
+            entries: []
+          });
+        }
+        
+        const weekData = entriesByWeek.get(weekNumber)!;
+        weekData.hours += entry.hours;
+        weekData.entries.push({
+          date: entry.date,
+          hours: entry.hours
+        });
+      });
+      
+      // Convert to array and sort by week number
+      const weeksData: WeeklyHoursData[] = Array.from(entriesByWeek.values()).sort(
+        (a, b) => a.weekNumber - b.weekNumber
+      );
+      
       // Calculate total
       const total = hoursData.reduce((sum, day) => sum + day.hours, 0);
       
       setMonthlyHours(hoursData);
+      setWeeklyHours(weeksData);
       setTotalMonthlyHours(total);
       
       // Continue calculating weekly average for backward compatibility
-      const totalDays = hoursData.length || 1;
       const average = total / 4; // Simplified weekly average calculation
       setWeeklyAverage(average);
       
@@ -172,15 +215,13 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
     }
   };
 
-  // Use useEffect instead of useState to load data on component mount
   useEffect(() => {
     fetchTodayEntries();
     fetchMonthlyHours();
     checkUserRole();
-  }, [user]); // Added user as a dependency
+  }, [user]);
 
   const handleEdit = (entry: TimeEntryItem) => {
-    // Don't allow editing approved entries
     if (entry.status === 'approved' && !isAdmin) {
       toast.info(t('cannot_edit_approved_entry'));
       return;
@@ -191,7 +232,6 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
   };
 
   const handleDelete = async (entryId: string, status: string) => {
-    // Don't allow deleting approved entries
     if (status === 'approved' && !isAdmin) {
       toast.info(t('cannot_delete_approved_entry'));
       return;
@@ -285,10 +325,8 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
     }
   };
 
-  // Calculate total hours for today
   const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
 
-  // Function to render status badge
   const renderStatusBadge = (status: string) => {
     switch(status) {
       case 'draft':
@@ -302,7 +340,6 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
     }
   };
 
-  // Format date for display
   const formatDate = (dateStr: string) => {
     try {
       const date = parseISO(dateStr);
@@ -395,13 +432,25 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
                 {t('this_month')}
               </div>
               
-              <div className="max-h-[150px] overflow-y-auto text-sm">
-                {monthlyHours.length > 0 ? (
-                  <div className="space-y-1">
-                    {monthlyHours.map((day) => (
-                      <div key={day.date} className="flex justify-between">
-                        <span>{formatDate(day.date)}</span>
-                        <span className="font-medium">{day.hours.toFixed(1)}h</span>
+              <div className="max-h-[250px] overflow-y-auto text-sm">
+                {weeklyHours.length > 0 ? (
+                  <div className="space-y-3">
+                    {weeklyHours.map((week) => (
+                      <div key={week.weekNumber} className="border-b pb-2 last:border-0">
+                        <div className="flex justify-between font-medium mb-1">
+                          <span>
+                            {t('week')} {week.weekNumber}: {format(parseISO(week.startDate), 'dd.MM')} - {format(parseISO(week.endDate), 'dd.MM')}
+                          </span>
+                          <span className="text-reportronic-600">{week.hours.toFixed(1)}h</span>
+                        </div>
+                        <div className="space-y-1 pl-2 text-xs">
+                          {week.entries.map((entry) => (
+                            <div key={entry.date} className="flex justify-between text-gray-600">
+                              <span>{format(parseISO(entry.date), 'dd.MM')}</span>
+                              <span>{entry.hours.toFixed(1)}h</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                     <div className="border-t pt-1 mt-2 flex justify-between font-semibold">
@@ -421,7 +470,6 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
                     size="sm"
                     className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
                     onClick={() => {
-                      // Find the first draft entry and submit it for approval
                       const draftEntry = entries.find(e => e.status === 'draft');
                       if (draftEntry) {
                         handleSubmitForApproval(draftEntry.id);
