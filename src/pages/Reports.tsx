@@ -38,7 +38,6 @@ const Reports = () => {
   });
   const [loadingPendingEntries, setLoadingPendingEntries] = useState(false);
 
-  // Group pending entries by user
   const groupedByUser = timeEntries
     .filter(entry => entry.status === 'pending')
     .reduce<{ [key: string]: TimeEntry[] }>((acc, entry) => {
@@ -156,7 +155,9 @@ const Reports = () => {
       
       const mappedEntries = filteredData.map(entry => {
         const profileData = entry.profiles;
-        const profileFullName = profileData && typeof profileData === 'object' ? profileData.full_name : null;
+        const profileFullName = profileData && typeof profileData === 'object' && profileData !== null 
+          ? profileData.full_name 
+          : null;
         
         const entryWithStatus: TimeEntry = {
           ...entry,
