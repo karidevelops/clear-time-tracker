@@ -1,24 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { Button } from "@/components/ui/button";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
-import { Calendar as CalendarIcon, FileText, Download, FileSpreadsheet, FileType, CheckCircle } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import ProjectSelect from "@/components/ProjectSelect";
-import { cn } from "@/lib/utils";
+import { FileText } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -27,39 +11,14 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
-type TimeEntryStatus = "draft" | "pending" | "approved";
-
-interface TimeEntry {
-  id: string;
-  date: string;
-  hours: number;
-  project_id: string;
-  description: string | null;
-  user_id: string;
-  created_at?: string | null;
-  updated_at?: string | null;
-  approved_by?: string | null;
-  approved_at?: string | null;
-  status: TimeEntryStatus;
-  user_full_name?: string;
-  profiles?: {
-    full_name: string | null;
-  } | null;
-}
+// Import custom components
+import ReportFilters from "@/components/reports/ReportFilters";
+import ReportSummary from "@/components/reports/ReportSummary";
+import TimeEntriesTable from "@/components/reports/TimeEntriesTable";
+import ApprovalSection from "@/components/reports/ApprovalSection";
+import ApprovalDialog from "@/components/reports/ApprovalDialog";
+import { TimeEntry } from "@/types/timeEntry";
 
 interface Project {
   id: string;
@@ -244,10 +203,10 @@ const Reports = () => {
       }
       
       if (data) {
-        const entriesWithUserNames: TimeEntry[] = data.map(entry => {
+        const entriesWithUserNames = data.map(entry => {
           let userName = t('unknown_user');
           
-          if (entry.profiles && typeof entry.profiles === 'object' && !('error' in entry.profiles)) {
+          if (entry.profiles && typeof entry.profiles === 'object' && entry.profiles !== null && !('error' in entry.profiles)) {
             userName = entry.profiles.full_name || t('unknown_user');
           }
           
@@ -285,40 +244,9 @@ const Reports = () => {
     }
   }, [activeTab, selectedUser, dateRange]);
 
-  const applyDateFilter = (period: FilterPeriod) => {
-    const today = new Date();
-    
-    switch (period) {
-      case "week":
-        setDateRange({
-          from: startOfWeek(today, { weekStartsOn: 1 }),
-          to: endOfWeek(today, { weekStartsOn: 1 }),
-        });
-        break;
-      case "month":
-        setDateRange({
-          from: startOfMonth(today),
-          to: endOfMonth(today),
-        });
-        break;
-      case "last-month":
-        const lastMonth = subMonths(today, 1);
-        setDateRange({
-          from: startOfMonth(lastMonth),
-          to: endOfMonth(lastMonth),
-        });
-        break;
-      case "all":
-        setDateRange({
-          from: undefined,
-          to: undefined,
-        });
-        break;
-      case "custom":
-        break;
-    }
-    
-    setFilterPeriod(period);
+  const handleProjectSelect = (projectId: string, clientId: string | null) => {
+    setSelectedProject(projectId);
+    setSelectedClientId(clientId);
   };
 
   const getProjectName = (projectId: string): string => {
@@ -332,11 +260,6 @@ const Reports = () => {
     
     const client = clients.find(c => c.id === project.client_id);
     return client ? client.name : t('unknown_client');
-  };
-
-  const handleProjectSelect = (projectId: string, clientId: string | null) => {
-    setSelectedProject(projectId);
-    setSelectedClientId(clientId);
   };
 
   const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
@@ -602,401 +525,69 @@ const Reports = () => {
         </TabsList>
         
         <TabsContent value="own-report">
-          <div className="bg-white p-6 rounded-lg border mb-8">
-            <h2 className="text-xl font-semibold mb-4">{t('filter_reports')}</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">{t('project')}</label>
-                <ProjectSelect 
-                  value={selectedProject} 
-                  onChange={(projectId, clientId) => handleProjectSelect(projectId, clientId)} 
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">{t('date_range')}</label>
-                <div className="flex space-x-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !dateRange.from && !dateRange.to && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, "PPP")} - {format(dateRange.to, "PPP")}
-                            </>
-                          ) : (
-                            format(dateRange.from, "PPP")
-                          )
-                        ) : (
-                          <span>{t('select_date_range')}</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange.from}
-                        selected={dateRange}
-                        onSelect={(range) => {
-                          setDateRange(range as DateRange);
-                          if (range?.from) setFilterPeriod("custom");
-                        }}
-                        numberOfMonths={2}
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium mb-2">{t('quick_filters')}</label>
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    variant={filterPeriod === "week" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => applyDateFilter("week")}
-                  >
-                    {t('this_week')}
-                  </Button>
-                  <Button 
-                    variant={filterPeriod === "month" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => applyDateFilter("month")}
-                  >
-                    {t('this_month')}
-                  </Button>
-                  <Button 
-                    variant={filterPeriod === "last-month" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => applyDateFilter("last-month")}
-                  >
-                    {t('last_month')}
-                  </Button>
-                  <Button 
-                    variant={filterPeriod === "all" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => applyDateFilter("all")}
-                  >
-                    {t('all_time')}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ReportFilters 
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            filterPeriod={filterPeriod}
+            setFilterPeriod={setFilterPeriod}
+            selectedProject={selectedProject}
+            handleProjectSelect={handleProjectSelect}
+          />
 
-          <div className="bg-white p-6 rounded-lg border mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">{t('summary')}</h2>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={exportToCsv}
-                  disabled={timeEntries.length === 0 || isLoading}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  {t('export_to_csv')}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={exportToExcel}
-                  disabled={timeEntries.length === 0 || isLoading}
-                >
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  {t('export_to_excel')}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={exportToPdf}
-                  disabled={timeEntries.length === 0 || isLoading}
-                >
-                  <FileType className="mr-2 h-4 w-4" />
-                  {t('export_to_pdf')}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gray-50 p-4 rounded-md border">
-                <div className="text-sm text-gray-500">{t('total_entries')}</div>
-                <div className="text-2xl font-bold">{timeEntries.length}</div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-md border">
-                <div className="text-sm text-gray-500">{t('total_hours')}</div>
-                <div className="text-2xl font-bold">{totalHours.toFixed(1)}</div>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-md border">
-                <div className="text-sm text-gray-500">{t('avg_hours_per_day')}</div>
-                <div className="text-2xl font-bold">
-                  {timeEntries.length > 0 
-                    ? (totalHours / [...new Set(timeEntries.map(e => e.date))].length).toFixed(1) 
-                    : '0.0'}
-                </div>
-              </div>
-            </div>
-          </div>
+          <ReportSummary 
+            timeEntries={timeEntries}
+            totalHours={totalHours}
+            isLoading={isLoading}
+            exportToCsv={exportToCsv}
+            exportToExcel={exportToExcel}
+            exportToPdf={exportToPdf}
+          />
 
           <div className="border rounded-md">
-            {isLoading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin h-8 w-8 border-4 border-reportronic-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-gray-500">{t('loading_time_entries')}</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('date')}</TableHead>
-                    <TableHead>{t('client')}</TableHead>
-                    <TableHead>{t('project')}</TableHead>
-                    <TableHead>{t('description')}</TableHead>
-                    <TableHead className="text-right">{t('hours')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {timeEntries.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                        {t('no_time_entries_found')}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    timeEntries.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell>{format(parseISO(entry.date), 'dd.MM.yyyy')}</TableCell>
-                        <TableCell>{getClientName(entry.project_id)}</TableCell>
-                        <TableCell>{getProjectName(entry.project_id)}</TableCell>
-                        <TableCell>{entry.description || "-"}</TableCell>
-                        <TableCell className="text-right font-medium">{Number(entry.hours).toFixed(1)}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            )}
+            <TimeEntriesTable 
+              timeEntries={timeEntries}
+              isLoading={isLoading}
+              getClientName={getClientName}
+              getProjectName={getProjectName}
+            />
           </div>
         </TabsContent>
         
         <TabsContent value="approve-entries">
-          <div className="bg-white p-6 rounded-lg border mb-8">
-            <h2 className="text-xl font-semibold mb-4">{t('filter_pending_entries')}</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">{t('user')}</label>
-                <select
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-reportronic-500 focus:ring-reportronic-500"
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                >
-                  <option value="all">{t('all_users')}</option>
-                  {users.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.full_name || t('unnamed_user')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">{t('date_range')}</label>
-                <div className="flex space-x-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !dateRange.from && !dateRange.to && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, "PPP")} - {format(dateRange.to, "PPP")}
-                            </>
-                          ) : (
-                            format(dateRange.from, "PPP")
-                          )
-                        ) : (
-                          <span>{t('select_date_range')}</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={dateRange.from}
-                        selected={dateRange}
-                        onSelect={(range) => {
-                          setDateRange(range as DateRange);
-                          if (range?.from) setFilterPeriod("custom");
-                        }}
-                        numberOfMonths={2}
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">{t('quick_filters')}</label>
-                <div className="flex flex-wrap gap-2">
-                  <Button 
-                    variant={filterPeriod === "month" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => applyDateFilter("month")}
-                  >
-                    {t('this_month')}
-                  </Button>
-                  <Button 
-                    variant={filterPeriod === "last-month" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => applyDateFilter("last-month")}
-                  >
-                    {t('last_month')}
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center mt-6">
-              <h3 className="text-lg font-medium">{pendingEntries.length} {t('pending_entries')}</h3>
-              
-              {pendingEntries.length > 0 && (
-                <Button
-                  onClick={approveMonthEntries}
-                  disabled={approvingEntries || pendingEntries.length === 0}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  {t('approve_all_entries')}
-                </Button>
-              )}
-            </div>
-          </div>
+          <ReportFilters 
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            filterPeriod={filterPeriod}
+            setFilterPeriod={setFilterPeriod}
+            selectedProject={selectedProject}
+            handleProjectSelect={handleProjectSelect}
+            isApproval={true}
+            selectedUser={selectedUser}
+            setSelectedUser={setSelectedUser}
+            users={users}
+          />
 
-          <div className="border rounded-md">
-            {loadingPendingEntries ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin h-8 w-8 border-4 border-reportronic-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-gray-500">{t('loading_time_entries')}</p>
-              </div>
-            ) : (
-              <div>
-                {Object.keys(groupedByUser).length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    {t('no_pending_entries')}
-                  </div>
-                ) : (
-                  <div>
-                    {Object.entries(groupedByUser).map(([userName, entries]) => (
-                      <div key={userName} className="border-b last:border-b-0">
-                        <div className="flex justify-between items-center p-4 bg-gray-50">
-                          <h3 className="font-medium">{userName} ({entries.length} {t('entries')})</h3>
-                          <Button 
-                            size="sm"
-                            onClick={() => approveUserEntries(entries[0].user_id)}
-                            disabled={approvingEntries}
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            {t('approve_all_user_entries')}
-                          </Button>
-                        </div>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>{t('date')}</TableHead>
-                              <TableHead>{t('client')}</TableHead>
-                              <TableHead>{t('project')}</TableHead>
-                              <TableHead>{t('description')}</TableHead>
-                              <TableHead className="text-right">{t('hours')}</TableHead>
-                              <TableHead className="text-right">{t('actions')}</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {entries.map((entry) => (
-                              <TableRow key={entry.id}>
-                                <TableCell>{format(parseISO(entry.date), 'dd.MM.yyyy')}</TableCell>
-                                <TableCell>{getClientName(entry.project_id)}</TableCell>
-                                <TableCell>{getProjectName(entry.project_id)}</TableCell>
-                                <TableCell>{entry.description || "-"}</TableCell>
-                                <TableCell className="text-right font-medium">{Number(entry.hours).toFixed(1)}</TableCell>
-                                <TableCell className="text-right">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    onClick={() => handleApprove(entry)}
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <ApprovalSection 
+            pendingEntries={pendingEntries}
+            loadingPendingEntries={loadingPendingEntries}
+            groupedByUser={groupedByUser}
+            approveMonthEntries={approveMonthEntries}
+            approveUserEntries={approveUserEntries}
+            handleApprove={handleApprove}
+            getClientName={getClientName}
+            getProjectName={getProjectName}
+            approvingEntries={approvingEntries}
+          />
         </TabsContent>
       </Tabs>
       
-      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('approve_time_entry')}</DialogTitle>
-            <DialogDescription>
-              {t('approve_time_entry_confirmation')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {entryToApprove && (
-              <div className="bg-gray-50 p-4 rounded-md">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <div className="text-sm text-gray-500">{t('date')}</div>
-                    <div>{format(parseISO(entryToApprove.date), 'dd.MM.yyyy')}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">{t('hours')}</div>
-                    <div>{Number(entryToApprove.hours).toFixed(1)}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="text-sm text-gray-500">{t('project')}</div>
-                    <div>{getProjectName(entryToApprove.project_id)}</div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="text-sm text-gray-500">{t('description')}</div>
-                    <div>{entryToApprove.description || "-"}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowApproveDialog(false)}>{t('cancel')}</Button>
-            <Button onClick={confirmApproval}>{t('approve')}</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ApprovalDialog 
+        showApproveDialog={showApproveDialog}
+        setShowApproveDialog={setShowApproveDialog}
+        entryToApprove={entryToApprove}
+        confirmApproval={confirmApproval}
+        getProjectName={getProjectName}
+      />
     </div>
   );
 };
