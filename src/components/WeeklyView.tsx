@@ -16,6 +16,7 @@ import { MoreHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getAllProjects, getProjectById } from '@/data/ClientsData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
+import { isHolidayOrWeekend, getHolidayName } from '@/utils/dateUtils';
 
 const WeeklyView = () => {
   const { t } = useLanguage();
@@ -319,50 +320,75 @@ const WeeklyView = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-1">
-            {weekDays.map((day, i) => (
-              <div
-                key={i}
-                className={`p-2 border rounded ${isToday(day) ? 'border-reportronic-500 bg-reportronic-50' : 'border-gray-200'}`}
-              >
-                <div className="text-center">
-                  <div className="font-medium">{format(day, 'EEEEEE', { locale: fi })}</div>
-                  <div 
-                    className={`text-lg cursor-pointer hover:text-reportronic-500 ${isToday(day) ? 'text-reportronic-500 font-bold' : ''}`}
-                    onClick={() => handleDateClick(day)}
-                  >
-                    {format(day, 'd')}
-                  </div>
-                  
-                  <div className="mt-2 mb-2">
-                    {dailyHours[format(day, 'yyyy-MM-dd')] !== undefined ? (
-                      <Badge className="bg-reportronic-500">
-                        {dailyHours[format(day, 'yyyy-MM-dd')].toFixed(2)} h
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-gray-400">
-                        0 h
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-1 space-y-1">
-                  {entriesByDate[format(day, 'yyyy-MM-dd')]?.map((entry, idx) => (
-                    <div 
-                      key={idx} 
-                      className="text-xs p-1 bg-gray-100 rounded cursor-pointer hover:bg-gray-200"
-                      onClick={() => handleEdit(entry)}
-                    >
-                      <div className="font-medium truncate">
-                        {entry.hours} h - {getProjectName(entry.project_id)}
-                      </div>
-                      <div className="truncate text-gray-600">
-                        {entry.description?.substring(0, 20)}{entry.description && entry.description.length > 20 ? '...' : ''}
-                      </div>
+            {weekDays.map((day, i) => {
+              const isHoliday = isHolidayOrWeekend(day);
+              const holidayName = getHolidayName(day);
+              
+              return (
+                <div
+                  key={i}
+                  className={`p-2 border rounded ${
+                    isToday(day) 
+                      ? 'border-reportronic-500 bg-reportronic-50' 
+                      : isHoliday 
+                        ? 'border-red-200' 
+                        : 'border-gray-200'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className={`font-medium ${isHoliday ? 'text-red-600' : ''}`}>
+                      {format(day, 'EEEEEE', { locale: fi })}
                     </div>
-                  ))}
+                    <div 
+                      className={`text-lg cursor-pointer hover:text-reportronic-500 ${
+                        isToday(day) 
+                          ? 'text-reportronic-500 font-bold' 
+                          : isHoliday 
+                            ? 'text-red-600' 
+                            : ''
+                      }`}
+                      onClick={() => handleDateClick(day)}
+                    >
+                      {format(day, 'd')}
+                    </div>
+                    
+                    {holidayName && (
+                      <div className="text-xs text-red-600 mt-1 mb-1">
+                        {holidayName}
+                      </div>
+                    )}
+                    
+                    <div className="mt-2 mb-2">
+                      {dailyHours[format(day, 'yyyy-MM-dd')] !== undefined ? (
+                        <Badge className={`${isHoliday ? 'bg-red-500' : 'bg-reportronic-500'}`}>
+                          {dailyHours[format(day, 'yyyy-MM-dd')].toFixed(2)} h
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className={`${isHoliday ? 'text-red-400 border-red-300' : 'text-gray-400'}`}>
+                          0 h
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-1 space-y-1">
+                    {entriesByDate[format(day, 'yyyy-MM-dd')]?.map((entry, idx) => (
+                      <div 
+                        key={idx} 
+                        className="text-xs p-1 bg-gray-100 rounded cursor-pointer hover:bg-gray-200"
+                        onClick={() => handleEdit(entry)}
+                      >
+                        <div className="font-medium truncate">
+                          {entry.hours} h - {getProjectName(entry.project_id)}
+                        </div>
+                        <div className="truncate text-gray-600">
+                          {entry.description?.substring(0, 20)}{entry.description && entry.description.length > 20 ? '...' : ''}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           
           <div className="mt-8">
