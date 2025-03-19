@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp, MoreHorizontal } from 'lucide-react';
-import { format, parseISO, getWeek, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
+import { format, parseISO, getWeek, startOfWeek, endOfWeek, isSameDay, getMonth } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
@@ -13,10 +13,12 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import TimeEntryForm from '@/components/TimeEntry';
+
 interface WeeklyTimeEntriesProps {
   timeEntries: TimeEntry[];
   title?: string;
 }
+
 interface WeekData {
   weekNumber: number;
   startDate: Date;
@@ -25,12 +27,14 @@ interface WeekData {
   totalHours: number;
   isExpanded: boolean;
 }
+
 interface ProjectInfo {
   [key: string]: {
     name: string;
     clientName: string;
   };
 }
+
 const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
   timeEntries,
   title = 'Viikottaiset tunnit' // Default title in Finnish
@@ -48,22 +52,27 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<TimeEntry | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const currentMonthName = format(new Date(), 'LLLL', { locale: fi });
+  const capitalizedMonthName = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1);
+
   useEffect(() => {
     fetchProjectInfo();
   }, []);
+
   const fetchProjectInfo = async () => {
     try {
       const {
         data,
         error
       } = await supabase.from('projects').select(`
-          id,
-          name,
-          client_id,
-          clients (
-            name
-          )
-        `);
+        id,
+        name,
+        client_id,
+        clients (
+          name
+        )
+      `);
       if (!error && data && data.length > 0) {
         const projectMap: ProjectInfo = {};
         data.forEach(project => {
@@ -91,12 +100,15 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       console.error('Error fetching project info:', error);
     }
   };
+
   const getProjectName = (projectId: string) => {
     return projectInfo[projectId]?.name || projectId;
   };
+
   const getClientName = (projectId: string) => {
     return projectInfo[projectId]?.clientName || '';
   };
+
   const handleEdit = (entryId: string) => {
     console.log('Edit entry:', entryId);
     const entry = findEntryById(entryId);
@@ -105,6 +117,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       setIsEditSheetOpen(true);
     }
   };
+
   const handleDelete = async (entryId: string) => {
     const entry = findEntryById(entryId);
     if (entry) {
@@ -134,6 +147,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       }
     }
   };
+
   const handleCopy = (entryId: string) => {
     console.log('Copy entry:', entryId);
     const entry = findEntryById(entryId);
@@ -149,6 +163,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       createCopy(newEntry);
     }
   };
+
   const createCopy = async (entryData: Omit<TimeEntry, 'id'>) => {
     try {
       setIsLoading(true);
@@ -176,6 +191,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       setIsLoading(false);
     }
   };
+
   const findEntryById = (entryId: string): TimeEntry | null => {
     for (const week of weeklyData) {
       const entry = week.entries.find(e => e.id === entryId);
@@ -183,6 +199,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
     }
     return null;
   };
+
   const removeEntryFromState = (entryId: string) => {
     setWeeklyData(prevData => {
       const newData = [...prevData];
@@ -210,6 +227,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       return deletedEntry ? prev - Number(deletedEntry.hours) : prev;
     });
   };
+
   const addEntryToState = (newEntry: TimeEntry) => {
     setWeeklyData(prevData => {
       const newData = [...prevData];
@@ -248,6 +266,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
     });
     setTotalMonthHours(prev => prev + Number(newEntry.hours));
   };
+
   useEffect(() => {
     if (!timeEntries || timeEntries.length === 0) return;
     const entriesByWeek = new Map<number, TimeEntry[]>();
@@ -291,15 +310,18 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
     setWeeklyData(weeks);
     setTotalMonthHours(totalHours);
   }, [timeEntries]);
+
   const toggleWeekExpanded = (weekIndex: number) => {
     setWeeklyData(prevData => prevData.map((week, index) => index === weekIndex ? {
       ...week,
       isExpanded: !week.isExpanded
     } : week));
   };
+
   const formatWeekRange = (start: Date, end: Date) => {
     return `${format(start, 'd.M')} - ${format(end, 'd.M.yyyy')}`;
   };
+
   const handleEntrySaved = (updatedEntry: TimeEntry) => {
     setIsEditSheetOpen(false);
     setWeeklyData(prevData => {
@@ -327,6 +349,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
     });
     setCurrentEntry(null);
   };
+
   if (!weeklyData || weeklyData.length === 0) {
     return <Card>
         <CardHeader>
@@ -337,11 +360,12 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
         </CardContent>
       </Card>;
   }
+
   return <>
       <Card>
-        <CardHeader className="M\xE4\xE4rit\xE4 t\xE4h\xE4n kuluva kuukausi">
+        <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>{title}</CardTitle>
+            <CardTitle>{capitalizedMonthName}</CardTitle>
             <div className="text-sm font-medium">
               Yhteensä: <span className="text-reportronic-600">{totalMonthHours.toFixed(1)}h</span>
             </div>
@@ -444,4 +468,5 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       </Sheet>
     </>;
 };
+
 export default WeeklyTimeEntries;
