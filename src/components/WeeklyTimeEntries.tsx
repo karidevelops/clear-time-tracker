@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, MoreHorizontal } from 'lucide-react';
 import { format, parseISO, getWeek, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -8,6 +9,13 @@ import { useLanguage } from '@/context/LanguageContext';
 import { TimeEntry } from '@/types/timeEntry';
 import { supabase } from '@/integrations/supabase/client';
 import { getAllProjects, getProjectById } from '@/data/ClientsData';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 interface WeeklyTimeEntriesProps {
   timeEntries: TimeEntry[];
@@ -87,6 +95,22 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
 
   const getClientName = (projectId: string) => {
     return projectInfo[projectId]?.clientName || '';
+  };
+
+  // Action handlers for the dropdown menu
+  const handleEdit = (entryId: string) => {
+    console.log('Edit entry:', entryId);
+    // Implementation for editing would go here
+  };
+
+  const handleDelete = (entryId: string) => {
+    console.log('Delete entry:', entryId);
+    // Implementation for deleting would go here
+  };
+
+  const handleCopy = (entryId: string) => {
+    console.log('Copy entry:', entryId);
+    // Implementation for copying would go here
   };
 
   useEffect(() => {
@@ -216,6 +240,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                           <th className="py-2 px-3 text-left font-medium text-gray-500">Projekti</th>
                           <th className="py-2 px-3 text-left font-medium text-gray-500">Kuvaus</th>
                           <th className="py-2 px-3 text-right font-medium text-gray-500">Tunnit</th>
+                          <th className="py-2 px-3 text-center font-medium text-gray-500">Toiminnot</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -226,10 +251,34 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                             <td className="py-2 px-3">{getProjectName(entry.project_id)}</td>
                             <td className="py-2 px-3">{entry.description || "-"}</td>
                             <td className="py-2 px-3 text-right">{Number(entry.hours).toFixed(1)}h</td>
+                            <td className="py-2 px-3 text-center">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Avaa valikko</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEdit(entry.id)}>
+                                    Muokkaa
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleCopy(entry.id)}>
+                                    Kopioi
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDelete(entry.id)}
+                                    className="text-red-600 focus:text-red-600"
+                                  >
+                                    Poista
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
                           </tr>
                         ))}
                         <tr className="bg-gray-100">
-                          <td colSpan={4} className="py-2 px-3 text-right font-medium">Yhteensä:</td>
+                          <td colSpan={5} className="py-2 px-3 text-right font-medium">Yhteensä:</td>
                           <td className="py-2 px-3 text-right font-medium text-reportronic-600">{week.totalHours.toFixed(1)}h</td>
                         </tr>
                       </tbody>
