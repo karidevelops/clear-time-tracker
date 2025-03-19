@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
@@ -35,6 +36,9 @@ const Reports = () => {
     clientId: '',
     status: [] as TimeEntryStatus[]
   });
+  const [approvingEntries, setApprovingEntries] = useState(false);
+  const [loadingPendingEntries, setLoadingPendingEntries] = useState(false);
+  const [groupedByUser, setGroupedByUser] = useState<{ [key: string]: TimeEntry[] }>({});
 
   const checkUserRole = async () => {
     try {
@@ -141,10 +145,11 @@ const Reports = () => {
       }
       
       const mappedEntries = filteredData.map(entry => {
+        // Fix for Type 'null' is not assignable to type 'object'
         const entryWithStatus: TimeEntry = {
           ...entry,
           user_full_name: entry.profiles && typeof entry.profiles === 'object' ? 
-            entry.profiles.full_name || 'Unknown User' : 'Unknown User',
+            (entry.profiles.full_name || 'Unknown User') : 'Unknown User',
           status: (entry.status as TimeEntryStatus) || 'draft'
         };
         return entryWithStatus;
@@ -153,11 +158,115 @@ const Reports = () => {
       setTimeEntries(mappedEntries);
       setFilteredEntries(mappedEntries);
       
+      // Group pending entries by user for the approval section
+      if (isAdmin) {
+        const pendingEntries = mappedEntries.filter(entry => entry.status === 'pending');
+        const grouped = pendingEntries.reduce((acc: { [key: string]: TimeEntry[] }, entry) => {
+          const userName = entry.user_full_name || 'Unknown User';
+          if (!acc[userName]) {
+            acc[userName] = [];
+          }
+          acc[userName].push(entry);
+          return acc;
+        }, {});
+        
+        setGroupedByUser(grouped);
+      }
+      
     } catch (error) {
       console.error('Error fetching time entries:', error);
       toast.error(t('error_fetching_time_entries'));
     } finally {
       setIsLoading(false);
+      setLoadingPendingEntries(false);
+    }
+  };
+
+  // Functions for the approval section
+  const approveMonthEntries = async () => {
+    if (!user || !isAdmin) return;
+    setApprovingEntries(true);
+    
+    try {
+      const pendingEntryIds = timeEntries
+        .filter(entry => entry.status === 'pending')
+        .map(entry => entry.id);
+      
+      if (pendingEntryIds.length === 0) return;
+      
+      const { error } = await supabase
+        .from('time_entries')
+        .update({
+          status: 'approved',
+          approved_by: user.id,
+          approved_at: new Date().toISOString()
+        })
+        .in('id', pendingEntryIds);
+      
+      if (error) throw error;
+      
+      toast.success('Kaikki kirjaukset hyväksytty');
+      await fetchTimeEntries();
+    } catch (error) {
+      console.error('Error approving entries:', error);
+      toast.error('Virhe kirjausten hyväksymisessä');
+    } finally {
+      setApprovingEntries(false);
+    }
+  };
+
+  const approveUserEntries = async (userId: string) => {
+    if (!user || !isAdmin) return;
+    setApprovingEntries(true);
+    
+    try {
+      const pendingEntryIds = timeEntries
+        .filter(entry => entry.status === 'pending' && entry.user_id === userId)
+        .map(entry => entry.id);
+      
+      if (pendingEntryIds.length === 0) return;
+      
+      const { error } = await supabase
+        .from('time_entries')
+        .update({
+          status: 'approved',
+          approved_by: user.id,
+          approved_at: new Date().toISOString()
+        })
+        .in('id', pendingEntryIds);
+      
+      if (error) throw error;
+      
+      toast.success('Käyttäjän kirjaukset hyväksytty');
+      await fetchTimeEntries();
+    } catch (error) {
+      console.error('Error approving user entries:', error);
+      toast.error('Virhe kirjausten hyväksymisessä');
+    } finally {
+      setApprovingEntries(false);
+    }
+  };
+
+  const handleApprove = async (entry: TimeEntry) => {
+    if (!user || !isAdmin) return;
+    
+    try {
+      const { error } = await supabase
+        .from('time_entries')
+        .update({
+          status: 'approved',
+          approved_by: user.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', entry.id);
+      
+      if (error) throw error;
+      
+      toast.success('Kirjaus hyväksytty');
+      await fetchTimeEntries();
+    } catch (error) {
+      console.error('Error approving entry:', error);
+      toast.error('Virhe kirjauksen hyväksymisessä');
     }
   };
 
@@ -321,6 +430,8 @@ const Reports = () => {
               projects={projects}
               users={users}
               isAdmin={isAdmin}
+              selectedUser={filters.userId}
+              setSelectedUser={(userId) => setFilters({...filters, userId})}
             />
           </CardContent>
         </Card>
@@ -337,7 +448,14 @@ const Reports = () => {
         {isAdmin && (
           <ApprovalSection 
             pendingEntries={timeEntries.filter(entry => entry.status === 'pending')}
-            onStatusUpdated={fetchTimeEntries}
+            loadingPendingEntries={loadingPendingEntries}
+            groupedByUser={groupedByUser}
+            approveMonthEntries={approveMonthEntries}
+            approveUserEntries={approveUserEntries}
+            handleApprove={handleApprove}
+            getClientName={getClientName}
+            getProjectName={getProjectName}
+            approvingEntries={approvingEntries}
           />
         )}
         

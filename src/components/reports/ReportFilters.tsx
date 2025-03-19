@@ -23,10 +23,13 @@ interface ReportFiltersProps {
   setFilterPeriod: React.Dispatch<React.SetStateAction<FilterPeriod>>;
   selectedProject: string;
   handleProjectSelect: (projectId: string, clientId: string | null) => void;
-  isApproval?: boolean;
+  clients: Array<{ id: string, name: string }>;
+  projects: Array<any>;
+  users?: Array<{id: string, full_name: string}>;
+  isAdmin?: boolean;
   selectedUser?: string;
   setSelectedUser?: React.Dispatch<React.SetStateAction<string>>;
-  users?: Array<{id: string, full_name: string}>;
+  isApproval?: boolean;
 }
 
 const ReportFilters: React.FC<ReportFiltersProps> = ({
@@ -36,10 +39,13 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
   setFilterPeriod,
   selectedProject,
   handleProjectSelect,
+  clients,
+  projects,
   isApproval = false,
   selectedUser,
   setSelectedUser,
-  users = []
+  users = [],
+  isAdmin = false
 }) => {
   const { t } = useLanguage();
 
@@ -96,7 +102,7 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
           </div>
         )}
         
-        {isApproval && setSelectedUser && (
+        {isAdmin && setSelectedUser && (
           <div>
             <label className="block text-sm font-medium mb-2">{t('user')}</label>
             <select
@@ -104,7 +110,7 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
               value={selectedUser}
               onChange={(e) => setSelectedUser(e.target.value)}
             >
-              <option value="all">{t('all_users')}</option>
+              <option value="">{t('all_users')}</option>
               {users?.map(user => (
                 <option key={user.id} value={user.id}>
                   {user.full_name || t('unnamed_user')}
