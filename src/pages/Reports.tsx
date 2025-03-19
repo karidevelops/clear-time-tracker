@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,10 @@ interface TimeEntry {
   user_id: string;
   status: 'draft' | 'pending' | 'approved';
   user_full_name?: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
 }
 
 interface Project {
@@ -198,13 +203,12 @@ const Reports = () => {
     
     setIsPendingLoading(true);
     try {
+      // Use a JOIN query instead of nested select to get user full names
       const { data, error } = await supabase
         .from('time_entries')
         .select(`
           *,
-          profiles:user_id (
-            full_name
-          )
+          profiles:user_id(full_name)
         `)
         .eq('status', 'pending')
         .order('date', { ascending: false });
@@ -215,10 +219,33 @@ const Reports = () => {
         return;
       }
       
-      const transformedData = data.map(entry => ({
-        ...entry,
-        user_full_name: entry.profiles?.full_name || t('unknown_user')
-      }));
+      // Process the data to extract the full_name from profiles
+      const transformedData = data.map(entry => {
+        // Extract user_full_name safely to avoid type errors
+        const userFullName = entry.profiles && 
+          typeof entry.profiles === 'object' && 
+          'full_name' in entry.profiles ? 
+          entry.profiles.full_name : 
+          t('unknown_user');
+        
+        // Create a proper TimeEntry object with explicit typing
+        const timeEntry: TimeEntry = {
+          id: entry.id,
+          date: entry.date,
+          hours: entry.hours,
+          project_id: entry.project_id,
+          description: entry.description,
+          user_id: entry.user_id,
+          status: entry.status as 'draft' | 'pending' | 'approved',
+          user_full_name: userFullName as string,
+          created_at: entry.created_at,
+          updated_at: entry.updated_at,
+          approved_by: entry.approved_by,
+          approved_at: entry.approved_at
+        };
+        
+        return timeEntry;
+      });
       
       const uniqueUsers = Array.from(
         new Set(transformedData.map(entry => entry.user_id))
