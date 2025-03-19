@@ -11,62 +11,64 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TimeEntry } from "@/types/timeEntry";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ApprovalDialogProps {
-  showApproveDialog: boolean;
-  setShowApproveDialog: React.Dispatch<React.SetStateAction<boolean>>;
-  entryToApprove: TimeEntry | null;
-  confirmApproval: () => Promise<void>;
-  getProjectName: (projectId: string) => string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isApproving: boolean;
+  onConfirm: (comment?: string) => void;
 }
 
 const ApprovalDialog: React.FC<ApprovalDialogProps> = ({
-  showApproveDialog,
-  setShowApproveDialog,
-  entryToApprove,
-  confirmApproval,
-  getProjectName,
+  open,
+  onOpenChange,
+  isApproving,
+  onConfirm,
 }) => {
   const { t } = useLanguage();
+  const [comment, setComment] = React.useState("");
 
-  if (!entryToApprove) return null;
+  const handleConfirm = () => {
+    onConfirm(comment);
+    setComment("");
+  };
 
   return (
-    <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('approve_time_entry')}</DialogTitle>
+          <DialogTitle>
+            {isApproving ? t('approve_time_entry') : t('return_time_entry')}
+          </DialogTitle>
           <DialogDescription>
-            {t('approve_time_entry_confirmation')}
+            {isApproving 
+              ? t('approve_time_entry_confirmation')
+              : t('return_time_entry_confirmation')}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          {entryToApprove && (
-            <div className="bg-gray-50 p-4 rounded-md">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <div className="text-sm text-gray-500">{t('date')}</div>
-                  <div>{format(parseISO(entryToApprove.date), 'dd.MM.yyyy')}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">{t('hours')}</div>
-                  <div>{Number(entryToApprove.hours).toFixed(1)}</div>
-                </div>
-                <div className="col-span-2">
-                  <div className="text-sm text-gray-500">{t('project')}</div>
-                  <div>{getProjectName(entryToApprove.project_id)}</div>
-                </div>
-                <div className="col-span-2">
-                  <div className="text-sm text-gray-500">{t('description')}</div>
-                  <div>{entryToApprove.description || "-"}</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setShowApproveDialog(false)}>{t('cancel')}</Button>
-          <Button onClick={confirmApproval}>{t('approve')}</Button>
+        
+        {!isApproving && (
+          <div className="my-4">
+            <Textarea
+              placeholder={t('rejection_comment_placeholder')}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+            />
+          </div>
+        )}
+        
+        <div className="flex justify-end gap-3 mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t('cancel')}
+          </Button>
+          <Button 
+            onClick={handleConfirm}
+            variant={isApproving ? "default" : "destructive"}
+          >
+            {isApproving ? t('approve') : t('return_for_edit')}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { fi, sv, enUS } from 'date-fns/locale';
-import { ApprovalDialog } from "@/components/reports/ApprovalDialog";
+import ApprovalDialog from "@/components/reports/ApprovalDialog";
 
 interface User {
   id: string;
@@ -69,7 +68,6 @@ export const UsersList = () => {
     },
   });
 
-  // Load users
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -77,7 +75,6 @@ export const UsersList = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Get all users from auth.users
       const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError) {
@@ -86,7 +83,6 @@ export const UsersList = () => {
         return;
       }
 
-      // Get user roles from user_roles table
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role');
@@ -95,7 +91,6 @@ export const UsersList = () => {
         console.error("Error fetching user roles:", rolesError);
       }
 
-      // Get user profiles from profiles table
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name');
@@ -104,7 +99,6 @@ export const UsersList = () => {
         console.error("Error fetching profiles:", profilesError);
       }
 
-      // Combine the data
       const roleMap = new Map();
       userRoles?.forEach(role => roleMap.set(role.user_id, role.role));
 
@@ -127,7 +121,6 @@ export const UsersList = () => {
     }
   };
 
-  // Fetch user time entries
   const fetchUserTimeEntries = async (userId: string) => {
     setEntriesLoading(true);
     try {
@@ -151,14 +144,12 @@ export const UsersList = () => {
         return;
       }
 
-      // Get the user's full name
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name')
         .eq('id', userId)
         .single();
 
-      // Format the data
       const formattedEntries = data.map(entry => ({
         id: entry.id,
         date: entry.date,
@@ -180,24 +171,15 @@ export const UsersList = () => {
     }
   };
 
-  // Handle user selection
   const handleUserSelect = (userId: string, userName: string | null) => {
     setSelectedUserId(userId);
     setSelectedUserName(userName || userId);
     fetchUserTimeEntries(userId);
   };
 
-  // Handle add user form submission
   const onSubmit = async (values: z.infer<typeof addUserSchema>) => {
     try {
-      // For a real implementation, we would create a user through Supabase auth
-      // and then add their role and profile. Since we can't directly create users
-      // from the client side due to security reasons, this would typically be
-      // handled by a backend service or Edge Function.
-      
       toast.info(t('user_add_not_implemented'));
-      
-      // Close the dialog
       setAddUserDialogOpen(false);
       form.reset();
     } catch (error) {
@@ -206,14 +188,12 @@ export const UsersList = () => {
     }
   };
 
-  // Handle entry action (approve, reject)
   const handleEntryAction = (entryId: string, action: 'approve' | 'reject') => {
     setSelectedEntry(entryId);
     setSelectedAction(action);
     setApprovalDialogOpen(true);
   };
 
-  // Handle approval/rejection
   const handleApprovalComplete = async (entryId: string, isApproved: boolean, comment?: string) => {
     try {
       if (isApproved) {
@@ -233,7 +213,6 @@ export const UsersList = () => {
           .from('time_entries')
           .update({
             status: 'draft',
-            // You could add a rejection_reason field to your schema
           })
           .eq('id', entryId);
 
@@ -241,7 +220,6 @@ export const UsersList = () => {
         toast.success(t('entry_rejected'));
       }
 
-      // Refresh the time entries
       if (selectedUserId) {
         fetchUserTimeEntries(selectedUserId);
       }
@@ -251,7 +229,6 @@ export const UsersList = () => {
     }
   };
 
-  // Format date according to current language
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     let locale = enUS;
@@ -430,7 +407,6 @@ export const UsersList = () => {
         </Tabs>
       )}
 
-      {/* Add User Dialog */}
       <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -497,7 +473,6 @@ export const UsersList = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Approval/Rejection Dialog */}
       {selectedEntry && (
         <ApprovalDialog
           open={approvalDialogOpen}
