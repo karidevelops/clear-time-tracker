@@ -26,15 +26,6 @@ const Auth = () => {
       try {
         const currentUrl = window.location.origin;
         console.log("Setting redirect URL to:", currentUrl);
-        
-        // Set the site URL for redirects
-        const { data: userData, error } = await supabase.auth.updateUser({
-          data: { redirect_url: currentUrl }
-        });
-        
-        if (error) {
-          console.error('Error setting redirect URL:', error);
-        }
       } catch (err) {
         console.error('Exception during setupRedirectUrl:', err);
       }
@@ -48,8 +39,6 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const redirectUrl = window.location.origin;
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -63,9 +52,6 @@ const Auth = () => {
 
       if (email === "kari.vatka@sebitti.fi") {
         setIsAdmin(true);
-      }
-
-      if (email === "kari.vatka@sebitti.fi") {
         setShowOTP(true);
         setSessionData(data);
       } else {
@@ -86,6 +72,7 @@ const Auth = () => {
     
     try {
       const redirectUrl = window.location.origin;
+      console.log("Registration with redirect URL:", redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -93,24 +80,29 @@ const Auth = () => {
         options: {
           data: {
             full_name: email.split('@')[0],
-            redirect_url: redirectUrl
           },
-          emailRedirectTo: redirectUrl
+          emailRedirectTo: `${redirectUrl}/auth`
         }
       });
 
       if (error) {
         console.error("Registration error:", error);
         toast.error(error.message);
+        setLoading(false);
         return;
       }
 
-      toast.success(t('registration_successful'));
-      toast.info(t('check_email_for_confirmation'));
-      
-      setEmail("");
-      setPassword("");
-      document.getElementById("login-tab")?.click();
+      if (data.session) {
+        toast.success(t('login_successful'));
+        navigate("/");
+      } else {
+        toast.success(t('registration_successful'));
+        toast.info(t('check_email_for_confirmation'));
+        
+        setEmail("");
+        setPassword("");
+        document.getElementById("login-tab")?.click();
+      }
       
     } catch (error: any) {
       console.error("Exception during registration:", error);
