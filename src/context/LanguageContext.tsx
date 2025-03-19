@@ -151,6 +151,22 @@ interface TranslationsType {
   database_policy_error: string;
   duplicate_entry_error: string;
   foreign_key_constraint_error: string;
+  
+  // Chat Assistant translations
+  chat_welcome_message: string;
+  chat_error_message: string;
+  chat_help_message: string;
+  chat_dont_understand: string;
+  chat_placeholder: string;
+  ai_assistant: string;
+  no_entries_yesterday: string;
+  entries_exist_today: string;
+  copied_entries_success: string;
+  error_copying_entries: string;
+  no_entries_today: string;
+  today_entries_summary: string;
+  yesterday_entries_summary: string;
+  error_fetching_entries: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -303,7 +319,23 @@ const translations: Record<string, TranslationsType> = {
     error_fetching_project_details: 'Error fetching project details',
     database_policy_error: 'Database policy error. Please try again or contact support.',
     duplicate_entry_error: 'A duplicate entry already exists.',
-    foreign_key_constraint_error: 'Invalid project selection. Please choose another project.'
+    foreign_key_constraint_error: 'Invalid project selection. Please choose another project.',
+    
+    // Chat Assistant translations - English
+    chat_welcome_message: "Hi! I'm your assistant. How can I help you with time tracking today?",
+    chat_error_message: "Sorry, an error occurred. Please try again later.",
+    chat_help_message: "I can help you with time entries. For example:\n- \"Copy yesterday's hours to today\"\n- \"Show today's entries\"\n- \"Show yesterday's entries\"",
+    chat_dont_understand: "I didn't fully understand your request. Could you clarify? For example, you can ask me to copy yesterday's entries or show today's entries.",
+    chat_placeholder: "Type a message...",
+    ai_assistant: "AI Assistant",
+    no_entries_yesterday: "No entries found for yesterday.",
+    entries_exist_today: "There are already entries for today. Do you still want to copy yesterday's entries?",
+    copied_entries_success: "Copied entries from yesterday to today.",
+    error_copying_entries: "Error copying entries. Please try again later.",
+    no_entries_today: "No entries for today yet.",
+    today_entries_summary: "Today has entries, total hours:",
+    yesterday_entries_summary: "Yesterday had entries, total hours:",
+    error_fetching_entries: "Error fetching entries. Please try again later."
   },
   fi: {
     dashboard: 'Tuntikirjaus',
@@ -448,7 +480,23 @@ const translations: Record<string, TranslationsType> = {
     error_fetching_project_details: 'Virhe haettaessa projektin tietoja',
     database_policy_error: 'Tietokantakäytäntövirhe. Yritä uudelleen tai ota yhteyttä tukeen.',
     duplicate_entry_error: 'Identtinen kirjaus on jo olemassa.',
-    foreign_key_constraint_error: 'Virheellinen projektivalinta. Valitse toinen projekti.'
+    foreign_key_constraint_error: 'Virheellinen projektivalinta. Valitse toinen projekti.',
+    
+    // Chat Assistant translations - Finnish
+    chat_welcome_message: "Hei! Olen avustajasi. Miten voin auttaa sinua tuntikirjauksissa tänään?",
+    chat_error_message: "Valitettavasti tapahtui virhe. Yritä uudelleen myöhemmin.",
+    chat_help_message: "Voin auttaa sinua tuntikirjausten kanssa. Esimerkiksi:\n- \"Kopioi eilisen tunnit tälle päivälle\"\n- \"Näytä tämän päivän kirjaukset\"\n- \"Näytä eilisen kirjaukset\"",
+    chat_dont_understand: "En ymmärtänyt täysin pyyntöäsi. Voisitko tarkentaa? Voit esimerkiksi pyytää kopioimaan eilisen kirjaukset tai näyttämään tämän päivän kirjaukset.",
+    chat_placeholder: "Kirjoita viesti...",
+    ai_assistant: "AI-Avustaja",
+    no_entries_yesterday: "Eiliselle päivälle ei löytynyt kirjauksia.",
+    entries_exist_today: "Tälle päivälle on jo kirjauksia. Haluatko silti kopioida eilisen kirjaukset?",
+    copied_entries_success: "Kopioitu kirjauksia eiliseltä tälle päivälle.",
+    error_copying_entries: "Virhe kirjausten kopioinnissa. Yritä uudelleen myöhemmin.",
+    no_entries_today: "Tälle päivälle ei ole vielä kirjauksia.",
+    today_entries_summary: "Tänään on kirjauksia, yhteensä tuntia:",
+    yesterday_entries_summary: "Eilen oli kirjauksia, yhteensä tuntia:",
+    error_fetching_entries: "Virhe kirjausten hakemisessa. Yritä uudelleen myöhemmin."
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -593,7 +641,23 @@ const translations: Record<string, TranslationsType> = {
     error_fetching_project_details: 'Fel vid hämtning av projektdetaljer',
     database_policy_error: 'Databasprincipfel. Försök igen eller kontakta support.',
     duplicate_entry_error: 'En dubblett finns redan.',
-    foreign_key_constraint_error: 'Ogiltigt projektval. Välj ett annat projekt.'
+    foreign_key_constraint_error: 'Ogiltigt projektval. Välj ett annat projekt.',
+    
+    // Chat Assistant translations - Swedish
+    chat_welcome_message: "Hej! Jag är din assistent. Hur kan jag hjälpa dig med tidrapportering idag?",
+    chat_error_message: "Tyvärr inträffade ett fel. Försök igen senare.",
+    chat_help_message: "Jag kan hjälpa dig med tidsinmatningar. Till exempel:\n- \"Kopiera gårdagens timmar till idag\"\n- \"Visa dagens inmatningar\"\n- \"Visa gårdagens inmatningar\"",
+    chat_dont_understand: "Jag förstod inte helt din begäran. Kan du förtydliga? Du kan till exempel be mig att kopiera gårdagens inmatningar eller visa dagens inmatningar.",
+    chat_placeholder: "Skriv ett meddelande...",
+    ai_assistant: "AI-Assistent",
+    no_entries_yesterday: "Inga inmatningar hittades för igår.",
+    entries_exist_today: "Det finns redan inmatningar för idag. Vill du fortfarande kopiera gårdagens inmatningar?",
+    copied_entries_success: "Kopierade inmatningar från igår till idag.",
+    error_copying_entries: "Fel vid kopiering av inmatningar. Försök igen senare.",
+    no_entries_today: "Inga inmatningar för idag ännu.",
+    today_entries_summary: "Idag har inmatningar, totalt timmar:",
+    yesterday_entries_summary: "Igår hade inmatningar, totalt timmar:",
+    error_fetching_entries: "Fel vid hämtning av inmatningar. Försök igen senare."
   },
 };
 
@@ -627,10 +691,4 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      {children}
-    </LanguageContext.Provider>
-  );
-};
-
-export const useLanguage = () => useContext(LanguageContext);
+    <LanguageContext.
