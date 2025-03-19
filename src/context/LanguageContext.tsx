@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface LanguageContextType {
@@ -169,6 +168,29 @@ interface TranslationsType {
   today_entries_summary: string;
   yesterday_entries_summary: string;
   error_fetching_entries: string;
+
+  // User management translations
+  users: string;
+  manage_users: string;
+  users_list: string;
+  add_user: string;
+  add_user_description: string;
+  full_name: string;
+  role: string;
+  select_role: string;
+  user: string;
+  admin: string;
+  name: string;
+  no_name: string;
+  view_entries: string;
+  manage_user_time_entries: string;
+  no_entries_found: string;
+  return_for_edit: string;
+  error_fetching_users: string;
+  error_adding_user: string;
+  error_setting_role: string;
+  user_added_successfully: string;
+  unknown_project: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -338,7 +360,30 @@ const translations: Record<string, TranslationsType> = {
     error_copying_entries: "Error copying entries. Please try again later.",
     today_entries_summary: "Today has entries, total hours:",
     yesterday_entries_summary: "Yesterday had entries, total hours:",
-    error_fetching_entries: "Error fetching entries. Please try again later."
+    error_fetching_entries: "Error fetching entries. Please try again later.",
+
+    // User management translations - English
+    users: 'Users',
+    manage_users: 'Manage Users',
+    users_list: 'Users List',
+    add_user: 'Add User',
+    add_user_description: 'Create a new user account',
+    full_name: 'Full Name',
+    role: 'Role',
+    select_role: 'Select Role',
+    user: 'User',
+    admin: 'Admin',
+    name: 'Name',
+    no_name: 'No Name',
+    view_entries: 'View Entries',
+    manage_user_time_entries: 'Manage User Time Entries',
+    no_entries_found: 'No entries found',
+    return_for_edit: 'Return for Edit',
+    error_fetching_users: 'Error fetching users',
+    error_adding_user: 'Error adding user',
+    error_setting_role: 'Error setting user role',
+    user_added_successfully: 'User added successfully',
+    unknown_project: 'Unknown Project',
   },
   fi: {
     dashboard: 'Tuntikirjaus',
@@ -500,7 +545,30 @@ const translations: Record<string, TranslationsType> = {
     error_copying_entries: "Virhe kirjausten kopioinnissa. Yritä uudelleen myöhemmin.",
     today_entries_summary: "Tänään on kirjauksia, yhteensä tuntia:",
     yesterday_entries_summary: "Eilen oli kirjauksia, yhteensä tuntia:",
-    error_fetching_entries: "Virhe kirjausten hakemisessa. Yritä uudelleen myöhemmin."
+    error_fetching_entries: "Virhe kirjausten hakemisessa. Yritä uudelleen myöhemmin.",
+
+    // User management translations - Finnish
+    users: 'Käyttäjät',
+    manage_users: 'Hallinnoi käyttäjiä',
+    users_list: 'Käyttäjälista',
+    add_user: 'Lisää käyttäjä',
+    add_user_description: 'Luo uusi käyttäjätili',
+    full_name: 'Koko nimi',
+    role: 'Rooli',
+    select_role: 'Valitse rooli',
+    user: 'Käyttäjä',
+    admin: 'Ylläpitäjä',
+    name: 'Nimi',
+    no_name: 'Ei nimeä',
+    view_entries: 'Näytä kirjaukset',
+    manage_user_time_entries: 'Hallinnoi käyttäjän tuntikirjauksia',
+    no_entries_found: 'Kirjauksia ei löytynyt',
+    return_for_edit: 'Palauta muokattavaksi',
+    error_fetching_users: 'Virhe haettaessa käyttäjiä',
+    error_adding_user: 'Virhe lisättäessä käyttäjää',
+    error_setting_role: 'Virhe asetettaessa käyttäjän roolia',
+    user_added_successfully: 'Käyttäjä lisätty onnistuneesti',
+    unknown_project: 'Tuntematon projekti',
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -635,73 +703,4 @@ const translations: Record<string, TranslationsType> = {
     time_entry_updated: 'Tidsinmatning uppdaterad',
     draft: 'Utkast',
     pending_approval: 'Väntar på godkännande',
-    approved: 'Godkänd',
-    select_status: 'Välj status',
-    only_admins_can_approve: 'Endast administratörer kan godkänna',
-    approve: 'Godkänn',
-    approve_time_entry: 'Godkänn tidsinmatning',
-    approve_time_entry_confirmation: 'Är du säker på att du vill godkänna denna tidsinmatning?',
-    all_projects: 'Alla projekt',
-    error_fetching_clients: 'Fel vid hämtning av kunder',
-    error_fetching_projects: 'Fel vid hämtning av projekt',
-    error_fetching_project_details: 'Fel vid hämtning av projektdetaljer',
-    database_policy_error: 'Databasprincipfel. Försök igen eller kontakta support.',
-    duplicate_entry_error: 'En dubblett finns redan.',
-    foreign_key_constraint_error: 'Ogiltigt projektval. Välj ett annat projekt.',
-    
-    // Chat Assistant translations - Swedish
-    chat_welcome_message: "Hej! Jag är din assistent. Hur kan jag hjälpa dig med tidrapportering idag?",
-    chat_error_message: "Tyvärr inträffade ett fel. Försök igen senare.",
-    chat_help_message: "Jag kan hjälpa dig med tidsinmatningar. Till exempel:\n- \"Kopiera gårdagens timmar till idag\"\n- \"Visa dagens inmatningar\"\n- \"Visa gårdagens inmatningar\"",
-    chat_dont_understand: "Jag förstod inte helt din begäran. Kan du förtydliga? Du kan till exempel be mig att kopiera gårdagens inmatningar eller visa dagens inmatningar.",
-    chat_placeholder: "Skriv ett meddelande...",
-    ai_assistant: "AI-Assistent",
-    no_entries_yesterday: "Inga inmatningar hittades för igår.",
-    entries_exist_today: "Det finns redan inmatningar för idag. Vill du fortfarande kopiera gårdagens inmatningar?",
-    copied_entries_success: "Kopierade inmatningar från igår till idag.",
-    error_copying_entries: "Fel vid kopiering av inmatningar. Försök igen senare.",
-    today_entries_summary: "Idag har inmatningar, totalt timmar:",
-    yesterday_entries_summary: "Igår hade inmatningar, totalt timmar:",
-    error_fetching_entries: "Fel vid hämtning av inmatningar. Försök igen senare."
-  },
-};
-
-export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState('en');
-
-  useEffect(() => {
-    const storedLanguage = localStorage.getItem('language');
-    if (storedLanguage) {
-      setLanguage(storedLanguage);
-    } else {
-      const browserLang = navigator.language.split('-')[0];
-      if (browserLang && translations[browserLang]) {
-        setLanguage(browserLang);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('language', language);
-  }, [language]);
-
-  const t = (key: string): string => {
-    if (translations[language] && translations[language][key]) {
-      return translations[language][key];
-    }
-    if (translations.en && translations.en[key]) {
-      return translations.en[key];
-    }
-    return key;
-  };
-
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      {children}
-    </LanguageContext.Provider>
-  );
-};
-
-export const useLanguage = () => useContext(LanguageContext);
-
-export default LanguageContext;
+    approved: '

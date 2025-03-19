@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,7 +75,6 @@ export const UsersList = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Instead of using admin.listUsers(), get users from profiles and user_roles tables
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name');
@@ -95,17 +93,21 @@ export const UsersList = () => {
         console.error("Error fetching user roles:", rolesError);
       }
 
-      // Get emails from auth.users, but don't use them directly
-      // Instead, get data from profiles and user_roles tables
+      const { data: authUsers, error: authError } = await supabase
+        .from('auth.users')
+        .select('id, email');
       
-      // Map roles to users
       const roleMap = new Map();
       userRoles?.forEach(role => roleMap.set(role.user_id, role.role));
+      
+      const emailMap = new Map();
+      if (authUsers) {
+        authUsers.forEach(user => emailMap.set(user.id, user.email));
+      }
 
-      // Convert profiles to user objects
       const combinedUsers: User[] = profiles?.map(profile => ({
         id: profile.id,
-        email: profile.id, // We don't have direct access to emails, using id as placeholder
+        email: emailMap.get(profile.id) || profile.id,
         full_name: profile.full_name,
         role: roleMap.get(profile.id) || 'user',
       })) || [];
@@ -177,10 +179,9 @@ export const UsersList = () => {
 
   const onSubmit = async (values: z.infer<typeof addUserSchema>) => {
     try {
-      // First, create the user in auth.users using signup
       const { data: signupData, error: signupError } = await supabase.auth.signUp({
         email: values.email,
-        password: generateRandomPassword(), // Generate a random password
+        password: generateRandomPassword(),
         options: {
           data: {
             full_name: values.full_name
@@ -201,7 +202,6 @@ export const UsersList = () => {
         return;
       }
 
-      // If role is admin, update the user_roles table
       if (values.role === 'admin') {
         const { error: roleError } = await supabase
           .from('user_roles')
@@ -217,7 +217,7 @@ export const UsersList = () => {
       toast.success(t('user_added_successfully'));
       setAddUserDialogOpen(false);
       form.reset();
-      fetchUsers(); // Refresh the user list
+      fetchUsers();
     } catch (error) {
       console.error("Error adding user:", error);
       toast.error(t('error_adding_user'));
