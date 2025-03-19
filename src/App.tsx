@@ -8,7 +8,6 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import WeeklyView from "./components/WeeklyView";
-import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -50,18 +49,6 @@ const AppRoutes = () => {
             <Layout>
               <div className="py-6">
                 <WeeklyView />
-              </div>
-            </Layout>
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/reports" 
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <div className="py-6">
-                <Reports />
               </div>
             </Layout>
           </ProtectedRoute>
