@@ -135,6 +135,19 @@ interface Translations {
   entry_deleted: string;
   error_deleting_entry: string;
   unknown_client: string;
+  submit_for_approval: string;
+  update_time_entry: string;
+  time_entry_updated: string;
+  draft: string;
+  pending_approval: string;
+  approved: string;
+  select_status: string;
+  only_admins_can_approve: string;
+  approve: string;
+  all_projects: string;
+  error_fetching_clients: string;
+  error_fetching_projects: string;
+  error_fetching_project_details: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -272,6 +285,19 @@ const translations: Record<string, Translations> = {
     entry_deleted: 'Entry deleted successfully',
     error_deleting_entry: 'Error deleting entry',
     unknown_client: 'Unknown Client',
+    submit_for_approval: 'Submit for Approval',
+    update_time_entry: 'Update Time Entry',
+    time_entry_updated: 'Time entry updated',
+    draft: 'Draft',
+    pending_approval: 'Pending Approval',
+    approved: 'Approved',
+    select_status: 'Select Status',
+    only_admins_can_approve: 'Only admins can approve',
+    approve: 'Approve',
+    all_projects: 'All Projects',
+    error_fetching_clients: 'Error fetching clients',
+    error_fetching_projects: 'Error fetching projects',
+    error_fetching_project_details: 'Error fetching project details',
   },
   fi: {
     dashboard: 'Tuntikirjaus',
@@ -401,6 +427,19 @@ const translations: Record<string, Translations> = {
     entry_deleted: 'Kirjaus poistettu onnistuneesti',
     error_deleting_entry: 'Virhe poistettaessa kirjausta',
     unknown_client: 'Tuntematon asiakas',
+    submit_for_approval: 'Lähetä hyväksyntään',
+    update_time_entry: 'Päivitä aikakirjaus',
+    time_entry_updated: 'Aikakirjaus päivitetty',
+    draft: 'Luonnos',
+    pending_approval: 'Odottaa hyväksyntää',
+    approved: 'Hyväksytty',
+    select_status: 'Valitse tila',
+    only_admins_can_approve: 'Vain järjestelmänvalvojat voivat hyväksyä',
+    approve: 'Hyväksy',
+    all_projects: 'Kaikki projektit',
+    error_fetching_clients: 'Virhe haettaessa asiakkaita',
+    error_fetching_projects: 'Virhe haettaessa projekteja',
+    error_fetching_project_details: 'Virhe haettaessa projektin tietoja',
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -530,6 +569,19 @@ const translations: Record<string, Translations> = {
     entry_deleted: 'Inmatning borttagen',
     error_deleting_entry: 'Fel vid borttagning av inmatning',
     unknown_client: 'Okänd kund',
+    submit_for_approval: 'Skicka för godkännande',
+    update_time_entry: 'Uppdatera tidsinmatning',
+    time_entry_updated: 'Tidsinmatning uppdaterad',
+    draft: 'Utkast',
+    pending_approval: 'Väntar på godkännande',
+    approved: 'Godkänd',
+    select_status: 'Välj status',
+    only_admins_can_approve: 'Endast administratörer kan godkänna',
+    approve: 'Godkänn',
+    all_projects: 'Alla projekt',
+    error_fetching_clients: 'Fel vid hämtning av kunder',
+    error_fetching_projects: 'Fel vid hämtning av projekt',
+    error_fetching_project_details: 'Fel vid hämtning av projektdetaljer',
   },
 };
 
