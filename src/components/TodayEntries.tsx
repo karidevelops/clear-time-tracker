@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Clock } from 'lucide-react';
+import { Edit, Trash2, Clock, BarChart3 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { format, startOfToday } from 'date-fns';
+import { format, startOfToday, startOfWeek, endOfWeek } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import TimeEntry from './TimeEntry';
 import { toast } from 'sonner';
@@ -28,6 +28,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [entries, setEntries] = useState<TimeEntryItem[]>([]);
+  const [weeklyAverage, setWeeklyAverage] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<TimeEntryItem | null>(null);
@@ -82,9 +83,56 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
     }
   };
 
+  const fetchWeeklyAverage = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const weekStart = format(startOfWeek(today), 'yyyy-MM-dd');
+      const weekEnd = format(endOfWeek(today), 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('hours, date')
+        .eq('user_id', user.id)
+        .gte('date', weekStart)
+        .lte('date', weekEnd);
+        
+      if (error) {
+        console.error('Error fetching weekly data:', error);
+        return;
+      }
+      
+      // Group entries by date
+      const entriesByDate = new Map();
+      data.forEach(entry => {
+        const date = entry.date;
+        if (!entriesByDate.has(date)) {
+          entriesByDate.set(date, []);
+        }
+        entriesByDate.get(date).push(entry);
+      });
+      
+      // Calculate daily totals
+      const dailyTotals = Array.from(entriesByDate.entries()).map(([date, entries]) => {
+        const total = entries.reduce((sum: number, entry: any) => sum + entry.hours, 0);
+        return { date, total };
+      });
+      
+      // Calculate average
+      const totalDays = dailyTotals.length || 1; // Avoid division by zero
+      const totalHours = dailyTotals.reduce((sum, day) => sum + day.total, 0);
+      const average = totalHours / totalDays;
+      
+      setWeeklyAverage(average);
+    } catch (error) {
+      console.error('Exception fetching weekly average:', error);
+    }
+  };
+
   // Fixed: Use useEffect instead of useState to load data on component mount
   useEffect(() => {
     fetchTodayEntries();
+    fetchWeeklyAverage();
   }, [user]); // Added user as a dependency
 
   const handleEdit = (entry: TimeEntryItem) => {
@@ -109,6 +157,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
 
       toast.success(t('entry_deleted'));
       fetchTodayEntries();
+      fetchWeeklyAverage();
       
       if (onEntryDeleted) {
         onEntryDeleted();
@@ -121,6 +170,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
 
   const handleEntrySaved = (entry: any) => {
     fetchTodayEntries();
+    fetchWeeklyAverage();
     setEditDialogOpen(false);
     
     if (onEntrySaved) {
@@ -183,6 +233,16 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
               {t('no_entries_today')}
             </div>
           )}
+          
+          <div className="border-t p-3 bg-gray-50">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center text-sm font-medium text-gray-600">
+                <BarChart3 className="mr-2 h-4 w-4 text-reportronic-500" />
+                {t('weekly_average')}
+              </div>
+              <div className="text-reportronic-700 font-medium">{weeklyAverage.toFixed(1)}h</div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
