@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay, addWeeks, subWeeks, parseISO } from 'date-fns';
@@ -11,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/context/AuthContext';
 import TimeEntry from './TimeEntry';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { TimeEntry as TimeEntryType } from '@/types/timeEntry';
+import { TimeEntry as TimeEntryType, TimeEntryStatus } from '@/types/timeEntry';
 
 const WeeklyView = () => {
   const { t } = useLanguage();
@@ -57,11 +56,17 @@ const WeeklyView = () => {
         return;
       }
       
-      setTimeEntries(data || []);
+      // Cast the data to ensure status is of type TimeEntryStatus
+      const typedData = (data || []).map(entry => ({
+        ...entry,
+        status: entry.status as TimeEntryStatus
+      })) as TimeEntryType[];
+      
+      setTimeEntries(typedData);
       
       // Calculate daily hours
       const hours: {[key: string]: number} = {};
-      (data || []).forEach((entry: TimeEntryType) => {
+      typedData.forEach((entry: TimeEntryType) => {
         const dateKey = entry.date;
         if (!hours[dateKey]) {
           hours[dateKey] = 0;
@@ -107,11 +112,17 @@ const WeeklyView = () => {
         return;
       }
       
-      setTimeEntries(data || []);
+      // Cast the data to ensure status is of type TimeEntryStatus
+      const typedData = (data || []).map(entry => ({
+        ...entry,
+        status: entry.status as TimeEntryStatus
+      })) as TimeEntryType[];
+      
+      setTimeEntries(typedData);
       
       // Calculate daily hours
       const hours: {[key: string]: number} = {};
-      (data || []).forEach((entry: TimeEntryType) => {
+      typedData.forEach((entry: TimeEntryType) => {
         const dateKey = entry.date;
         if (!hours[dateKey]) {
           hours[dateKey] = 0;
