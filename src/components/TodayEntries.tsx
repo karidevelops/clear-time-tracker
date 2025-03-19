@@ -5,7 +5,7 @@ import { Edit, Trash2, Clock, BarChart3, CheckCircle2, Clock4 } from 'lucide-rea
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { format, startOfToday, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, getWeek, getWeekOfMonth } from 'date-fns';
+import { format, startOfToday, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, getWeek } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import TimeEntry from './TimeEntry';
@@ -174,7 +174,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
         const entryDate = parseISO(entry.date);
         const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(entryDate, { weekStartsOn: 1 });
-        const weekNumber = getWeekOfMonth(entryDate, { weekStartsOn: 1 });
+        const weekNumber = getWeek(entryDate, { weekStartsOn: 1 });
         
         if (!entriesByWeek.has(weekNumber)) {
           entriesByWeek.set(weekNumber, {
