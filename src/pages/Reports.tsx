@@ -153,10 +153,14 @@ const Reports = () => {
       }
       
       const mappedEntries = filteredData.map(entry => {
+        // Fix for the TypeScript error: Handle potentially null profiles
+        const userFullName = entry.profiles ? 
+          // If profiles exists but is null, or if full_name doesn't exist, return 'Unknown User'
+          (entry.profiles.full_name || 'Unknown User') : 'Unknown User';
+          
         const entryWithStatus: TimeEntry = {
           ...entry,
-          user_full_name: entry.profiles && entry.profiles !== null && typeof entry.profiles === 'object' ? 
-            (entry.profiles.full_name || 'Unknown User') : 'Unknown User',
+          user_full_name: userFullName,
           status: (entry.status as TimeEntryStatus) || 'draft'
         };
         return entryWithStatus;
@@ -461,14 +465,12 @@ const Reports = () => {
             <ReportFilters 
               dateRange={filters.dateRange}
               setDateRange={(newDateRange) => {
-                if (typeof newDateRange === 'function') {
-                  setFilters(prev => {
-                    const updatedDateRange = newDateRange(prev.dateRange);
-                    return {...prev, dateRange: updatedDateRange};
-                  });
-                } else {
-                  setFilters(prev => ({...prev, dateRange: newDateRange}));
-                }
+                setFilters(prev => {
+                  // Handle both function and direct value updates
+                  const updatedDateRange = typeof newDateRange === 'function' ? 
+                    newDateRange(prev.dateRange) : newDateRange;
+                  return {...prev, dateRange: updatedDateRange};
+                });
               }}
               filterPeriod="last-month"
               setFilterPeriod={() => {}}
@@ -480,14 +482,12 @@ const Reports = () => {
               isAdmin={isAdmin}
               selectedUser={filters.userId}
               setSelectedUser={(userId) => {
-                if (typeof userId === 'function') {
-                  setFilters(prev => {
-                    const updatedUserId = userId(prev.userId);
-                    return {...prev, userId: updatedUserId};
-                  });
-                } else {
-                  setFilters(prev => ({...prev, userId}));
-                }
+                setFilters(prev => {
+                  // Handle both function and direct value updates
+                  const updatedUserId = typeof userId === 'function' ? 
+                    userId(prev.userId) : userId;
+                  return {...prev, userId: updatedUserId};
+                });
               }}
             />
           </CardContent>
