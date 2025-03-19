@@ -16,6 +16,16 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose
+} from '@/components/ui/sheet';
+import { useToast } from '@/hooks/use-toast';
 
 interface WeeklyTimeEntriesProps {
   timeEntries: TimeEntry[];
@@ -40,9 +50,14 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
   title = 'Viikottaiset tunnit' // Default title in Finnish
 }) => {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [weeklyData, setWeeklyData] = useState<WeekData[]>([]);
   const [totalMonthHours, setTotalMonthHours] = useState(0);
   const [projectInfo, setProjectInfo] = useState<ProjectInfo>({});
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [currentEntry, setCurrentEntry] = useState<TimeEntry | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchProjectInfo();
@@ -100,17 +115,191 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
   // Action handlers for the dropdown menu
   const handleEdit = (entryId: string) => {
     console.log('Edit entry:', entryId);
-    // Implementation for editing would go here
+    const entry = findEntryById(entryId);
+    if (entry) {
+      setCurrentEntry(entry);
+      setIsEditSheetOpen(true);
+    }
   };
 
-  const handleDelete = (entryId: string) => {
-    console.log('Delete entry:', entryId);
-    // Implementation for deleting would go here
+  const handleDelete = async (entryId: string) => {
+    const entry = findEntryById(entryId);
+    if (entry) {
+      setCurrentEntry(entry);
+      try {
+        setIsLoading(true);
+        const { error } = await supabase
+          .from('time_entries')
+          .delete()
+          .eq('id', entryId);
+        
+        if (error) throw error;
+        
+        // Update the UI by removing the entry
+        removeEntryFromState(entryId);
+        
+        toast({
+          title: "Kirjaus poistettu",
+          description: "Aikakirjaus on poistettu onnistuneesti.",
+          variant: "default",
+        });
+      } catch (error) {
+        console.error('Error deleting time entry:', error);
+        toast({
+          title: "Virhe poistettaessa",
+          description: "Aikakirjausta ei voitu poistaa. Yritä uudelleen.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+        setCurrentEntry(null);
+      }
+    }
   };
 
   const handleCopy = (entryId: string) => {
     console.log('Copy entry:', entryId);
-    // Implementation for copying would go here
+    const entry = findEntryById(entryId);
+    if (entry) {
+      // Create a copy of the entry with a new ID
+      const newEntry: Omit<TimeEntry, 'id'> = {
+        date: entry.date,
+        description: entry.description,
+        hours: entry.hours,
+        project_id: entry.project_id,
+        user_id: entry.user_id,
+        status: 'draft'
+      };
+      
+      createCopy(newEntry);
+    }
+  };
+  
+  const createCopy = async (entryData: Omit<TimeEntry, 'id'>) => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('time_entries')
+        .insert(entryData)
+        .select();
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Add the new entry to the state
+        addEntryToState(data[0] as TimeEntry);
+        
+        toast({
+          title: "Kopio luotu",
+          description: "Aikakirjauksesta on luotu kopio onnistuneesti.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error('Error copying time entry:', error);
+      toast({
+        title: "Virhe kopioitaessa",
+        description: "Kopiointia ei voitu suorittaa. Yritä uudelleen.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Helper functions to find and manipulate entries
+  const findEntryById = (entryId: string): TimeEntry | null => {
+    for (const week of weeklyData) {
+      const entry = week.entries.find(e => e.id === entryId);
+      if (entry) return entry;
+    }
+    return null;
+  };
+  
+  const removeEntryFromState = (entryId: string) => {
+    setWeeklyData(prevData => {
+      // Create a deep copy to avoid mutating the state directly
+      const newData = [...prevData];
+      
+      // For each week, filter out the deleted entry
+      for (let i = 0; i < newData.length; i++) {
+        const weekEntries = newData[i].entries.filter(e => e.id !== entryId);
+        
+        // If entries changed, update the week data
+        if (weekEntries.length !== newData[i].entries.length) {
+          // Calculate new total hours
+          const totalHours = weekEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
+          
+          // Update the week
+          newData[i] = {
+            ...newData[i],
+            entries: weekEntries,
+            totalHours
+          };
+          
+          // If no entries left in this week, remove the week altogether
+          if (weekEntries.length === 0) {
+            newData.splice(i, 1);
+          }
+          
+          break;
+        }
+      }
+      
+      return newData;
+    });
+    
+    // Also update total month hours
+    setTotalMonthHours(prev => {
+      const deletedEntry = findEntryById(entryId);
+      return deletedEntry ? prev - Number(deletedEntry.hours) : prev;
+    });
+  };
+  
+  const addEntryToState = (newEntry: TimeEntry) => {
+    setWeeklyData(prevData => {
+      // Create a deep copy
+      const newData = [...prevData];
+      const entryDate = parseISO(newEntry.date);
+      const weekNumber = getWeek(entryDate, { weekStartsOn: 1 });
+      
+      // Find if we already have this week
+      let weekIndex = newData.findIndex(week => week.weekNumber === weekNumber);
+      
+      if (weekIndex !== -1) {
+        // Week exists, add entry to it
+        const week = newData[weekIndex];
+        const newEntries = [...week.entries, newEntry].sort((a, b) => a.date.localeCompare(b.date));
+        const newTotalHours = week.totalHours + Number(newEntry.hours);
+        
+        newData[weekIndex] = {
+          ...week,
+          entries: newEntries,
+          totalHours: newTotalHours
+        };
+      } else {
+        // Create a new week
+        const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(entryDate, { weekStartsOn: 1 });
+        
+        newData.push({
+          weekNumber,
+          startDate: weekStart,
+          endDate: weekEnd,
+          entries: [newEntry],
+          totalHours: Number(newEntry.hours),
+          isExpanded: false
+        });
+        
+        // Sort weeks by date (descending)
+        newData.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+      }
+      
+      return newData;
+    });
+    
+    // Update total month hours
+    setTotalMonthHours(prev => prev + Number(newEntry.hours));
   };
 
   useEffect(() => {
