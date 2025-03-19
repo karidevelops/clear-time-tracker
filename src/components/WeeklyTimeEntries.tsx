@@ -25,7 +25,7 @@ import {
   SheetClose
 } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
-import TimeEntry from '@/components/TimeEntry';
+import TimeEntryForm from '@/components/TimeEntry';
 
 interface WeeklyTimeEntriesProps {
   timeEntries: TimeEntry[];
@@ -65,7 +65,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
 
   const fetchProjectInfo = async () => {
     try {
-      // First try to get from Supabase
       const { data, error } = await supabase
         .from('projects')
         .select(`
@@ -87,7 +86,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
         });
         setProjectInfo(projectMap);
       } else {
-        // Fallback to static data
         const projects = getAllProjects();
         const projectMap: ProjectInfo = {};
         projects.forEach(project => {
@@ -508,12 +506,12 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
           
           <div className="py-6">
             {currentEntry && (
-              <TimeEntry 
+              <TimeEntryForm 
                 initialDate={currentEntry.date}
                 initialHours={String(currentEntry.hours)}
                 initialDescription={currentEntry.description || ''}
                 initialProjectId={currentEntry.project_id}
-                initialStatus={currentEntry.status as any}
+                initialStatus={currentEntry.status}
                 entryId={currentEntry.id}
                 onEntrySaved={handleEntrySaved}
               />
