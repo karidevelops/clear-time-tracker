@@ -16,7 +16,7 @@ import {
   MenubarTrigger 
 } from "@/components/ui/menubar";
 import { clients } from '@/data/ClientsData';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -25,6 +25,7 @@ import { fi, sv, enUS } from 'date-fns/locale';
 import TimeEntry from './TimeEntry';
 import { useAuth } from '@/context/AuthContext';
 import TodayEntries from './TodayEntries';
+import { supabase } from '@/integrations/supabase/client';
 
 const Header = () => {
   const { t, language } = useLanguage();
@@ -32,7 +33,29 @@ const Header = () => {
   const location = useLocation();
   const [date, setDate] = useState<Date>(new Date());
   const [showTimeEntry, setShowTimeEntry] = useState(false);
-  const { signOut } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { signOut, user } = useAuth();
+  
+  // Check if user is admin
+  useEffect(() => {
+    const checkIfAdmin = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase.rpc('is_admin');
+        if (error) {
+          console.error('Error checking admin status:', error);
+          return;
+        }
+        
+        setIsAdmin(data || false);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    };
+    
+    checkIfAdmin();
+  }, [user]);
   
   // Get date-fns locale based on current language
   const getLocale = () => {
@@ -124,9 +147,11 @@ const Header = () => {
               {t('reports')}
             </Link>
             
-            <Link to="/settings" className={getLinkClasses('/settings')}>
-              {t('settings')}
-            </Link>
+            {isAdmin && (
+              <Link to="/settings" className={getLinkClasses('/settings')}>
+                {t('settings')}
+              </Link>
+            )}
           </nav>
           
           <div className="flex items-center space-x-4">

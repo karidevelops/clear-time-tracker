@@ -13,7 +13,8 @@ import Reports from "./pages/Reports";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Auth from "./pages/Auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,54 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // This is just a fallback
   if (!user) {
     return null;
+  }
+  
+  return <>{children}</>;
+};
+
+// Admin-only route component
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase.rpc('is_admin');
+        
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data || false);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [user]);
+  
+  // Show loading indicator while checking admin status
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  // Redirect to home if not an admin
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
   }
   
   return <>{children}</>;
@@ -80,13 +129,13 @@ const AppRoutes = () => {
       <Route 
         path="/settings" 
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <Layout>
               <div className="py-6">
                 <Settings />
               </div>
             </Layout>
-          </ProtectedRoute>
+          </AdminRoute>
         } 
       />
       {/* Catch-all route */}
