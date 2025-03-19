@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -245,18 +244,25 @@ const Reports = () => {
       }
       
       if (data) {
-        const entriesWithUserNames = data.map(entry => ({
-          ...entry,
-          user_full_name: entry.profiles?.full_name || t('unknown_user'),
-          status: entry.status as TimeEntryStatus
-        }));
+        const entriesWithUserNames: TimeEntry[] = data.map(entry => {
+          let userName = t('unknown_user');
+          
+          if (entry.profiles && typeof entry.profiles === 'object' && !('error' in entry.profiles)) {
+            userName = entry.profiles.full_name || t('unknown_user');
+          }
+          
+          return {
+            ...entry,
+            user_full_name: userName,
+            status: entry.status as TimeEntryStatus
+          };
+        });
         
         setPendingEntries(entriesWithUserNames);
         
-        // Group entries by user for bulk approval
         const grouped: { [key: string]: TimeEntry[] } = {};
         entriesWithUserNames.forEach(entry => {
-          const userName = entry.profiles?.full_name || t('unknown_user');
+          const userName = entry.user_full_name || t('unknown_user');
           if (!grouped[userName]) {
             grouped[userName] = [];
           }
@@ -550,7 +556,6 @@ const Reports = () => {
     
     setApprovingEntries(true);
     try {
-      // Get all entries for the selected month range
       let entriesToApprove = pendingEntries;
       
       if (entriesToApprove.length === 0) {
