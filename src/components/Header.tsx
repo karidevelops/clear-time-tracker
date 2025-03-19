@@ -1,6 +1,5 @@
-
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart, Calendar, FileText, Settings as SettingsIcon, LogOut } from 'lucide-react';
+import { Calendar, Settings as SettingsIcon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -103,10 +102,6 @@ const Header = () => {
           <nav className="hidden md:flex items-center space-x-2">
             <Link to="/" className={getLinkClasses('/')}>
               {t('dashboard')}
-            </Link>
-            
-            <Link to="/reports" className={getLinkClasses('/reports')}>
-              {t('reports')}
             </Link>
             
             <Link to="/settings" className={getLinkClasses('/settings')}>
