@@ -94,9 +94,26 @@ export const UsersList = () => {
         console.error("Error fetching user roles:", rolesError);
       }
 
-      // Get email addresses from auth.users through RPC function
-      // We cannot directly query auth.users from the client
-      const { data: authUsers, error: authError } = await supabase.rpc('get_user_emails');
+      // Get email addresses from auth.users through custom fetch
+      // We cannot directly query auth.users from the client or use RPC until the function is properly typed
+      let authUsers = [];
+      let authError = null;
+      
+      try {
+        // Using a direct fetch with the raw SQL function
+        const response = await supabase.functions.invoke('get-user-emails', {
+          method: 'GET'
+        });
+        
+        if (response.error) {
+          authError = response.error;
+        } else {
+          authUsers = response.data || [];
+        }
+      } catch (error) {
+        authError = error;
+        console.error("Error fetching user emails:", error);
+      }
       
       if (authError) {
         console.error("Error fetching user emails:", authError);
@@ -106,7 +123,7 @@ export const UsersList = () => {
       userRoles?.forEach(role => roleMap.set(role.user_id, role.role));
       
       const emailMap = new Map();
-      if (authUsers) {
+      if (authUsers && Array.isArray(authUsers)) {
         authUsers.forEach((user: {id: string, email: string}) => emailMap.set(user.id, user.email));
       }
 
