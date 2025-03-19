@@ -243,7 +243,7 @@ const Index = () => {
           <div className="mt-6">
             <WeeklyTimeEntries 
               timeEntries={monthlyEntries} 
-              title={t('monthly_entries_by_week')} 
+              title={t('monthly_entries')} 
             />
           </div>
         </div>
