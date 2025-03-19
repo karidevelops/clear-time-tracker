@@ -701,4 +701,4 @@ const translations: Record<string, TranslationsType> = {
     error_adding_project: "Fel vid tilläggning av projekt",
     add_project_for: 'Lägg till projekt för',
     today_entries: 'Dagens inmatningar',
-    edit_time_entry: 'Redigera t
+    edit_time_entry: 'Redigera tidsinmat
