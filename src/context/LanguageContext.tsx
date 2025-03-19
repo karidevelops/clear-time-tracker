@@ -191,6 +191,9 @@ interface TranslationsType {
   error_setting_role: string;
   user_added_successfully: string;
   unknown_project: string;
+  rejection_comment_placeholder: string;
+  return_time_entry: string;
+  return_time_entry_confirmation: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -384,6 +387,9 @@ const translations: Record<string, TranslationsType> = {
     error_setting_role: 'Error setting user role',
     user_added_successfully: 'User added successfully',
     unknown_project: 'Unknown Project',
+    rejection_comment_placeholder: 'Enter a reason for the rejection...',
+    return_time_entry: 'Return Time Entry',
+    return_time_entry_confirmation: 'Are you sure you want to return this time entry for editing?',
   },
   fi: {
     dashboard: 'Tuntikirjaus',
@@ -569,6 +575,9 @@ const translations: Record<string, TranslationsType> = {
     error_setting_role: 'Virhe asetettaessa käyttäjän roolia',
     user_added_successfully: 'Käyttäjä lisätty onnistuneesti',
     unknown_project: 'Tuntematon projekti',
+    rejection_comment_placeholder: 'Anna syy hylkäämiselle...',
+    return_time_entry: 'Palauta tuntikirjaus',
+    return_time_entry_confirmation: 'Haluatko varmasti palauttaa tämän tuntikirjauksen muokattavaksi?',
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -692,15 +701,4 @@ const translations: Record<string, TranslationsType> = {
     error_adding_project: "Fel vid tilläggning av projekt",
     add_project_for: 'Lägg till projekt för',
     today_entries: 'Dagens inmatningar',
-    edit_time_entry: 'Redigera tidsinmatning',
-    no_entries_today: 'Inga inmatningar för idag',
-    loading: 'Laddar',
-    entry_deleted: 'Inmatning borttagen',
-    error_deleting_entry: 'Fel vid borttagning av inmatning',
-    unknown_client: 'Okänd kund',
-    submit_for_approval: 'Skicka för godkännande',
-    update_time_entry: 'Uppdatera tidsinmatning',
-    time_entry_updated: 'Tidsinmatning uppdaterad',
-    draft: 'Utkast',
-    pending_approval: 'Väntar på godkännande',
-    approved: '
+    edit_time_entry: 'Redigera tidsinmat
