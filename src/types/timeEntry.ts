@@ -16,5 +16,5 @@ export interface TimeEntry {
   user_full_name?: string;
   profiles?: {
     full_name: string | null;
-  } | null | any; // Add 'any' to handle error cases
+  } | null | any; // Explicitly allowing null and any to handle error cases
 }
