@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,10 +42,13 @@ interface WeeklyHoursData {
   }[];
 }
 
-const TodayEntries = ({ onEntrySaved, onEntryDeleted }: { 
+interface TodayEntriesProps {
   onEntrySaved?: (entry: any) => void;
   onEntryDeleted?: () => void;
-}) => {
+  inDialog?: boolean;
+}
+
+const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayEntriesProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [entries, setEntries] = useState<TimeEntryItem[]>([]);
@@ -343,6 +347,99 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
     }
   };
 
+  // For dialog mode, render a simpler version without the Card wrapper
+  if (inDialog) {
+    return (
+      <>
+        {isLoading ? (
+          <div className="p-4 text-center text-gray-500">{t('loading')}...</div>
+        ) : entries.length > 0 ? (
+          <div className="divide-y max-h-[250px] overflow-y-auto border rounded-md">
+            {entries.map((entry) => (
+              <div key={entry.id} className="p-3 hover:bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="font-medium">{entry.client}: {entry.project}</div>
+                    {entry.description && (
+                      <div className="text-sm text-gray-700 mt-1">{entry.description}</div>
+                    )}
+                    <div className="mt-2 flex items-center space-x-2">
+                      {renderStatusBadge(entry.status)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-reportronic-700 font-medium">{entry.hours}h</div>
+                    
+                    {isAdmin && entry.status === 'pending' && (
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-7 w-7 text-green-600" 
+                        onClick={() => handleApproveEntry(entry.id)}
+                        title={t('approve')}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    
+                    {(entry.status !== 'approved' || isAdmin) && (
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-7 w-7" 
+                        onClick={() => handleEdit(entry)}
+                        title={t('edit')}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                    
+                    {(entry.status !== 'approved' || isAdmin) && (
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-7 w-7 text-red-600" 
+                        onClick={() => handleDelete(entry.id, entry.status)}
+                        title={t('delete')}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 text-center text-gray-500 border rounded-md">
+            {t('no_entries_today')}
+          </div>
+        )}
+        
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{t('edit_time_entry')}</DialogTitle>
+            </DialogHeader>
+            {currentEntry && (
+              <TimeEntry 
+                initialDate={currentEntry.date}
+                initialHours={currentEntry.hours.toString()}
+                initialDescription={currentEntry.description}
+                initialProjectId={currentEntry.project_id}
+                entryId={currentEntry.id}
+                initialStatus={currentEntry.status}
+                isAdmin={isAdmin}
+                onEntrySaved={handleEntrySaved}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // Regular card view for the main page
   return (
     <>
       <Card>

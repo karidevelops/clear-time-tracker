@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, ArrowUp, ArrowRight } from 'lucide-react';
@@ -10,7 +9,6 @@ import TimeEntry from '@/components/TimeEntry';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns';
-import TodayEntries from '@/components/TodayEntries';
 import WeeklyTimeEntries from '@/components/WeeklyTimeEntries';
 import { TimeEntry as TimeEntryType } from '@/types/timeEntry';
 
@@ -154,7 +152,7 @@ const Index = () => {
           <h1 className="text-3xl font-bold text-reportronic-800">{t('dashboard')}</h1>
         </div>
 
-        <Card className="mb-6">
+        <Card className="mb-6 time-tracker-header">
           <CardHeader className="bg-reportronic-50 border-b">
             <CardTitle className="flex items-center text-reportronic-800">
               <Clock className="mr-2 h-5 w-5 text-reportronic-500" />
@@ -246,16 +244,6 @@ const Index = () => {
             timeEntries={monthlyEntries} 
             title={t('monthly_entries_by_week')} 
           />
-          
-          <div>
-            <TodayEntries 
-              onEntrySaved={handleTimeEntrySaved} 
-              onEntryDeleted={() => {
-                fetchStats();
-                fetchMonthlyEntries();
-              }}
-            />
-          </div>
         </div>
       </div>
     </Layout>

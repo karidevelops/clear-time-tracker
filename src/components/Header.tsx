@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { BarChart, Calendar, FileText, Settings as SettingsIcon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +23,7 @@ import { format } from "date-fns";
 import { fi, sv, enUS } from 'date-fns/locale';
 import TimeEntry from './TimeEntry';
 import { useAuth } from '@/context/AuthContext';
+import TodayEntries from './TodayEntries';
 
 const Header = () => {
   const { t, language } = useLanguage();
@@ -64,7 +64,8 @@ const Header = () => {
   };
 
   const handleTimeEntrySaved = () => {
-    setShowTimeEntry(false);
+    // We keep the time entry dialog open so user can see their entries
+    // They can close it manually when done
   };
   
   return (
@@ -131,15 +132,25 @@ const Header = () => {
       
       {showTimeEntry && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-white rounded-lg w-full max-w-md p-6">
+          <div className="bg-white rounded-lg w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-semibold mb-4">{format(date, 'PPP', { locale: getLocale() })}</h2>
             <TimeEntry 
               initialDate={format(date, 'yyyy-MM-dd')}
               onEntrySaved={handleTimeEntrySaved}
             />
+            
+            <div className="mt-6">
+              <h3 className="text-md font-medium mb-3">{t('today_entries')}</h3>
+              <TodayEntries 
+                onEntrySaved={handleTimeEntrySaved}
+                onEntryDeleted={handleTimeEntrySaved}
+                inDialog={true}
+              />
+            </div>
+            
             <div className="mt-4 flex justify-end">
               <Button variant="outline" onClick={() => setShowTimeEntry(false)}>
-                {t('cancel')}
+                {t('close')}
               </Button>
             </div>
           </div>
