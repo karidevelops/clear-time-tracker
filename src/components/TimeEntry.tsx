@@ -70,12 +70,6 @@ const TimeEntry = ({
       return;
     }
     
-    // Check if project is "all" - this is an invalid value for project_id
-    if (project === "all") {
-      toast.error(t('select_valid_project'));
-      return;
-    }
-    
     const entryData = {
       date,
       hours: parseFloat(hours),
@@ -121,8 +115,6 @@ const TimeEntry = ({
           toast.error(t('duplicate_entry_error'));
         } else if (error.code === '23503') {
           toast.error(t('foreign_key_constraint_error'));
-        } else if (error.code === '22P02') {
-          toast.error(t('invalid_uuid_format'));
         } else {
           toast.error(t('error_saving_time_entry'));
         }
@@ -268,7 +260,7 @@ const TimeEntry = ({
           <Button 
             type="submit" 
             className="bg-reportronic-500 hover:bg-reportronic-600 text-white"
-            disabled={isLoading || project === "all"}
+            disabled={isLoading}
           >
             <Save className="mr-2 h-4 w-4" />
             {isLoading ? t('saving') : isEditing ? t('update_time_entry') : t('save_time_entry')}
@@ -280,7 +272,7 @@ const TimeEntry = ({
             type="button"
             variant="outline"
             className="border-orange-500 text-orange-600 hover:bg-orange-50"
-            disabled={isLoading || project === "all"}
+            disabled={isLoading}
             onClick={handleSubmitForApproval}
           >
             <Clock4 className="mr-2 h-4 w-4" />

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface LanguageContextType {
@@ -168,10 +169,6 @@ interface TranslationsType {
   today_entries_summary: string;
   yesterday_entries_summary: string;
   error_fetching_entries: string;
-  monthly_entries: string;
-  monthly_entries_by_week: string;
-  select_valid_project: string;
-  invalid_uuid_format: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -341,11 +338,7 @@ const translations: Record<string, TranslationsType> = {
     error_copying_entries: "Error copying entries. Please try again later.",
     today_entries_summary: "Today has entries, total hours:",
     yesterday_entries_summary: "Yesterday had entries, total hours:",
-    error_fetching_entries: "Error fetching entries. Please try again later.",
-    monthly_entries: 'Monthly Entries',
-    monthly_entries_by_week: 'Monthly Entries by Week',
-    select_valid_project: 'Please select a valid project',
-    invalid_uuid_format: 'Invalid project format',
+    error_fetching_entries: "Error fetching entries. Please try again later."
   },
   fi: {
     dashboard: 'Tuntikirjaus',
@@ -507,11 +500,7 @@ const translations: Record<string, TranslationsType> = {
     error_copying_entries: "Virhe kirjausten kopioinnissa. Yritä uudelleen myöhemmin.",
     today_entries_summary: "Tänään on kirjauksia, yhteensä tuntia:",
     yesterday_entries_summary: "Eilen oli kirjauksia, yhteensä tuntia:",
-    error_fetching_entries: "Virhe kirjausten hakemisessa. Yritä uudelleen myöhemmin.",
-    monthly_entries: 'Kuukauden kirjaukset',
-    monthly_entries_by_week: 'Kuukauden kirjaukset viikoittain',
-    select_valid_project: 'Valitse kelvollinen projekti',
-    invalid_uuid_format: 'Virheellinen projektin muoto',
+    error_fetching_entries: "Virhe kirjausten hakemisessa. Yritä uudelleen myöhemmin."
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -673,11 +662,7 @@ const translations: Record<string, TranslationsType> = {
     error_copying_entries: "Fel vid kopiering av inmatningar. Försök igen senare.",
     today_entries_summary: "Idag har inmatningar, totalt timmar:",
     yesterday_entries_summary: "Igår hade inmatningar, totalt timmar:",
-    error_fetching_entries: "Fel vid hämtning av inmatningar. Försök igen senare.",
-    monthly_entries: 'Månadsvis inmatningar',
-    monthly_entries_by_week: 'Månadsvis inmatningar per vecka',
-    select_valid_project: 'Vänligen välj ett giltigt projekt',
-    invalid_uuid_format: 'Ogiltigt projektformat',
+    error_fetching_entries: "Fel vid hämtning av inmatningar. Försök igen senare."
   },
 };
 
