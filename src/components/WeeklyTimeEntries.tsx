@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -69,9 +68,10 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
         const projects = getAllProjects();
         const projectMap: ProjectInfo = {};
         projects.forEach(project => {
+          const client = project.clientId ? { name: 'Unknown Client' } : null;
           projectMap[project.id] = {
             name: project.name,
-            clientName: 'Unknown Client'
+            clientName: client?.name || 'Unknown Client'
           };
         });
         setProjectInfo(projectMap);
@@ -83,6 +83,10 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
 
   const getProjectName = (projectId: string) => {
     return projectInfo[projectId]?.name || projectId;
+  };
+
+  const getClientName = (projectId: string) => {
+    return projectInfo[projectId]?.clientName || '';
   };
 
   useEffect(() => {
@@ -208,6 +212,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                       <thead>
                         <tr className="border-b">
                           <th className="py-2 px-3 text-left font-medium text-gray-500">Päivämäärä</th>
+                          <th className="py-2 px-3 text-left font-medium text-gray-500">Asiakas</th>
                           <th className="py-2 px-3 text-left font-medium text-gray-500">Projekti</th>
                           <th className="py-2 px-3 text-left font-medium text-gray-500">Kuvaus</th>
                           <th className="py-2 px-3 text-right font-medium text-gray-500">Tunnit</th>
@@ -217,13 +222,14 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                         {week.entries.map(entry => (
                           <tr key={entry.id} className="hover:bg-gray-100">
                             <td className="py-2 px-3">{format(parseISO(entry.date), 'EEE d.M', { locale: fi })}</td>
+                            <td className="py-2 px-3">{getClientName(entry.project_id)}</td>
                             <td className="py-2 px-3">{getProjectName(entry.project_id)}</td>
                             <td className="py-2 px-3">{entry.description || "-"}</td>
                             <td className="py-2 px-3 text-right">{Number(entry.hours).toFixed(1)}h</td>
                           </tr>
                         ))}
                         <tr className="bg-gray-100">
-                          <td colSpan={3} className="py-2 px-3 text-right font-medium">Yhteensä:</td>
+                          <td colSpan={4} className="py-2 px-3 text-right font-medium">Yhteensä:</td>
                           <td className="py-2 px-3 text-right font-medium text-reportronic-600">{week.totalHours.toFixed(1)}h</td>
                         </tr>
                       </tbody>
