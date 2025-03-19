@@ -155,10 +155,10 @@ const Reports = () => {
       }
       
       const mappedEntries = filteredData.map(entry => {
+        const profileFullName = entry.profiles ? entry.profiles.full_name : null;
         const entryWithStatus: TimeEntry = {
           ...entry,
-          user_full_name: entry.profiles && typeof entry.profiles === 'object' ? 
-            (entry.profiles?.full_name || 'Unknown User') : 'Unknown User',
+          user_full_name: profileFullName || 'Unknown User',
           status: (entry.status as TimeEntryStatus) || 'draft'
         };
         return entryWithStatus;
@@ -192,7 +192,6 @@ const Reports = () => {
   };
 
   const handleApprove = async (entry: TimeEntry) => {
-    // Add basic approval handling function
     try {
       setApprovingEntries(true);
       const { error } = await supabase
@@ -268,7 +267,7 @@ const Reports = () => {
   const exportToCsv = () => {
     if (filteredEntries.length === 0) return;
     
-    let csvContent = "data:text/csv;charset=utf-8,";
+    let csvContent = "data:text/csv;charset=utf-8;";
     
     csvContent += "Date,Client,Project,Description,Hours,Status\n";
     
@@ -400,14 +399,11 @@ const Reports = () => {
           <CardContent>
             <ReportFilters 
               dateRange={filters.dateRange}
-              setDateRange={(newDateRange) => setFilters({...filters, dateRange: newDateRange as any})}
+              setDateRange={(newDateRange: any) => setFilters({...filters, dateRange: newDateRange})}
               filterPeriod="last-month"
               setFilterPeriod={() => {}}
               selectedProject={filters.projectId}
               handleProjectSelect={(projectId) => setFilters({...filters, projectId})}
-              clients={clients}
-              projects={projects}
-              users={users}
               isAdmin={isAdmin}
             />
           </CardContent>
