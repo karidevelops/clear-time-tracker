@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { fi, sv, enUS } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Search } from "lucide-react";
+import { Calendar as CalendarIcon, Search, FileDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,10 +14,14 @@ import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TimeEntry } from "@/types/timeEntry";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const Reports = () => {
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   // Set default date range to current month
   const [fromDate, setFromDate] = useState<Date>(startOfMonth(new Date()));
@@ -76,6 +80,65 @@ const Reports = () => {
   // Function to handle search button click
   const handleSearch = () => {
     refetch();
+  };
+  
+  // Function to generate and download PDF
+  const generatePDF = () => {
+    if (!timeEntries || timeEntries.length === 0) {
+      toast({
+        title: t('error'),
+        description: t('no_data_available'),
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const doc = new jsPDF();
+      const title = `${t('time_report')}: ${format(fromDate, "PPP", { locale: getLocale() })} - ${format(toDate, "PPP", { locale: getLocale() })}`;
+      
+      // Add title
+      doc.setFontSize(16);
+      doc.text(title, 14, 20);
+      
+      // Add total hours
+      doc.setFontSize(12);
+      doc.text(`${t('total_hours')}: ${totalHours.toFixed(2)}`, 14, 30);
+      
+      // Prepare table data
+      const tableData = timeEntries.map((entry: any) => [
+        format(new Date(entry.date), "PPP", { locale: getLocale() }),
+        entry.hours,
+        entry.projects?.name || t('unknown_project'),
+        entry.projects?.clients?.name || t('unknown_client'),
+        entry.description || '-',
+        t(entry.status)
+      ]);
+      
+      // Add table
+      autoTable(doc, {
+        head: [[t('date'), t('hours'), t('project'), t('client'), t('description'), t('status')]],
+        body: tableData,
+        startY: 40,
+        headStyles: { fillColor: [253, 126, 30] }, // Reportronic orange color
+        margin: { top: 40 },
+      });
+      
+      // Save the PDF
+      doc.save(`${t('time_report')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      
+      toast({
+        title: t('success'),
+        description: t('pdf_generated'),
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: t('error'),
+        description: t('error_generating_pdf'),
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -148,10 +211,18 @@ const Reports = () => {
       ) : timeEntries && timeEntries.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>{t('total_hours')}: {totalHours.toFixed(2)}</CardTitle>
-            <CardDescription>
-              {format(fromDate, "PPP", { locale: getLocale() })} - {format(toDate, "PPP", { locale: getLocale() })}
-            </CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle>{t('total_hours')}: {totalHours.toFixed(2)}</CardTitle>
+                <CardDescription>
+                  {format(fromDate, "PPP", { locale: getLocale() })} - {format(toDate, "PPP", { locale: getLocale() })}
+                </CardDescription>
+              </div>
+              <Button onClick={generatePDF} className="mt-4 sm:mt-0" variant="outline">
+                <FileDown className="mr-2 h-4 w-4" />
+                {t('export_pdf')}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
