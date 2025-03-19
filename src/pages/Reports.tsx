@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
@@ -156,10 +157,12 @@ const Reports = () => {
       const mappedEntries = filteredData.map(entry => {
         let profileFullName = 'Unknown User';
         
-        if (entry.profiles !== null && 
-            entry.profiles !== undefined && 
-            typeof entry.profiles === 'object') {
-          profileFullName = entry.profiles.full_name || 'Unknown User';
+        // Fix: Added an explicit check for null entry.profiles
+        const profiles = entry.profiles;
+        if (profiles !== null && 
+            profiles !== undefined && 
+            typeof profiles === 'object') {
+          profileFullName = profiles.full_name || 'Unknown User';
         }
         
         const entryWithStatus: TimeEntry = {
