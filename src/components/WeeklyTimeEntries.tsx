@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp, MoreHorizontal } from 'lucide-react';
@@ -26,6 +25,7 @@ import {
   SheetClose
 } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
+import TimeEntry from '@/components/TimeEntry';
 
 interface WeeklyTimeEntriesProps {
   timeEntries: TimeEntry[];
@@ -112,7 +112,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
     return projectInfo[projectId]?.clientName || '';
   };
 
-  // Action handlers for the dropdown menu
   const handleEdit = (entryId: string) => {
     console.log('Edit entry:', entryId);
     const entry = findEntryById(entryId);
@@ -135,7 +134,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
         
         if (error) throw error;
         
-        // Update the UI by removing the entry
         removeEntryFromState(entryId);
         
         toast({
@@ -161,7 +159,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
     console.log('Copy entry:', entryId);
     const entry = findEntryById(entryId);
     if (entry) {
-      // Create a copy of the entry with a new ID
       const newEntry: Omit<TimeEntry, 'id'> = {
         date: entry.date,
         description: entry.description,
@@ -186,7 +183,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       if (error) throw error;
       
       if (data && data.length > 0) {
-        // Add the new entry to the state
         addEntryToState(data[0] as TimeEntry);
         
         toast({
@@ -207,7 +203,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
     }
   };
   
-  // Helper functions to find and manipulate entries
   const findEntryById = (entryId: string): TimeEntry | null => {
     for (const week of weeklyData) {
       const entry = week.entries.find(e => e.id === entryId);
@@ -218,26 +213,23 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
   
   const removeEntryFromState = (entryId: string) => {
     setWeeklyData(prevData => {
-      // Create a deep copy to avoid mutating the state directly
       const newData = [...prevData];
       
-      // For each week, filter out the deleted entry
       for (let i = 0; i < newData.length; i++) {
-        const weekEntries = newData[i].entries.filter(e => e.id !== entryId);
+        const weekEntries = [...newData[i].entries];
+        const entryIndex = weekEntries.findIndex(e => e.id === entryId);
         
-        // If entries changed, update the week data
-        if (weekEntries.length !== newData[i].entries.length) {
-          // Calculate new total hours
+        if (entryIndex !== -1) {
+          weekEntries.splice(entryIndex, 1);
+          
           const totalHours = weekEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
           
-          // Update the week
           newData[i] = {
             ...newData[i],
             entries: weekEntries,
             totalHours
           };
           
-          // If no entries left in this week, remove the week altogether
           if (weekEntries.length === 0) {
             newData.splice(i, 1);
           }
@@ -249,7 +241,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       return newData;
     });
     
-    // Also update total month hours
     setTotalMonthHours(prev => {
       const deletedEntry = findEntryById(entryId);
       return deletedEntry ? prev - Number(deletedEntry.hours) : prev;
@@ -258,16 +249,13 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
   
   const addEntryToState = (newEntry: TimeEntry) => {
     setWeeklyData(prevData => {
-      // Create a deep copy
       const newData = [...prevData];
       const entryDate = parseISO(newEntry.date);
       const weekNumber = getWeek(entryDate, { weekStartsOn: 1 });
       
-      // Find if we already have this week
       let weekIndex = newData.findIndex(week => week.weekNumber === weekNumber);
       
       if (weekIndex !== -1) {
-        // Week exists, add entry to it
         const week = newData[weekIndex];
         const newEntries = [...week.entries, newEntry].sort((a, b) => a.date.localeCompare(b.date));
         const newTotalHours = week.totalHours + Number(newEntry.hours);
@@ -278,7 +266,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
           totalHours: newTotalHours
         };
       } else {
-        // Create a new week
         const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(entryDate, { weekStartsOn: 1 });
         
@@ -291,21 +278,18 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
           isExpanded: false
         });
         
-        // Sort weeks by date (descending)
         newData.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
       }
       
       return newData;
     });
     
-    // Update total month hours
     setTotalMonthHours(prev => prev + Number(newEntry.hours));
   };
 
   useEffect(() => {
     if (!timeEntries || timeEntries.length === 0) return;
 
-    // Group entries by week
     const entriesByWeek = new Map<number, TimeEntry[]>();
     
     timeEntries.forEach(entry => {
@@ -322,40 +306,34 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
       entriesByWeek.get(weekNumber)?.push(entry);
     });
     
-    // Convert to array and sort by week
     const weeks: WeekData[] = [];
     
     entriesByWeek.forEach((entries, weekNumber) => {
       if (entries.length === 0) return;
       
-      // Get the first entry's date to calculate the week's start/end
       const firstEntry = entries[0];
       const firstDate = parseISO(firstEntry.date);
       const weekStart = startOfWeek(firstDate, { weekStartsOn: 1 });
       const weekEnd = endOfWeek(firstDate, { weekStartsOn: 1 });
       
-      // Calculate total hours for the week
       const totalHours = entries.reduce((sum, entry) => sum + Number(entry.hours), 0);
       
       weeks.push({
         weekNumber,
         startDate: weekStart,
         endDate: weekEnd,
-        entries: entries.sort((a, b) => a.date.localeCompare(b.date)), // Sort by date
+        entries: entries.sort((a, b) => a.date.localeCompare(b.date)),
         totalHours,
         isExpanded: false
       });
     });
     
-    // Sort weeks by start date (descending)
     weeks.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
     
-    // Calculate total hours for all weeks
     const totalHours = weeks.reduce((sum, week) => sum + week.totalHours, 0);
     
     setWeeklyData(weeks);
     setTotalMonthHours(totalHours);
-    
   }, [timeEntries]);
 
   const toggleWeekExpanded = (weekIndex: number) => {
@@ -368,6 +346,43 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
 
   const formatWeekRange = (start: Date, end: Date) => {
     return `${format(start, 'd.M')} - ${format(end, 'd.M.yyyy')}`;
+  };
+
+  const handleEntrySaved = (updatedEntry: TimeEntry) => {
+    setIsEditSheetOpen(false);
+    
+    setWeeklyData(prevData => {
+      const newData = [...prevData];
+      
+      for (let i = 0; i < newData.length; i++) {
+        const weekEntries = [...newData[i].entries];
+        const entryIndex = weekEntries.findIndex(e => e.id === updatedEntry.id);
+        
+        if (entryIndex !== -1) {
+          weekEntries[entryIndex] = updatedEntry;
+          
+          const totalHours = weekEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
+          
+          newData[i] = {
+            ...newData[i],
+            entries: weekEntries,
+            totalHours
+          };
+          
+          break;
+        }
+      }
+      
+      return newData;
+    });
+    
+    toast({
+      title: "Kirjaus päivitetty",
+      description: "Aikakirjaus on päivitetty onnistuneesti.",
+      variant: "default",
+    });
+    
+    setCurrentEntry(null);
   };
 
   if (!weeklyData || weeklyData.length === 0) {
@@ -384,102 +399,135 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>{title}</CardTitle>
-          <div className="text-sm font-medium">
-            Yhteensä: <span className="text-reportronic-600">{totalMonthHours.toFixed(1)}h</span>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="divide-y">
-          {weeklyData.map((week, weekIndex) => (
-            <div key={`week-${week.weekNumber}`} className="py-2">
-              <div 
-                className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50"
-                onClick={() => toggleWeekExpanded(weekIndex)}
-              >
-                <div className="flex items-center">
-                  {week.isExpanded ? 
-                    <ChevronUp className="h-4 w-4 mr-2 text-reportronic-500" /> : 
-                    <ChevronDown className="h-4 w-4 mr-2 text-reportronic-500" />
-                  }
-                  <div>
-                    <span className="font-medium">Viikko {week.weekNumber}</span>
-                    <span className="text-sm text-gray-500 ml-2">
-                      {formatWeekRange(week.startDate, week.endDate)}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-reportronic-600 font-medium">
-                  {week.totalHours.toFixed(1)}h
-                </div>
-              </div>
-              
-              {week.isExpanded && (
-                <div className="px-4 pb-4 pt-2">
-                  <div className="bg-gray-50 rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="py-2 px-3 text-left font-medium text-gray-500">Päivämäärä</th>
-                          <th className="py-2 px-3 text-left font-medium text-gray-500">Asiakas</th>
-                          <th className="py-2 px-3 text-left font-medium text-gray-500">Projekti</th>
-                          <th className="py-2 px-3 text-left font-medium text-gray-500">Kuvaus</th>
-                          <th className="py-2 px-3 text-right font-medium text-gray-500">Tunnit</th>
-                          <th className="py-2 px-3 text-center font-medium text-gray-500">Toiminnot</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {week.entries.map(entry => (
-                          <tr key={entry.id} className="hover:bg-gray-100">
-                            <td className="py-2 px-3">{format(parseISO(entry.date), 'EEE d.M', { locale: fi })}</td>
-                            <td className="py-2 px-3">{getClientName(entry.project_id)}</td>
-                            <td className="py-2 px-3">{getProjectName(entry.project_id)}</td>
-                            <td className="py-2 px-3">{entry.description || "-"}</td>
-                            <td className="py-2 px-3 text-right">{Number(entry.hours).toFixed(1)}h</td>
-                            <td className="py-2 px-3 text-center">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Avaa valikko</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleEdit(entry.id)}>
-                                    Muokkaa
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleCopy(entry.id)}>
-                                    Kopioi
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => handleDelete(entry.id)}
-                                    className="text-red-600 focus:text-red-600"
-                                  >
-                                    Poista
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-100">
-                          <td colSpan={5} className="py-2 px-3 text-right font-medium">Yhteensä:</td>
-                          <td className="py-2 px-3 text-right font-medium text-reportronic-600">{week.totalHours.toFixed(1)}h</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>{title}</CardTitle>
+            <div className="text-sm font-medium">
+              Yhteensä: <span className="text-reportronic-600">{totalMonthHours.toFixed(1)}h</span>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y">
+            {weeklyData.map((week, weekIndex) => (
+              <div key={`week-${week.weekNumber}`} className="py-2">
+                <div 
+                  className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50"
+                  onClick={() => toggleWeekExpanded(weekIndex)}
+                >
+                  <div className="flex items-center">
+                    {week.isExpanded ? 
+                      <ChevronUp className="h-4 w-4 mr-2 text-reportronic-500" /> : 
+                      <ChevronDown className="h-4 w-4 mr-2 text-reportronic-500" />
+                    }
+                    <div>
+                      <span className="font-medium">Viikko {week.weekNumber}</span>
+                      <span className="text-sm text-gray-500 ml-2">
+                        {formatWeekRange(week.startDate, week.endDate)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-reportronic-600 font-medium">
+                    {week.totalHours.toFixed(1)}h
+                  </div>
+                </div>
+                
+                {week.isExpanded && (
+                  <div className="px-4 pb-4 pt-2">
+                    <div className="bg-gray-50 rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="py-2 px-3 text-left font-medium text-gray-500">Päivämäärä</th>
+                            <th className="py-2 px-3 text-left font-medium text-gray-500">Asiakas</th>
+                            <th className="py-2 px-3 text-left font-medium text-gray-500">Projekti</th>
+                            <th className="py-2 px-3 text-left font-medium text-gray-500">Kuvaus</th>
+                            <th className="py-2 px-3 text-right font-medium text-gray-500">Tunnit</th>
+                            <th className="py-2 px-3 text-center font-medium text-gray-500">Toiminnot</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {week.entries.map(entry => (
+                            <tr key={entry.id} className="hover:bg-gray-100">
+                              <td className="py-2 px-3">{format(parseISO(entry.date), 'EEE d.M', { locale: fi })}</td>
+                              <td className="py-2 px-3">{getClientName(entry.project_id)}</td>
+                              <td className="py-2 px-3">{getProjectName(entry.project_id)}</td>
+                              <td className="py-2 px-3">{entry.description || "-"}</td>
+                              <td className="py-2 px-3 text-right">{Number(entry.hours).toFixed(1)}h</td>
+                              <td className="py-2 px-3 text-center">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">Avaa valikko</span>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleEdit(entry.id)}>
+                                      Muokkaa
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleCopy(entry.id)}>
+                                      Kopioi
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDelete(entry.id)}
+                                      className="text-red-600 focus:text-red-600"
+                                    >
+                                      Poista
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-gray-100">
+                            <td colSpan={5} className="py-2 px-3 text-right font-medium">Yhteensä:</td>
+                            <td className="py-2 px-3 text-right font-medium text-reportronic-600">{week.totalHours.toFixed(1)}h</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
+        <SheetContent className="sm:max-w-md md:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Muokkaa aikakirjausta</SheetTitle>
+            <SheetDescription>
+              Muokkaa aikakirjauksen tietoja alla olevassa lomakkeessa.
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="py-6">
+            {currentEntry && (
+              <TimeEntry 
+                initialDate={currentEntry.date}
+                initialHours={String(currentEntry.hours)}
+                initialDescription={currentEntry.description || ''}
+                initialProjectId={currentEntry.project_id}
+                initialStatus={currentEntry.status as any}
+                entryId={currentEntry.id}
+                onEntrySaved={handleEntrySaved}
+              />
+            )}
+          </div>
+          
+          <SheetFooter>
+            <SheetClose asChild>
+              <Button variant="outline">Peruuta</Button>
+            </SheetClose>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 };
 
