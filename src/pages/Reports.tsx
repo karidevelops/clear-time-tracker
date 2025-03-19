@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
@@ -37,7 +36,6 @@ const Reports = () => {
     status: [] as TimeEntryStatus[]
   });
 
-  // Check if the current user is an admin
   const checkUserRole = async () => {
     try {
       const { data, error } = await supabase.rpc('is_admin');
@@ -53,7 +51,6 @@ const Reports = () => {
     }
   };
 
-  // Fetch clients for filtering
   const fetchClients = async () => {
     try {
       const { data, error } = await supabase
@@ -68,7 +65,6 @@ const Reports = () => {
     }
   };
 
-  // Fetch projects for filtering
   const fetchProjects = async () => {
     try {
       const { data, error } = await supabase
@@ -83,7 +79,6 @@ const Reports = () => {
     }
   };
 
-  // Fetch users for admin to filter by
   const fetchUsers = async () => {
     if (!isAdmin) return;
     
@@ -100,7 +95,6 @@ const Reports = () => {
     }
   };
 
-  // Fetch time entries
   const fetchTimeEntries = async () => {
     if (!user) return;
     
@@ -120,7 +114,6 @@ const Reports = () => {
         .lte('date', toDate)
         .order('date', { ascending: false });
       
-      // Only admins can see all users' entries
       if (!isAdmin) {
         query = query.eq('user_id', user.id);
       } else if (filters.userId) {
@@ -139,7 +132,6 @@ const Reports = () => {
       
       if (error) throw error;
       
-      // Filter by client if needed
       let filteredData = data || [];
       if (filters.clientId) {
         filteredData = filteredData.filter(entry => {
@@ -148,11 +140,15 @@ const Reports = () => {
         });
       }
       
-      // Map the entry to include user name
-      const mappedEntries = filteredData.map(entry => ({
-        ...entry,
-        user_full_name: entry.profiles?.full_name || 'Unknown User'
-      }));
+      const mappedEntries = filteredData.map(entry => {
+        const entryWithStatus: TimeEntry = {
+          ...entry,
+          user_full_name: entry.profiles && typeof entry.profiles === 'object' ? 
+            entry.profiles.full_name || 'Unknown User' : 'Unknown User',
+          status: (entry.status as TimeEntryStatus) || 'draft'
+        };
+        return entryWithStatus;
+      });
       
       setTimeEntries(mappedEntries);
       setFilteredEntries(mappedEntries);
@@ -165,36 +161,29 @@ const Reports = () => {
     }
   };
 
-  // Calculate total hours
   const totalHours = filteredEntries.reduce((sum, entry) => sum + Number(entry.hours), 0);
 
-  // Handle filter changes
   const handleFilterChange = (newFilters: any) => {
     setFilters(newFilters);
   };
 
-  // Get client name from project_id
   const getClientName = (projectId: string) => {
     const project = projects.find(p => p.id === projectId);
     return project ? project.clients?.name || 'Unknown Client' : 'Unknown Client';
   };
 
-  // Get project name from project_id
   const getProjectName = (projectId: string) => {
     const project = projects.find(p => p.id === projectId);
     return project ? project.name : 'Unknown Project';
   };
 
-  // Export to CSV
   const exportToCsv = () => {
     if (filteredEntries.length === 0) return;
     
     let csvContent = "data:text/csv;charset=utf-8,";
     
-    // Header row
     csvContent += "Date,Client,Project,Description,Hours,Status\n";
     
-    // Data rows
     filteredEntries.forEach(entry => {
       const row = [
         format(new Date(entry.date), 'yyyy-MM-dd'),
@@ -205,7 +194,6 @@ const Reports = () => {
         entry.status
       ];
       
-      // Escape commas and quotes
       const formattedRow = row.map(cell => {
         const cellStr = String(cell);
         return cellStr.includes(',') || cellStr.includes('"') 
@@ -216,7 +204,6 @@ const Reports = () => {
       csvContent += formattedRow.join(',') + "\n";
     });
     
-    // Create download link
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -227,7 +214,6 @@ const Reports = () => {
     document.body.removeChild(link);
   };
 
-  // Export to Excel
   const exportToExcel = () => {
     if (filteredEntries.length === 0) return;
     
@@ -246,10 +232,8 @@ const Reports = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Time Entries");
     
-    // Create buffer
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     
-    // Create Blob and download
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -257,31 +241,25 @@ const Reports = () => {
     link.download = `time-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
     link.click();
     
-    // Cleanup
     URL.revokeObjectURL(url);
   };
 
-  // Export to PDF
   const exportToPdf = () => {
     if (filteredEntries.length === 0) return;
     
     const doc = new jsPDF();
     
-    // Add title
     doc.setFontSize(18);
     doc.text("Time Report", 14, 22);
     
-    // Add date range
     doc.setFontSize(11);
     doc.text(
       `${format(filters.dateRange.from, 'yyyy-MM-dd')} to ${format(filters.dateRange.to, 'yyyy-MM-dd')}`,
       14, 32
     );
     
-    // Add total hours
     doc.text(`Total Hours: ${totalHours.toFixed(1)}`, 14, 42);
     
-    // Convert data to table format
     const tableData = filteredEntries.map(entry => [
       format(new Date(entry.date), 'yyyy-MM-dd'),
       getClientName(entry.project_id),
@@ -304,7 +282,6 @@ const Reports = () => {
     doc.save(`time-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
-  // Initialize data
   useEffect(() => {
     checkUserRole();
   }, []);
@@ -334,8 +311,12 @@ const Reports = () => {
           </CardHeader>
           <CardContent>
             <ReportFilters 
-              filters={filters}
-              onFilterChange={handleFilterChange}
+              dateRange={filters.dateRange}
+              setDateRange={(newDateRange) => setFilters({...filters, dateRange: newDateRange})}
+              filterPeriod="last-month"
+              setFilterPeriod={() => {}}
+              selectedProject={filters.projectId}
+              handleProjectSelect={(projectId) => setFilters({...filters, projectId})}
               clients={clients}
               projects={projects}
               users={users}
@@ -355,7 +336,7 @@ const Reports = () => {
         
         {isAdmin && (
           <ApprovalSection 
-            timeEntries={timeEntries}
+            pendingEntries={timeEntries.filter(entry => entry.status === 'pending')}
             onStatusUpdated={fetchTimeEntries}
           />
         )}

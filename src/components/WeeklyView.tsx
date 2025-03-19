@@ -3,7 +3,16 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, isToday } from 'date-fns';
+import { 
+  format, 
+  startOfWeek, 
+  endOfWeek, 
+  addWeeks, 
+  subWeeks, 
+  eachDayOfInterval, 
+  isToday, 
+  getWeek 
+} from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -30,6 +39,7 @@ const WeeklyView = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(startOfWeek(currentDate, { weekStartsOn: 1 }));
   const [weekEnd, setWeekEnd] = useState(endOfWeek(currentDate, { weekStartsOn: 1 }));
+  const [weekNumber, setWeekNumber] = useState(getWeek(currentDate, { weekStartsOn: 1 }));
   const [days, setDays] = useState<Date[]>([]);
   const [timeEntries, setTimeEntries] = useState(mockTimeEntries);
 
@@ -38,6 +48,7 @@ const WeeklyView = () => {
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
     setWeekStart(start);
     setWeekEnd(end);
+    setWeekNumber(getWeek(start, { weekStartsOn: 1 }));
     setDays(eachDayOfInterval({ start, end }));
   }, [currentDate]);
 
@@ -79,7 +90,12 @@ const WeeklyView = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-reportronic-800">{t('weekly_overview')}</h2>
+        <h2 className="text-2xl font-bold text-reportronic-800">
+          {t('weekly_overview')} 
+          <span className="ml-2 text-reportronic-600 text-lg">
+            {t('week')} {weekNumber}
+          </span>
+        </h2>
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline" 

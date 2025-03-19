@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, ArrowUp, ArrowRight } from 'lucide-react';
@@ -10,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns';
 import TodayEntries from '@/components/TodayEntries';
+import WeeklyTimeEntries from '@/components/WeeklyTimeEntries';
+import { TimeEntry as TimeEntryType } from '@/types/timeEntry';
 
 const DAILY_TARGET_HOURS = 7.5;
 const WEEKLY_TARGET_HOURS = 37.5;
@@ -33,15 +36,18 @@ const Index = () => {
     weeklyAverage: 0,
     previousWeeklyAverage: 0
   });
+  const [monthlyEntries, setMonthlyEntries] = useState<TimeEntryType[]>([]);
 
   useEffect(() => {
     if (user?.id) {
       fetchStats();
+      fetchMonthlyEntries();
     }
   }, [user]);
 
   const handleTimeEntrySaved = () => {
     fetchStats();
+    fetchMonthlyEntries();
   };
   
   const isGrowing = stats.weeklyAverage > stats.previousWeeklyAverage;
@@ -114,6 +120,31 @@ const Index = () => {
     });
     
     setIsLoading(false);
+  }
+
+  async function fetchMonthlyEntries() {
+    if (!user?.id) return;
+    
+    try {
+      const today = new Date();
+      const monthStart = startOfMonth(today);
+      const monthStartStr = format(monthStart, 'yyyy-MM-dd');
+      const monthEndStr = format(endOfMonth(today), 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', monthStartStr)
+        .lte('date', monthEndStr)
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      
+      setMonthlyEntries(data as TimeEntryType[]);
+    } catch (error) {
+      console.error('Error fetching monthly entries:', error);
+    }
   }
 
   return (
@@ -210,11 +241,19 @@ const Index = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+          <WeeklyTimeEntries 
+            timeEntries={monthlyEntries} 
+            title={t('monthly_entries_by_week')} 
+          />
+          
           <div>
             <TodayEntries 
               onEntrySaved={handleTimeEntrySaved} 
-              onEntryDeleted={() => fetchStats()}
+              onEntryDeleted={() => {
+                fetchStats();
+                fetchMonthlyEntries();
+              }}
             />
           </div>
         </div>
