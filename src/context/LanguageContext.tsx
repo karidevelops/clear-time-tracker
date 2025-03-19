@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface LanguageContextType {
@@ -129,6 +128,13 @@ interface Translations {
   cannot_delete_client_with_projects: string;
   error_adding_project: string;
   add_project_for: string;
+  today_entries: string;
+  edit_time_entry: string;
+  no_entries_today: string;
+  loading: string;
+  entry_deleted: string;
+  error_deleting_entry: string;
+  unknown_client: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -259,6 +265,13 @@ const translations: Record<string, Translations> = {
     cannot_delete_client_with_projects: "Cannot delete client with projects",
     error_adding_project: "Error adding project",
     add_project_for: 'Add project for',
+    today_entries: 'Today Entries',
+    edit_time_entry: 'Edit Time Entry',
+    no_entries_today: 'No entries for today',
+    loading: 'Loading',
+    entry_deleted: 'Entry deleted successfully',
+    error_deleting_entry: 'Error deleting entry',
+    unknown_client: 'Unknown Client',
   },
   fi: {
     dashboard: 'Tuntikirjaus',
@@ -381,6 +394,13 @@ const translations: Record<string, Translations> = {
     cannot_delete_client_with_projects: "Asiakasta, jolla on projekteja, ei voi poistaa",
     error_adding_project: "Virhe lisättäessä projektia",
     add_project_for: 'Lisää projekti asiakkaalle',
+    today_entries: 'Tämän päivän kirjaukset',
+    edit_time_entry: 'Muokkaa aikakirjausta',
+    no_entries_today: 'Ei kirjauksia tänään',
+    loading: 'Ladataan',
+    entry_deleted: 'Kirjaus poistettu onnistuneesti',
+    error_deleting_entry: 'Virhe poistettaessa kirjausta',
+    unknown_client: 'Tuntematon asiakas',
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -432,7 +452,7 @@ const translations: Record<string, Translations> = {
     delete: 'Ta bort',
     confirm_delete: 'Är du säker på att du vill ta bort detta?',
     yes_delete: 'Ja, ta bort',
-    project_name: 'Projektnamn',
+    project_name: 'Projektin namn',
     client: 'Kund',
     status: 'Status',
     active: 'Aktiv',
@@ -453,7 +473,7 @@ const translations: Record<string, Translations> = {
     non_billable_hours: 'Icke-fakturerbara timmar',
     billable_amount: 'Fakturerbart belopp',
     daily_breakdown: 'Daglig fördelning',
-    project_breakdown: 'Projektfördelning',
+    project_breakdown: 'Projektierittely',
     no_data_available: 'Ingen data tillgänglig för den valda perioden',
     clients_and_projects: 'Kunder & Projekt',
     calendar: 'Kalender',
@@ -503,6 +523,13 @@ const translations: Record<string, Translations> = {
     cannot_delete_client_with_projects: "Kan inte ta bort kund med projekt",
     error_adding_project: "Fel vid tilläggning av projekt",
     add_project_for: 'Lägg till projekt för',
+    today_entries: 'Dagens inmatningar',
+    edit_time_entry: 'Redigera tidsinmatning',
+    no_entries_today: 'Inga inmatningar för idag',
+    loading: 'Laddar',
+    entry_deleted: 'Inmatning borttagen',
+    error_deleting_entry: 'Fel vid borttagning av inmatning',
+    unknown_client: 'Okänd kund',
   },
 };
 
