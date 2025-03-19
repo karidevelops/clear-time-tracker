@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay, addWeeks, subWeeks, parseISO } from 'date-fns';
@@ -11,16 +12,27 @@ import { useAuth } from '@/context/AuthContext';
 import TimeEntry from './TimeEntry';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { TimeEntry as TimeEntryType, TimeEntryStatus } from '@/types/timeEntry';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { getAllProjects, getProjectById } from '@/data/ClientsData';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
 
 const WeeklyView = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekDays, setWeekDays] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showTimeEntry, setShowTimeEntry] = useState(false);
   const [timeEntries, setTimeEntries] = useState<TimeEntryType[]>([]);
   const [dailyHours, setDailyHours] = useState<{[key: string]: number}>({});
+  const [projectInfo, setProjectInfo] = useState<{[key: string]: {name: string, clientName: string}}>({});
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [currentEntry, setCurrentEntry] = useState<TimeEntryType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [expandedWeek, setExpandedWeek] = useState(true);
 
   // Set up the days for the current week
   useEffect(() => {
@@ -34,6 +46,57 @@ const WeeklyView = () => {
     
     setWeekDays(days);
   }, [currentDate]);
+
+  // Fetch project information
+  useEffect(() => {
+    fetchProjectInfo();
+  }, []);
+
+  const fetchProjectInfo = async () => {
+    try {
+      const { data, error } = await supabase.from('projects').select(`
+        id,
+        name,
+        client_id,
+        clients (
+          name
+        )
+      `);
+      if (!error && data && data.length > 0) {
+        const projectMap: {[key: string]: {name: string, clientName: string}} = {};
+        data.forEach(project => {
+          projectMap[project.id] = {
+            name: project.name,
+            clientName: project.clients?.name || 'Unknown Client'
+          };
+        });
+        setProjectInfo(projectMap);
+      } else {
+        const projects = getAllProjects();
+        const projectMap: {[key: string]: {name: string, clientName: string}} = {};
+        projects.forEach(project => {
+          const client = project.clientId ? {
+            name: 'Unknown Client'
+          } : null;
+          projectMap[project.id] = {
+            name: project.name,
+            clientName: client?.name || 'Unknown Client'
+          };
+        });
+        setProjectInfo(projectMap);
+      }
+    } catch (error) {
+      console.error('Error fetching project info:', error);
+    }
+  };
+
+  const getProjectName = (projectId: string) => {
+    return projectInfo[projectId]?.name || projectId;
+  };
+
+  const getClientName = (projectId: string) => {
+    return projectInfo[projectId]?.clientName || '';
+  };
 
   // Fetch time entries for the displayed week
   useEffect(() => {
@@ -94,47 +157,127 @@ const WeeklyView = () => {
   };
 
   const handleTimeEntrySaved = () => {
-    // Refresh time entries after saving
-    const fetchTimeEntries = async () => {
-      const start = format(weekDays[0] || startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-      const end = format(weekDays[6] || endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-      
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('*, profiles(*), projects(*)')
-        .eq('user_id', user?.id)
-        .gte('date', start)
-        .lte('date', end)
-        .order('date', { ascending: true });
-      
-      if (error) {
-        console.error('Error fetching time entries:', error);
-        return;
+    refreshTimeEntries();
+    setShowTimeEntry(false);
+  };
+
+  const refreshTimeEntries = async () => {
+    if (!user) return;
+    
+    const start = format(weekDays[0] || startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const end = format(weekDays[6] || endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    
+    const { data, error } = await supabase
+      .from('time_entries')
+      .select('*, profiles(*), projects(*)')
+      .eq('user_id', user.id)
+      .gte('date', start)
+      .lte('date', end)
+      .order('date', { ascending: true });
+    
+    if (error) {
+      console.error('Error fetching time entries:', error);
+      return;
+    }
+    
+    // Cast the data to ensure status is of type TimeEntryStatus
+    const typedData = (data || []).map(entry => ({
+      ...entry,
+      status: entry.status as TimeEntryStatus
+    })) as TimeEntryType[];
+    
+    setTimeEntries(typedData);
+    
+    // Calculate daily hours
+    const hours: {[key: string]: number} = {};
+    typedData.forEach((entry: TimeEntryType) => {
+      const dateKey = entry.date;
+      if (!hours[dateKey]) {
+        hours[dateKey] = 0;
       }
+      hours[dateKey] += Number(entry.hours);
+    });
+    
+    setDailyHours(hours);
+  };
+
+  const handleEdit = (entry: TimeEntryType) => {
+    setCurrentEntry(entry);
+    setIsEditSheetOpen(true);
+  };
+
+  const handleDelete = async (entryId: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.from('time_entries').delete().eq('id', entryId);
       
-      // Cast the data to ensure status is of type TimeEntryStatus
-      const typedData = (data || []).map(entry => ({
-        ...entry,
-        status: entry.status as TimeEntryStatus
-      })) as TimeEntryType[];
+      if (error) throw error;
       
-      setTimeEntries(typedData);
+      refreshTimeEntries();
       
-      // Calculate daily hours
-      const hours: {[key: string]: number} = {};
-      typedData.forEach((entry: TimeEntryType) => {
-        const dateKey = entry.date;
-        if (!hours[dateKey]) {
-          hours[dateKey] = 0;
-        }
-        hours[dateKey] += Number(entry.hours);
+      toast({
+        title: "Kirjaus poistettu",
+        description: "Aikakirjaus on poistettu onnistuneesti.",
+        variant: "default"
       });
-      
-      setDailyHours(hours);
+    } catch (error) {
+      console.error('Error deleting time entry:', error);
+      toast({
+        title: "Virhe poistettaessa",
+        description: "Aikakirjausta ei voitu poistaa. Yritä uudelleen.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCopy = async (entry: TimeEntryType) => {
+    if (!user) return;
+    
+    const newEntry = {
+      date: entry.date,
+      description: entry.description,
+      hours: entry.hours,
+      project_id: entry.project_id,
+      user_id: user.id,
+      status: 'draft' as TimeEntryStatus
     };
     
-    fetchTimeEntries();
-    setShowTimeEntry(false);
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.from('time_entries').insert(newEntry).select();
+      
+      if (error) throw error;
+      
+      refreshTimeEntries();
+      
+      toast({
+        title: "Kopio luotu",
+        description: "Aikakirjauksesta on luotu kopio onnistuneesti.",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Error copying time entry:', error);
+      toast({
+        title: "Virhe kopioitaessa",
+        description: "Kopiointia ei voitu suorittaa. Yritä uudelleen.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEntrySaved = (updatedEntry: TimeEntryType) => {
+    setIsEditSheetOpen(false);
+    refreshTimeEntries();
+    toast({
+      title: "Kirjaus päivitetty",
+      description: "Aikakirjaus on päivitetty onnistuneesti.",
+      variant: "default"
+    });
+    setCurrentEntry(null);
   };
 
   // Group time entries by date
@@ -145,6 +288,9 @@ const WeeklyView = () => {
     }
     entriesByDate[entry.date].push(entry);
   });
+
+  // Get total week hours
+  const totalWeekHours = Object.values(dailyHours).reduce((sum, hours) => sum + hours, 0);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -201,17 +347,16 @@ const WeeklyView = () => {
                       </Badge>
                     )}
                   </div>
-                  
                 </div>
                 <div className="mt-1 space-y-1">
                   {entriesByDate[format(day, 'yyyy-MM-dd')]?.map((entry, idx) => (
                     <div 
                       key={idx} 
                       className="text-xs p-1 bg-gray-100 rounded cursor-pointer hover:bg-gray-200"
-                      onClick={() => handleDateClick(day)}
+                      onClick={() => handleEdit(entry)}
                     >
                       <div className="font-medium truncate">
-                        {entry.hours} h
+                        {entry.hours} h - {getProjectName(entry.project_id)}
                       </div>
                       <div className="truncate text-gray-600">
                         {entry.description?.substring(0, 20)}{entry.description && entry.description.length > 20 ? '...' : ''}
@@ -225,44 +370,88 @@ const WeeklyView = () => {
           
           {/* Table showing all time entries for the week */}
           <div className="mt-8">
-            <h3 className="font-medium text-lg mb-3">{t('weekly_entries')}</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('date')}</TableHead>
-                  <TableHead>{t('hours')}</TableHead>
-                  <TableHead>{t('project')}</TableHead>
-                  <TableHead>{t('description')}</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {timeEntries.length > 0 ? (
-                  timeEntries.map((entry) => (
-                    <TableRow key={entry.id} className="cursor-pointer hover:bg-gray-50" onClick={() => {
-                      setSelectedDate(parseISO(entry.date));
-                      setShowTimeEntry(true);
-                    }}>
-                      <TableCell>{format(parseISO(entry.date), 'dd.MM.yyyy')}</TableCell>
-                      <TableCell>{entry.hours.toFixed(2)} h</TableCell>
-                      <TableCell>{entry.project_id}</TableCell>
-                      <TableCell className="max-w-[300px] truncate">{entry.description}</TableCell>
-                      <TableCell>
-                        {entry.status === 'draft' && <Badge variant="outline" className="text-gray-600 border-gray-300">{t('draft')}</Badge>}
-                        {entry.status === 'pending' && <Badge variant="outline" className="text-orange-600 border-orange-300">{t('pending_approval')}</Badge>}
-                        {entry.status === 'approved' && <Badge variant="outline" className="text-green-600 border-green-300">{t('approved')}</Badge>}
-                      </TableCell>
+            <div 
+              className="flex justify-between items-center pb-3 cursor-pointer" 
+              onClick={() => setExpandedWeek(!expandedWeek)}
+            >
+              <h3 className="font-medium text-lg">
+                {expandedWeek ? 
+                  <ChevronUp className="h-4 w-4 inline mr-2 text-reportronic-500" /> : 
+                  <ChevronDown className="h-4 w-4 inline mr-2 text-reportronic-500" />}
+                {t('weekly_entries')}
+              </h3>
+              <div className="text-reportronic-600 font-medium">
+                {totalWeekHours.toFixed(1)}h
+              </div>
+            </div>
+            
+            {expandedWeek && (
+              <div className="bg-gray-50 rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('date')}</TableHead>
+                      <TableHead>{t('client')}</TableHead>
+                      <TableHead>{t('project')}</TableHead>
+                      <TableHead>{t('description')}</TableHead>
+                      <TableHead className="text-right">{t('hours')}</TableHead>
+                      <TableHead>{t('status')}</TableHead>
+                      <TableHead className="text-center">{t('actions')}</TableHead>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4 text-gray-500">
-                      {t('no_time_entries')}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {timeEntries.length > 0 ? (
+                      timeEntries.map((entry) => (
+                        <TableRow key={entry.id} className="hover:bg-gray-100">
+                          <TableCell>{format(parseISO(entry.date), 'EEE d.M', { locale: fi })}</TableCell>
+                          <TableCell>{getClientName(entry.project_id)}</TableCell>
+                          <TableCell>{getProjectName(entry.project_id)}</TableCell>
+                          <TableCell className="max-w-[300px] truncate">{entry.description || "-"}</TableCell>
+                          <TableCell className="text-right">{Number(entry.hours).toFixed(1)}h</TableCell>
+                          <TableCell>
+                            {entry.status === 'draft' && <Badge variant="outline" className="text-gray-600 border-gray-300">{t('draft')}</Badge>}
+                            {entry.status === 'pending' && <Badge variant="outline" className="text-orange-600 border-orange-300">{t('pending_approval')}</Badge>}
+                            {entry.status === 'approved' && <Badge variant="outline" className="text-green-600 border-green-300">{t('approved')}</Badge>}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Avaa valikko</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEdit(entry)}>
+                                  Muokkaa
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleCopy(entry)}>
+                                  Kopioi
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDelete(entry.id)} className="text-red-600 focus:text-red-600">
+                                  Poista
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                          {t('no_time_entries')}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow className="bg-gray-100">
+                      <TableCell colSpan={4} className="text-right font-medium">{t('total')}:</TableCell>
+                      <TableCell className="text-right font-medium text-reportronic-600">{totalWeekHours.toFixed(1)}h</TableCell>
+                      <TableCell colSpan={2}></TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -285,6 +474,37 @@ const WeeklyView = () => {
           </div>
         </div>
       )}
+      
+      <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
+        <SheetContent className="sm:max-w-md md:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Muokkaa aikakirjausta</SheetTitle>
+            <SheetDescription>
+              Muokkaa aikakirjauksen tietoja alla olevassa lomakkeessa.
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="py-6">
+            {currentEntry && (
+              <TimeEntry 
+                initialDate={currentEntry.date}
+                initialHours={String(currentEntry.hours)}
+                initialDescription={currentEntry.description || ''}
+                initialProjectId={currentEntry.project_id}
+                initialStatus={currentEntry.status}
+                entryId={currentEntry.id}
+                onEntrySaved={handleEntrySaved}
+              />
+            )}
+          </div>
+          
+          <SheetFooter>
+            <SheetClose asChild>
+              <Button variant="outline">Peruuta</Button>
+            </SheetClose>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
