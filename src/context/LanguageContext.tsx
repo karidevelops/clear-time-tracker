@@ -650,7 +650,7 @@ const translations: Record<string, TranslationsType> = {
     non_billable_hours: 'Icke-fakturerbara timmar',
     billable_amount: 'Fakturerbart belopp',
     daily_breakdown: 'Daglig fördelning',
-    project_breakdown: 'Projektierittely',
+    project_breakdown: 'Projektfördelning',
     no_data_available: 'Ingen data tillgänglig för den valda perioden',
     clients_and_projects: 'Kunder & Projekt',
     calendar: 'Kalender',
