@@ -87,6 +87,17 @@ const Header = () => {
       ? `${baseClasses} text-reportronic-500 font-medium border-b-2 border-reportronic-500`
       : `${baseClasses} text-gray-700 hover:text-reportronic-500`;
   };
+
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      await signOut();
+      // Navigation to /auth will happen through the ProtectedRoute in App.tsx 
+      // when the auth state changes
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    }
+  };
   
   return (
     <header className="reportronic-header sticky top-0 z-10 border-b border-gray-200 bg-white">
@@ -143,7 +154,7 @@ const Header = () => {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={signOut}
+                onClick={handleSignOut}
                 className="text-gray-500 hover:text-reportronic-600"
                 title={t('logout') || 'Kirjaudu ulos'}
               >

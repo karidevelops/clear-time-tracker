@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
@@ -13,28 +13,38 @@ import Reports from "./pages/Reports";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Auth from "./pages/Auth";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient();
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   
-  // Show nothing while checking authentication
+  useEffect(() => {
+    if (!isLoading && !user && location.pathname !== '/auth') {
+      navigate('/auth', { replace: true });
+    }
+  }, [user, isLoading, navigate, location.pathname]);
+  
+  // Show loading indicator while checking authentication
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
-  // Redirect to login if not authenticated
+  // If not loading and no user, the useEffect above will redirect to /auth
+  // This is just a fallback
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return null;
   }
   
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   
   return (
     <Routes>

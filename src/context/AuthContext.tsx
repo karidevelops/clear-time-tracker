@@ -29,27 +29,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth redirect URL to current window location (instead of localhost)
-    const setAuthRedirectUrl = async () => {
-      try {
-        const currentUrl = window.location.origin;
-        console.log("Setting redirect URL in AuthContext:", currentUrl);
-        
-        // Set the site URL for redirects
-        const { data: settingsData, error: settingsError } = await supabase.auth.updateUser({
-          data: { redirect_url: currentUrl }
-        });
-        
-        if (settingsError) {
-          console.error('Error setting redirect URL:', settingsError);
-        }
-      } catch (err) {
-        console.error('Exception in setAuthRedirectUrl:', err);
-      }
-    };
-    
-    setAuthRedirectUrl();
-    
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -82,6 +61,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (event === 'SIGNED_IN') {
           toast.success('Signed in successfully');
         }
+        
+        if (event === 'SIGNED_OUT') {
+          toast.success('Signed out successfully');
+        }
       }
     );
 
@@ -93,10 +76,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
-      toast.success('Signed out successfully');
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Error signing out:', error);
+        toast.error('Error signing out');
+        return;
+      }
+      
+      // We don't need to manually update state here as the onAuthStateChange listener will handle it
+      // The toast is also shown by the listener when it detects the SIGNED_OUT event
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Exception in signOut:', error);
       toast.error('Error signing out');
     }
   };
