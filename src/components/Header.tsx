@@ -1,5 +1,5 @@
 
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { BarChart, Calendar, FileText, Settings as SettingsIcon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/LanguageContext';
@@ -29,6 +29,7 @@ import TodayEntries from './TodayEntries';
 const Header = () => {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const [date, setDate] = useState<Date>(new Date());
   const [showTimeEntry, setShowTimeEntry] = useState(false);
   const { signOut } = useAuth();
@@ -69,6 +70,24 @@ const Header = () => {
     // They can close it manually when done
   };
   
+  // Helper function to check if a path is active
+  const isActive = (path: string) => {
+    if (path === '/' && location.pathname === '/') {
+      return true;
+    }
+    // For other paths, check if the current path starts with the given path
+    // This handles nested routes like /reports/123
+    return path !== '/' && location.pathname.startsWith(path);
+  };
+  
+  // Get the CSS classes for a nav link
+  const getLinkClasses = (path: string) => {
+    const baseClasses = "transition-colors px-3 py-2";
+    return isActive(path)
+      ? `${baseClasses} text-reportronic-500 font-medium border-b-2 border-reportronic-500`
+      : `${baseClasses} text-gray-700 hover:text-reportronic-500`;
+  };
+  
   return (
     <header className="reportronic-header sticky top-0 z-10 border-b border-gray-200 bg-white">
       <div className="reportronic-container">
@@ -82,15 +101,15 @@ const Header = () => {
           </Link>
           
           <nav className="hidden md:flex items-center space-x-2">
-            <Link to="/" className="text-gray-700 hover:text-reportronic-500 transition-colors px-3 py-2">
+            <Link to="/" className={getLinkClasses('/')}>
               {t('dashboard')}
             </Link>
             
-            <Link to="/reports" className="text-gray-700 hover:text-reportronic-500 transition-colors px-3 py-2">
+            <Link to="/reports" className={getLinkClasses('/reports')}>
               {t('reports')}
             </Link>
             
-            <Link to="/settings" className="text-gray-700 hover:text-reportronic-500 transition-colors px-3 py-2">
+            <Link to="/settings" className={getLinkClasses('/settings')}>
               {t('settings')}
             </Link>
           </nav>
