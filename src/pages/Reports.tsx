@@ -41,9 +41,20 @@ const Reports = () => {
     queryFn: async () => {
       if (!user) return [];
       
+      // Fixed query to avoid the "table name specified more than once" error
       const { data, error } = await supabase
         .from('time_entries')
-        .select('*, projects(name, client_id), projects!inner(clients(name))')
+        .select(`
+          *,
+          projects (
+            id,
+            name,
+            client_id,
+            clients (
+              name
+            )
+          )
+        `)
         .eq('user_id', user.id)
         .gte('date', format(fromDate, 'yyyy-MM-dd'))
         .lte('date', format(toDate, 'yyyy-MM-dd'))
@@ -159,7 +170,7 @@ const Reports = () => {
                   <TableRow key={entry.id}>
                     <TableCell>{format(new Date(entry.date), "PPP", { locale: getLocale() })}</TableCell>
                     <TableCell>{entry.hours}</TableCell>
-                    <TableCell>{entry.projects?.name || t('unknown_client')}</TableCell>
+                    <TableCell>{entry.projects?.name || t('unknown_project')}</TableCell>
                     <TableCell>{entry.projects?.clients?.name || t('unknown_client')}</TableCell>
                     <TableCell className="max-w-xs truncate">{entry.description || '-'}</TableCell>
                     <TableCell>
