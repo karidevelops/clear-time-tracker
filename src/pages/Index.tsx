@@ -148,10 +148,6 @@ const Index = () => {
   return (
     <Layout>
       <div className="py-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-reportronic-800">{t('dashboard')}</h1>
-        </div>
-
         <div>
           <Card className="mb-6 time-tracker-header">
             <CardHeader className="bg-reportronic-50 border-b">
