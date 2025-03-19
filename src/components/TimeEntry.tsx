@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -208,7 +207,6 @@ const TimeEntry = ({
         setStatus('pending');
         
         if (onEntrySaved) {
-          // Fix: Create a proper object to pass to onEntrySaved instead of spreading status
           const updatedEntry = {
             id: entryId,
             date,
@@ -349,7 +347,7 @@ const TimeEntry = ({
       </div>
 
       {status === 'draft' && canEdit && (
-        <div className="pt-4 border-t border-gray-200 mt-4">
+        <div className="mt-6 mb-6 pt-4 border-t border-gray-200">
           <Button 
             type="button"
             variant="outline"
