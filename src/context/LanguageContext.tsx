@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
@@ -631,5 +632,30 @@ export const translations: TranslationsType = {
     en: "Error fetching time entries",
     fi: "Virhe hakiessa aikamerkintöjä",
     sv: "Fel vid hämtning av tidsregistreringar"
+  },
+  inspired_by: {
+    en: "Inspired by Lovable",
+    fi: "Lovable inspiroima",
+    sv: "Inspirerad av Lovable"
+  },
+  all_projects: {
+    en: "All Projects",
+    fi: "Kaikki projektit",
+    sv: "Alla projekt"
+  },
+  error_fetching_clients: {
+    en: "Error fetching clients",
+    fi: "Virhe haettaessa asiakkaita",
+    sv: "Fel vid hämtning av klienter"
+  },
+  error_fetching_projects: {
+    en: "Error fetching projects",
+    fi: "Virhe haettaessa projekteja",
+    sv: "Fel vid hämtning av projekt"
+  },
+  error_fetching_project_details: {
+    en: "Error fetching project details",
+    fi: "Virhe haettaessa projektin tietoja",
+    sv: "Fel vid hämtning av projektinformation"
   },
 };
