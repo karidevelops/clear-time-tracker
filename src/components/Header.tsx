@@ -84,6 +84,10 @@ const Header = () => {
               {t('dashboard')}
             </Link>
             
+            <Link to="/reports" className="text-gray-700 hover:text-reportronic-500 transition-colors px-3 py-2">
+              {t('reports')}
+            </Link>
+            
             <Link to="/settings" className="text-gray-700 hover:text-reportronic-500 transition-colors px-3 py-2">
               {t('settings')}
             </Link>

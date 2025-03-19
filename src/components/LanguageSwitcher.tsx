@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useLanguage, AvailableLanguages } from '@/context/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { FI, SE, GB } from 'country-flag-icons/react/3x2';
@@ -9,7 +9,7 @@ const LanguageSwitcher = () => {
   const { language, setLanguage } = useLanguage();
   const [open, setOpen] = useState(false);
 
-  const handleLanguageChange = (lang: AvailableLanguages) => {
+  const handleLanguageChange = (lang: string) => {
     setLanguage(lang);
     setOpen(false);
   };
@@ -35,15 +35,15 @@ const LanguageSwitcher = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleLanguageChange('fi' as AvailableLanguages)}>
+        <DropdownMenuItem onClick={() => handleLanguageChange('fi')}>
           <FI className="h-4 w-4 mr-2" />
           Suomi
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleLanguageChange('sv' as AvailableLanguages)}>
+        <DropdownMenuItem onClick={() => handleLanguageChange('sv')}>
           <SE className="h-4 w-4 mr-2" />
           Svenska
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleLanguageChange('en' as AvailableLanguages)}>
+        <DropdownMenuItem onClick={() => handleLanguageChange('en')}>
           <GB className="h-4 w-4 mr-2" />
           English
         </DropdownMenuItem>

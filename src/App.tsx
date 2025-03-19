@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
 import WeeklyView from "./components/WeeklyView";
+import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -14,13 +16,16 @@ import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
+// Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   
+  // Show nothing while checking authentication
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
+  // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
@@ -33,8 +38,10 @@ const AppRoutes = () => {
   
   return (
     <Routes>
+      {/* Public route */}
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
       
+      {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route 
         path="/weekly" 
@@ -43,6 +50,18 @@ const AppRoutes = () => {
             <Layout>
               <div className="py-6">
                 <WeeklyView />
+              </div>
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/reports" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <div className="py-6">
+                <Reports />
               </div>
             </Layout>
           </ProtectedRoute>
@@ -60,6 +79,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } 
       />
+      {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

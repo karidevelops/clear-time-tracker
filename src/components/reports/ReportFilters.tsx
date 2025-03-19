@@ -22,15 +22,11 @@ interface ReportFiltersProps {
   filterPeriod: FilterPeriod;
   setFilterPeriod: React.Dispatch<React.SetStateAction<FilterPeriod>>;
   selectedProject: string;
-  handleProjectSelect: (projectId: string, clientId?: string | null) => void;
+  handleProjectSelect: (projectId: string, clientId: string | null) => void;
   isApproval?: boolean;
   selectedUser?: string;
   setSelectedUser?: React.Dispatch<React.SetStateAction<string>>;
   users?: Array<{id: string, full_name: string}>;
-  // Adding the missing optional props
-  clients?: any[];
-  projects?: any[];
-  isAdmin?: boolean;
 }
 
 const ReportFilters: React.FC<ReportFiltersProps> = ({
@@ -43,11 +39,7 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
   isApproval = false,
   selectedUser,
   setSelectedUser,
-  users = [],
-  // Add the new props with defaults
-  clients = [],
-  projects = [],
-  isAdmin = false
+  users = []
 }) => {
   const { t } = useLanguage();
 

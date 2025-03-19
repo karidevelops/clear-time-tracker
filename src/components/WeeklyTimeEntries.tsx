@@ -1,19 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronDown, ChevronUp, PenLine } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { format, parseISO, getWeek, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { TimeEntry } from '@/types/timeEntry';
-import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 interface WeeklyTimeEntriesProps {
   timeEntries: TimeEntry[];
   title?: string;
-  onEditEntry?: (entry: TimeEntry) => void;
 }
 
 interface WeekData {
@@ -25,43 +22,13 @@ interface WeekData {
   isExpanded: boolean;
 }
 
-interface Project {
-  id: string;
-  name: string;
-  client_id?: string;
-}
-
 const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({ 
   timeEntries, 
-  title = 'Viikottaiset kirjaukset',
-  onEditEntry
+  title = 'Viikottaiset tunnit' // Default title in Finnish
 }) => {
   const { t } = useLanguage();
   const [weeklyData, setWeeklyData] = useState<WeekData[]>([]);
   const [totalMonthHours, setTotalMonthHours] = useState(0);
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  useEffect(() => {
-    // Fetch projects
-    const fetchProjects = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('projects')
-          .select('id, name, client_id');
-        
-        if (error) {
-          console.error('Error fetching projects:', error);
-          return;
-        }
-        
-        setProjects(data || []);
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-      }
-    };
-    
-    fetchProjects();
-  }, []);
 
   useEffect(() => {
     if (!timeEntries || timeEntries.length === 0) return;
@@ -131,18 +98,6 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
     return `${format(start, 'd.M')} - ${format(end, 'd.M.yyyy')}`;
   };
 
-  const handleEditEntry = (entry: TimeEntry, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent expanding/collapsing when clicking the edit button
-    if (onEditEntry) {
-      onEditEntry(entry);
-    }
-  };
-
-  const getProjectName = (projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
-    return project ? project.name : t('unknown_project');
-  };
-
   if (!weeklyData || weeklyData.length === 0) {
     return (
       <Card>
@@ -201,30 +156,19 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                           <th className="py-2 px-3 text-left font-medium text-gray-500">{t('project')}</th>
                           <th className="py-2 px-3 text-left font-medium text-gray-500">{t('description')}</th>
                           <th className="py-2 px-3 text-right font-medium text-gray-500">{t('hours')}</th>
-                          <th className="py-2 px-3 text-right font-medium text-gray-500">{t('actions')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {week.entries.map(entry => (
                           <tr key={entry.id} className="hover:bg-gray-100">
                             <td className="py-2 px-3">{format(parseISO(entry.date), 'EEE d.M', { locale: fi })}</td>
-                            <td className="py-2 px-3">{getProjectName(entry.project_id)}</td>
+                            <td className="py-2 px-3">{entry.project_id}</td>
                             <td className="py-2 px-3">{entry.description || "-"}</td>
                             <td className="py-2 px-3 text-right">{Number(entry.hours).toFixed(1)}h</td>
-                            <td className="py-2 px-3 text-right">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                className="h-8 w-8 p-0" 
-                                onClick={(e) => handleEditEntry(entry, e)}
-                              >
-                                <PenLine className="h-4 w-4 text-gray-500" />
-                              </Button>
-                            </td>
                           </tr>
                         ))}
                         <tr className="bg-gray-100">
-                          <td colSpan={4} className="py-2 px-3 text-right font-medium">{t('total')}:</td>
+                          <td colSpan={3} className="py-2 px-3 text-right font-medium">{t('total')}:</td>
                           <td className="py-2 px-3 text-right font-medium text-reportronic-600">{week.totalHours.toFixed(1)}h</td>
                         </tr>
                       </tbody>
