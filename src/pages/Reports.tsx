@@ -19,13 +19,11 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import ProjectSelect from "@/components/ProjectSelect";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Reports = () => {
   const { t, language } = useLanguage();
@@ -36,9 +34,9 @@ const Reports = () => {
   const [fromDate, setFromDate] = useState<Date>(startOfMonth(new Date()));
   const [toDate, setToDate] = useState<Date>(endOfMonth(new Date()));
   
-  // Add selected client state
-  const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  // Project selection state
   const [selectedProject, setSelectedProject] = useState<string>("all");
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   
   // Get date-fns locale based on current language
   const getLocale = () => {
@@ -52,34 +50,9 @@ const Reports = () => {
     }
   };
   
-  // Fetch clients
-  const { data: clients = [], isLoading: isLoadingClients } = useQuery({
-    queryKey: ['reportClients'],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, name');
-      
-      if (error) {
-        console.error('Error fetching clients:', error);
-        toast({
-          title: t('error'),
-          description: t('error_fetching_clients'),
-          variant: "destructive",
-        });
-        return [];
-      }
-      
-      return data;
-    },
-    enabled: !!user,
-  });
-  
   // Fetch time entries for the selected date range and client/project
   const { data: timeEntries, isLoading, refetch } = useQuery({
-    queryKey: ['reportTimeEntries', fromDate, toDate, user?.id, selectedClient, selectedProject],
+    queryKey: ['reportTimeEntries', fromDate, toDate, user?.id, selectedClientId, selectedProject],
     queryFn: async () => {
       if (!user) return [];
       
@@ -102,8 +75,8 @@ const Reports = () => {
         .order('date', { ascending: false });
       
       // Apply client filter if selected
-      if (selectedClient && selectedClient !== 'all') {
-        query = query.eq('projects.client_id', selectedClient);
+      if (selectedClientId && selectedClientId !== 'all') {
+        query = query.eq('projects.client_id', selectedClientId);
       }
       
       // Apply project filter if selected
@@ -126,17 +99,11 @@ const Reports = () => {
   // Calculate total hours for the report
   const totalHours = timeEntries?.reduce((sum, entry) => sum + Number(entry.hours), 0) || 0;
   
-  // Handle client selection change
-  const handleClientChange = (value: string) => {
-    setSelectedClient(value === 'all' ? null : value);
-    setSelectedProject('all'); // Reset project selection when client changes
-  };
-  
-  // Handle project selection change from ProjectSelect component
+  // Handle project selection change
   const handleProjectChange = (projectId: string, clientId?: string | null) => {
     setSelectedProject(projectId);
     if (clientId) {
-      setSelectedClient(clientId);
+      setSelectedClientId(clientId);
     }
   };
   
@@ -260,41 +227,17 @@ const Reports = () => {
                 </Popover>
               </div>
               
+              <div className="space-y-2 w-full max-w-sm">
+                <ProjectSelect 
+                  value={selectedProject}
+                  onChange={handleProjectChange}
+                />
+              </div>
+              
               <Button onClick={handleSearch} className="mt-4 sm:mt-0">
                 <Search className="mr-2 h-4 w-4" />
                 {t('generate_report')}
               </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="client-select">{t('client')}</Label>
-                <Select 
-                  value={selectedClient || 'all'} 
-                  onValueChange={handleClientChange}
-                >
-                  <SelectTrigger id="client-select">
-                    <SelectValue placeholder={t('select_client')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('all_clients')}</SelectItem>
-                    {clients.map((client: any) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {selectedClient && selectedClient !== 'all' && (
-                <div className="space-y-2">
-                  <ProjectSelect 
-                    value={selectedProject}
-                    onChange={handleProjectChange}
-                  />
-                </div>
-              )}
             </div>
           </div>
         </CardContent>
