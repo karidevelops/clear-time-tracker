@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Settings as SettingsIcon, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -106,23 +105,13 @@ const Header = () => {
         const usersWithEmail: User[] = [];
         
         for (const profile of profiles) {
-          // Get user email from auth.users via admin function
-          const { data: userData, error: userError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', profile.id)
-            .single();
-          
-          if (userError) {
-            console.error('Error fetching user profile:', userError);
-            continue;
-          }
-          
           // Create user object with available data
+          // Since we don't have direct access to emails from profiles table,
+          // we'll use the ID as a placeholder or other identification
           usersWithEmail.push({
             id: profile.id,
-            email: userData.email || '',
-            full_name: profile.full_name || ''
+            email: profile.id, // Using ID as placeholder since email isn't directly available
+            full_name: profile.full_name || profile.id.substring(0, 8) // Use first 8 chars of ID if no name
           });
         }
         
@@ -264,9 +253,9 @@ const Header = () => {
                         className={selectedUser?.id === u.id ? "bg-gray-100" : ""}
                       >
                         <Avatar className="h-6 w-6 mr-2">
-                          <AvatarFallback>{getUserInitials(u.full_name || u.email)}</AvatarFallback>
+                          <AvatarFallback>{getUserInitials(u.full_name || u.id)}</AvatarFallback>
                         </Avatar>
-                        <span>{u.full_name || u.email.split('@')[0]}</span>
+                        <span>{u.full_name || u.id.substring(0, 8)}</span>
                       </DropdownMenuItem>
                     ))}
                   </div>
