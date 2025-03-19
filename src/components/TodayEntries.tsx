@@ -99,7 +99,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
         project: entry.projects?.name || 'Unknown Project',
         client: entry.projects?.clients?.name || 'Unknown Client',
         project_id: entry.project_id,
-        status: entry.status,
+        status: entry.status as 'draft' | 'pending' | 'approved',
         approved_by: entry.approved_by,
         approved_at: entry.approved_at
       }));

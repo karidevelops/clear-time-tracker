@@ -16,10 +16,11 @@ import {
 
 interface ProjectSelectProps {
   value: string;
-  onChange: (value: string, clientId: string | null) => void;
+  onChange: (value: string, clientId?: string | null) => void;
+  disabled?: boolean; // Added disabled prop
 }
 
-const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
+const ProjectSelect = ({ value, onChange, disabled = false }: ProjectSelectProps) => {
   const { t } = useLanguage();
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   
@@ -116,7 +117,7 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
         <Select 
           value={selectedClient || ''} 
           onValueChange={handleClientChange}
-          disabled={isLoadingClients}
+          disabled={isLoadingClients || disabled}
         >
           <SelectTrigger id="client" className="w-full">
             <SelectValue placeholder={t('select_client')} />
@@ -137,7 +138,7 @@ const ProjectSelect = ({ value, onChange }: ProjectSelectProps) => {
           <Select 
             value={value} 
             onValueChange={handleProjectChange}
-            disabled={isLoadingProjects}
+            disabled={isLoadingProjects || disabled}
           >
             <SelectTrigger id="project" className="w-full">
               <SelectValue placeholder={t('select_project')} />

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +47,6 @@ const TimeEntry = ({
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!entryId;
 
-  // Update state when props change
   useEffect(() => {
     if (initialDate) setDate(initialDate);
     if (initialHours) setHours(initialHours);
@@ -71,7 +69,6 @@ const TimeEntry = ({
       return;
     }
     
-    // Create entry data object
     const entryData = {
       date,
       hours: parseFloat(hours),
@@ -89,7 +86,6 @@ const TimeEntry = ({
       let data, error;
 
       if (isEditing && entryId) {
-        // Update existing entry
         const response = await supabase
           .from('time_entries')
           .update(entryData)
@@ -99,7 +95,6 @@ const TimeEntry = ({
         data = response.data;
         error = response.error;
       } else {
-        // Insert new entry
         const response = await supabase
           .from('time_entries')
           .insert(entryData)
@@ -118,12 +113,10 @@ const TimeEntry = ({
       console.log('Time entry saved successfully:', data);
       toast.success(isEditing ? t('time_entry_updated') : t('time_entry_saved'));
       
-      // Call the callback if provided
       if (onEntrySaved && data) {
         onEntrySaved(data[0]);
       }
       
-      // Reset form if not editing
       if (!isEditing) {
         setHours('');
         setDescription('');
@@ -141,7 +134,6 @@ const TimeEntry = ({
     e.preventDefault();
     setStatus('pending');
     
-    // Call submit handler with updated status
     const event = { preventDefault: () => {} } as React.FormEvent;
     await handleSubmit(event);
   };
@@ -156,12 +148,10 @@ const TimeEntry = ({
     
     setStatus('approved');
     
-    // Call submit handler with updated status
     const event = { preventDefault: () => {} } as React.FormEvent;
     await handleSubmit(event);
   };
 
-  // Function to render status badge
   const renderStatusBadge = (status: string) => {
     switch(status) {
       case 'draft':
