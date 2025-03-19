@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -130,13 +129,10 @@ export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
       const mappedEntries = filteredData.map(entry => {
         let profileFullName = 'Unknown User';
         
-        const profiles = entry.profiles;
-        if (profiles !== null && 
-            profiles !== undefined && 
-            typeof profiles === 'object') {
-          profileFullName = (profiles.full_name !== null && profiles.full_name !== undefined) 
-            ? profiles.full_name 
-            : 'Unknown User';
+        if (entry.profiles !== null && entry.profiles !== undefined) {
+          if (entry.profiles.full_name !== null && entry.profiles.full_name !== undefined) {
+            profileFullName = entry.profiles.full_name;
+          }
         }
         
         const entryWithStatus: TimeEntry = {
