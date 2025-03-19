@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
@@ -14,6 +15,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart, FileType, FileSpreadsheet, Download, Calendar } from 'lucide-react';
 
 type DateRange = {
   from: Date;
@@ -43,6 +46,7 @@ const Reports = () => {
   const [approvingEntries, setApprovingEntries] = useState(false);
   const [loadingPendingEntries, setLoadingPendingEntries] = useState(false);
   const [groupedByUser, setGroupedByUser] = useState<{ [key: string]: TimeEntry[] }>({});
+  const [activeTab, setActiveTab] = useState("entries");
 
   const checkUserRole = async () => {
     try {
@@ -151,7 +155,7 @@ const Reports = () => {
       const mappedEntries = filteredData.map(entry => {
         const entryWithStatus: TimeEntry = {
           ...entry,
-          user_full_name: entry.profiles && typeof entry.profiles === 'object' ? 
+          user_full_name: entry.profiles && entry.profiles !== null && typeof entry.profiles === 'object' ? 
             (entry.profiles.full_name || 'Unknown User') : 'Unknown User',
           status: (entry.status as TimeEntryStatus) || 'draft'
         };
@@ -412,12 +416,46 @@ const Reports = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto py-6 max-w-6xl space-y-6">
-        <h1 className="text-3xl font-bold text-reportronic-800">{t('reports')}</h1>
+      <div className="container mx-auto py-6 max-w-6xl">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          <h1 className="text-3xl font-bold text-reportronic-800 mb-4 md:mb-0">{t('reports')}</h1>
+          <div className="flex space-x-2">
+            <TabsList className="bg-gray-100">
+              <TabsTrigger 
+                value="entries" 
+                onClick={() => setActiveTab("entries")}
+                className={activeTab === "entries" ? "bg-white" : ""}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                {t('time_entries')}
+              </TabsTrigger>
+              
+              <TabsTrigger 
+                value="analytics" 
+                onClick={() => setActiveTab("analytics")}
+                className={activeTab === "analytics" ? "bg-white" : ""}
+              >
+                <BarChart className="h-4 w-4 mr-2" />
+                {t('analytics')}
+              </TabsTrigger>
+              
+              {isAdmin && (
+                <TabsTrigger 
+                  value="approvals" 
+                  onClick={() => setActiveTab("approvals")}
+                  className={activeTab === "approvals" ? "bg-white" : ""}
+                >
+                  <FileType className="h-4 w-4 mr-2" />
+                  {t('approvals')}
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
+        </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('generate_report')}</CardTitle>
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">{t('filter_reports')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ReportFilters 
@@ -464,33 +502,59 @@ const Reports = () => {
           exportToPdf={exportToPdf}
         />
         
-        {isAdmin && (
-          <ApprovalSection 
-            pendingEntries={timeEntries.filter(entry => entry.status === 'pending')}
-            loadingPendingEntries={loadingPendingEntries}
-            groupedByUser={groupedByUser}
-            approveMonthEntries={approveMonthEntries}
-            approveUserEntries={approveUserEntries}
-            handleApprove={handleApprove}
-            getClientName={getClientName}
-            getProjectName={getProjectName}
-            approvingEntries={approvingEntries}
-          />
-        )}
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('time_entries')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TimeEntriesTable 
-              timeEntries={filteredEntries}
-              isLoading={isLoading}
-              getClientName={getClientName}
-              getProjectName={getProjectName}
-            />
-          </CardContent>
-        </Card>
+        <div className="mt-8">
+          {activeTab === "entries" && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl">{t('time_entries')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TimeEntriesTable 
+                  timeEntries={filteredEntries}
+                  isLoading={isLoading}
+                  getClientName={getClientName}
+                  getProjectName={getProjectName}
+                />
+              </CardContent>
+            </Card>
+          )}
+          
+          {activeTab === "approvals" && isAdmin && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl">{t('approvals')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ApprovalSection 
+                  pendingEntries={timeEntries.filter(entry => entry.status === 'pending')}
+                  loadingPendingEntries={loadingPendingEntries}
+                  groupedByUser={groupedByUser}
+                  approveMonthEntries={approveMonthEntries}
+                  approveUserEntries={approveUserEntries}
+                  handleApprove={handleApprove}
+                  getClientName={getClientName}
+                  getProjectName={getProjectName}
+                  approvingEntries={approvingEntries}
+                />
+              </CardContent>
+            </Card>
+          )}
+          
+          {activeTab === "analytics" && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl">{t('analytics')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 text-center bg-gray-50 rounded-md">
+                  <BarChart className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">{t('analytics_coming_soon')}</h3>
+                  <p className="text-gray-500">{t('analytics_description')}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </Layout>
   );
