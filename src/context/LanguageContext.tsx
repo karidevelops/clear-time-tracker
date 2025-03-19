@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface LanguageContextType {
@@ -144,6 +145,8 @@ interface TranslationsType {
   select_status: string;
   only_admins_can_approve: string;
   approve: string;
+  approve_time_entry: string;
+  approve_time_entry_confirmation: string;
   all_projects: string;
   error_fetching_clients: string;
   error_fetching_projects: string;
@@ -163,7 +166,6 @@ interface TranslationsType {
   entries_exist_today: string;
   copied_entries_success: string;
   error_copying_entries: string;
-  no_entries_today: string;
   today_entries_summary: string;
   yesterday_entries_summary: string;
   error_fetching_entries: string;
@@ -313,6 +315,8 @@ const translations: Record<string, TranslationsType> = {
     select_status: 'Select Status',
     only_admins_can_approve: 'Only admins can approve',
     approve: 'Approve',
+    approve_time_entry: 'Approve Time Entry',
+    approve_time_entry_confirmation: 'Are you sure you want to approve this time entry?',
     all_projects: 'All Projects',
     error_fetching_clients: 'Error fetching clients',
     error_fetching_projects: 'Error fetching projects',
@@ -332,7 +336,6 @@ const translations: Record<string, TranslationsType> = {
     entries_exist_today: "There are already entries for today. Do you still want to copy yesterday's entries?",
     copied_entries_success: "Copied entries from yesterday to today.",
     error_copying_entries: "Error copying entries. Please try again later.",
-    no_entries_today: "No entries for today yet.",
     today_entries_summary: "Today has entries, total hours:",
     yesterday_entries_summary: "Yesterday had entries, total hours:",
     error_fetching_entries: "Error fetching entries. Please try again later."
@@ -474,6 +477,8 @@ const translations: Record<string, TranslationsType> = {
     select_status: 'Valitse tila',
     only_admins_can_approve: 'Vain järjestelmänvalvojat voivat hyväksyä',
     approve: 'Hyväksy',
+    approve_time_entry: 'Hyväksy tuntikirjaus',
+    approve_time_entry_confirmation: 'Haluatko varmasti hyväksyä tämän tuntikirjauksen?',
     all_projects: 'Kaikki projektit',
     error_fetching_clients: 'Virhe haettaessa asiakkaita',
     error_fetching_projects: 'Virhe haettaessa projekteja',
@@ -493,7 +498,6 @@ const translations: Record<string, TranslationsType> = {
     entries_exist_today: "Tälle päivälle on jo kirjauksia. Haluatko silti kopioida eilisen kirjaukset?",
     copied_entries_success: "Kopioitu kirjauksia eiliseltä tälle päivälle.",
     error_copying_entries: "Virhe kirjausten kopioinnissa. Yritä uudelleen myöhemmin.",
-    no_entries_today: "Tälle päivälle ei ole vielä kirjauksia.",
     today_entries_summary: "Tänään on kirjauksia, yhteensä tuntia:",
     yesterday_entries_summary: "Eilen oli kirjauksia, yhteensä tuntia:",
     error_fetching_entries: "Virhe kirjausten hakemisessa. Yritä uudelleen myöhemmin."
@@ -635,6 +639,8 @@ const translations: Record<string, TranslationsType> = {
     select_status: 'Välj status',
     only_admins_can_approve: 'Endast administratörer kan godkänna',
     approve: 'Godkänn',
+    approve_time_entry: 'Godkänn tidsinmatning',
+    approve_time_entry_confirmation: 'Är du säker på att du vill godkänna denna tidsinmatning?',
     all_projects: 'Alla projekt',
     error_fetching_clients: 'Fel vid hämtning av kunder',
     error_fetching_projects: 'Fel vid hämtning av projekt',
@@ -654,7 +660,6 @@ const translations: Record<string, TranslationsType> = {
     entries_exist_today: "Det finns redan inmatningar för idag. Vill du fortfarande kopiera gårdagens inmatningar?",
     copied_entries_success: "Kopierade inmatningar från igår till idag.",
     error_copying_entries: "Fel vid kopiering av inmatningar. Försök igen senare.",
-    no_entries_today: "Inga inmatningar för idag ännu.",
     today_entries_summary: "Idag har inmatningar, totalt timmar:",
     yesterday_entries_summary: "Igår hade inmatningar, totalt timmar:",
     error_fetching_entries: "Fel vid hämtning av inmatningar. Försök igen senare."
