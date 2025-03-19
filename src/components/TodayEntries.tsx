@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Clock, BarChart3, CheckCircle2 } from 'lucide-react';
+import { Edit, Trash2, Clock, BarChart3, CheckCircle2, Copy } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -118,8 +118,8 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
         date: entry.date,
         hours: entry.hours,
         description: entry.description || '',
-        project: entry.projects?.name || 'Unknown Project',
-        client: entry.projects?.clients?.name || 'Unknown Client',
+        project: entry.projects?.name || 'Tuntematon projekti',
+        client: entry.projects?.clients?.name || 'Tuntematon asiakas',
         project_id: entry.project_id,
         status: entry.status as 'draft' | 'pending' | 'approved',
         approved_by: entry.approved_by,
@@ -221,7 +221,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
 
   const handleEdit = (entry: TimeEntryItem) => {
     if (entry.status === 'approved' && !isAdmin) {
-      toast.info(t('cannot_edit_approved_entry'));
+      toast.info('Et voi muokata hyväksyttyä kirjausta');
       return;
     }
     
@@ -229,13 +229,47 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
     setEditDialogOpen(true);
   };
 
+  const handleDuplicate = async (entry: TimeEntryItem) => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('time_entries')
+        .insert({
+          date: entry.date,
+          hours: entry.hours,
+          description: entry.description,
+          project_id: entry.project_id,
+          user_id: user.id,
+          status: 'draft'
+        })
+        .select();
+
+      if (error) {
+        console.error('Error duplicating entry:', error);
+        toast.error('Virhe kirjauksen kopioinnissa');
+        return;
+      }
+
+      toast.success('Kirjaus kopioitu onnistuneesti');
+      fetchTodayEntries();
+      
+      if (onEntrySaved) {
+        onEntrySaved(data[0]);
+      }
+    } catch (error) {
+      console.error('Exception duplicating entry:', error);
+      toast.error('Virhe kirjauksen kopioinnissa');
+    }
+  };
+
   const handleDelete = async (entryId: string, status: string) => {
     if (status === 'approved' && !isAdmin) {
-      toast.info(t('cannot_delete_approved_entry'));
+      toast.info('Et voi poistaa hyväksyttyä kirjausta');
       return;
     }
     
-    if (!confirm(t('confirm_delete'))) return;
+    if (!confirm('Haluatko varmasti poistaa tämän kirjauksen?')) return;
 
     try {
       const { error } = await supabase
@@ -245,11 +279,11 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
 
       if (error) {
         console.error('Error deleting entry:', error);
-        toast.error(t('error_deleting_entry'));
+        toast.error('Virhe kirjauksen poistamisessa');
         return;
       }
 
-      toast.success(t('entry_deleted'));
+      toast.success('Kirjaus poistettu onnistuneesti');
       fetchTodayEntries();
       fetchMonthlyHours();
       
@@ -258,7 +292,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
       }
     } catch (error) {
       console.error('Exception deleting entry:', error);
-      toast.error(t('error_deleting_entry'));
+      toast.error('Virhe kirjauksen poistamisessa');
     }
   };
 
@@ -281,21 +315,21 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
 
       if (error) {
         console.error('Error submitting for approval:', error);
-        toast.error(t('error_submitting_for_approval'));
+        toast.error('Virhe hyväksyntään lähettämisessä');
         return;
       }
 
-      toast.success(t('entry_submitted_for_approval'));
+      toast.success('Kirjaus lähetetty hyväksyttäväksi');
       fetchTodayEntries();
     } catch (error) {
       console.error('Exception submitting for approval:', error);
-      toast.error(t('error_submitting_for_approval'));
+      toast.error('Virhe hyväksyntään lähettämisessä');
     }
   };
 
   const handleApproveEntry = async (entryId: string) => {
     if (!isAdmin) {
-      toast.error(t('only_admins_can_approve'));
+      toast.error('Vain järjestelmänvalvojat voivat hyväksyä kirjauksia');
       return;
     }
 
@@ -311,15 +345,15 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
 
       if (error) {
         console.error('Error approving entry:', error);
-        toast.error(t('error_approving_entry'));
+        toast.error('Virhe kirjauksen hyväksymisessä');
         return;
       }
 
-      toast.success(t('entry_approved'));
+      toast.success('Kirjaus hyväksytty');
       fetchTodayEntries();
     } catch (error) {
       console.error('Exception approving entry:', error);
-      toast.error(t('error_approving_entry'));
+      toast.error('Virhe kirjauksen hyväksymisessä');
     }
   };
 
@@ -328,11 +362,11 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
   const renderStatusBadge = (status: string) => {
     switch(status) {
       case 'draft':
-        return <Badge variant="outline" className="text-gray-600 border-gray-300">{t('draft')}</Badge>;
+        return <Badge variant="outline" className="text-gray-600 border-gray-300">Luonnos</Badge>;
       case 'pending':
-        return <Badge variant="outline" className="text-orange-600 border-orange-300">{t('pending_approval')}</Badge>;
+        return <Badge variant="outline" className="text-orange-600 border-orange-300">Hyväksyntää odottava</Badge>;
       case 'approved':
-        return <Badge variant="outline" className="text-green-600 border-green-300">{t('approved')}</Badge>;
+        return <Badge variant="outline" className="text-green-600 border-green-300">Hyväksytty</Badge>;
       default:
         return null;
     }
@@ -352,7 +386,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
     return (
       <>
         {isLoading ? (
-          <div className="p-4 text-center text-gray-500">{t('loading')}...</div>
+          <div className="p-4 text-center text-gray-500">Ladataan...</div>
         ) : entries.length > 0 ? (
           <div className="divide-y max-h-[250px] overflow-y-auto border rounded-md">
             {entries.map((entry) => (
@@ -376,11 +410,21 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
                         variant="ghost" 
                         className="h-7 w-7 text-green-600" 
                         onClick={() => handleApproveEntry(entry.id)}
-                        title={t('approve')}
+                        title="Hyväksy"
                       >
                         <CheckCircle2 className="h-4 w-4" />
                       </Button>
                     )}
+                    
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-7 w-7" 
+                      onClick={() => handleDuplicate(entry)}
+                      title="Kopioi"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     
                     {(entry.status !== 'approved' || isAdmin) && (
                       <Button 
@@ -388,7 +432,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
                         variant="ghost" 
                         className="h-7 w-7" 
                         onClick={() => handleEdit(entry)}
-                        title={t('edit')}
+                        title="Muokkaa"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -400,7 +444,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
                         variant="ghost" 
                         className="h-7 w-7 text-red-600" 
                         onClick={() => handleDelete(entry.id, entry.status)}
-                        title={t('delete')}
+                        title="Poista"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -412,14 +456,14 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
           </div>
         ) : (
           <div className="p-4 text-center text-gray-500 border rounded-md">
-            {t('no_entries_today')}
+            Ei kirjauksia tänään
           </div>
         )}
         
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>{t('edit_time_entry')}</DialogTitle>
+              <DialogTitle>Muokkaa aikakirjausta</DialogTitle>
             </DialogHeader>
             {currentEntry && (
               <TimeEntry 
@@ -446,13 +490,13 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium text-gray-500 flex items-center">
             <Clock className="mr-2 h-4 w-4 text-reportronic-500" />
-            {t('today_entries')}
+            Tämän päivän kirjaukset
           </CardTitle>
           <div className="text-lg font-bold">{totalHours.toFixed(1)}h</div>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-4 text-center text-gray-500">{t('loading')}...</div>
+            <div className="p-4 text-center text-gray-500">Ladataan...</div>
           ) : entries.length > 0 ? (
             <div className="divide-y max-h-[300px] overflow-y-auto">
               {entries.map((entry) => (
@@ -476,11 +520,21 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
                           variant="ghost" 
                           className="h-7 w-7 text-green-600" 
                           onClick={() => handleApproveEntry(entry.id)}
-                          title={t('approve')}
+                          title="Hyväksy"
                         >
                           <CheckCircle2 className="h-4 w-4" />
                         </Button>
                       )}
+                      
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-7 w-7" 
+                        onClick={() => handleDuplicate(entry)}
+                        title="Kopioi"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       
                       {(entry.status !== 'approved' || isAdmin) && (
                         <Button 
@@ -488,7 +542,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
                           variant="ghost" 
                           className="h-7 w-7" 
                           onClick={() => handleEdit(entry)}
-                          title={t('edit')}
+                          title="Muokkaa"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -500,7 +554,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
                           variant="ghost" 
                           className="h-7 w-7 text-red-600" 
                           onClick={() => handleDelete(entry.id, entry.status)}
-                          title={t('delete')}
+                          title="Poista"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -512,7 +566,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
             </div>
           ) : (
             <div className="p-4 text-center text-gray-500">
-              {t('no_entries_today')}
+              Ei kirjauksia tänään
             </div>
           )}
         </CardContent>
@@ -521,7 +575,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>{t('edit_time_entry')}</DialogTitle>
+            <DialogTitle>Muokkaa aikakirjausta</DialogTitle>
           </DialogHeader>
           {currentEntry && (
             <TimeEntry 

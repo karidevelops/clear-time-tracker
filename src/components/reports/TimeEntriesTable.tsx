@@ -31,7 +31,7 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
     return (
       <div className="p-8 text-center">
         <div className="animate-spin h-8 w-8 border-4 border-reportronic-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-        <p className="text-gray-500">{t('loading_time_entries')}</p>
+        <p className="text-gray-500">Ladataan kirjauksia...</p>
       </div>
     );
   }
@@ -40,18 +40,18 @@ const TimeEntriesTable: React.FC<TimeEntriesTableProps> = ({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{t('date')}</TableHead>
-          <TableHead>{t('client')}</TableHead>
-          <TableHead>{t('project')}</TableHead>
-          <TableHead>{t('description')}</TableHead>
-          <TableHead className="text-right">{t('hours')}</TableHead>
+          <TableHead>Päivämäärä</TableHead>
+          <TableHead>Asiakas</TableHead>
+          <TableHead>Projekti</TableHead>
+          <TableHead>Kuvaus</TableHead>
+          <TableHead className="text-right">Tunnit</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {timeEntries.length === 0 ? (
           <TableRow>
             <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-              {t('no_time_entries_found')}
+              Ei aikakirjauksia löytynyt
             </TableCell>
           </TableRow>
         ) : (

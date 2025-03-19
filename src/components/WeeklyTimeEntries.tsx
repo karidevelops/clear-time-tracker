@@ -105,7 +105,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
           <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-4">{t('no_time_entries')}</p>
+          <p className="text-center text-muted-foreground py-4">Ei aikakirjauksia</p>
         </CardContent>
       </Card>
     );
@@ -117,7 +117,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
         <div className="flex justify-between items-center">
           <CardTitle>{title}</CardTitle>
           <div className="text-sm font-medium">
-            {t('total')}: <span className="text-reportronic-600">{totalMonthHours.toFixed(1)}h</span>
+            Yhteensä: <span className="text-reportronic-600">{totalMonthHours.toFixed(1)}h</span>
           </div>
         </div>
       </CardHeader>
@@ -135,7 +135,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                     <ChevronDown className="h-4 w-4 mr-2 text-reportronic-500" />
                   }
                   <div>
-                    <span className="font-medium">{t('week')} {week.weekNumber}</span>
+                    <span className="font-medium">Viikko {week.weekNumber}</span>
                     <span className="text-sm text-gray-500 ml-2">
                       {formatWeekRange(week.startDate, week.endDate)}
                     </span>
@@ -152,10 +152,10 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="py-2 px-3 text-left font-medium text-gray-500">{t('date')}</th>
-                          <th className="py-2 px-3 text-left font-medium text-gray-500">{t('project')}</th>
-                          <th className="py-2 px-3 text-left font-medium text-gray-500">{t('description')}</th>
-                          <th className="py-2 px-3 text-right font-medium text-gray-500">{t('hours')}</th>
+                          <th className="py-2 px-3 text-left font-medium text-gray-500">Päivämäärä</th>
+                          <th className="py-2 px-3 text-left font-medium text-gray-500">Projekti</th>
+                          <th className="py-2 px-3 text-left font-medium text-gray-500">Kuvaus</th>
+                          <th className="py-2 px-3 text-right font-medium text-gray-500">Tunnit</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -168,7 +168,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                           </tr>
                         ))}
                         <tr className="bg-gray-100">
-                          <td colSpan={3} className="py-2 px-3 text-right font-medium">{t('total')}:</td>
+                          <td colSpan={3} className="py-2 px-3 text-right font-medium">Yhteensä:</td>
                           <td className="py-2 px-3 text-right font-medium text-reportronic-600">{week.totalHours.toFixed(1)}h</td>
                         </tr>
                       </tbody>

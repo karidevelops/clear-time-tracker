@@ -49,7 +49,7 @@ const ApprovalSection: React.FC<ApprovalSectionProps> = ({
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium">{pendingEntries.length} {t('pending_entries')}</h3>
+        <h3 className="text-lg font-medium">{pendingEntries.length} hyväksyntää odottavaa kirjausta</h3>
         
         {pendingEntries.length > 0 && (
           <Button
@@ -57,7 +57,7 @@ const ApprovalSection: React.FC<ApprovalSectionProps> = ({
             disabled={approvingEntries || pendingEntries.length === 0}
           >
             <CheckCircle className="mr-2 h-4 w-4" />
-            {t('approve_all_entries')}
+            Hyväksy kaikki kirjaukset
           </Button>
         )}
       </div>
@@ -66,38 +66,38 @@ const ApprovalSection: React.FC<ApprovalSectionProps> = ({
         {loadingPendingEntries ? (
           <div className="p-8 text-center">
             <div className="animate-spin h-8 w-8 border-4 border-reportronic-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-500">{t('loading_time_entries')}</p>
+            <p className="text-gray-500">Ladataan kirjauksia...</p>
           </div>
         ) : (
           <div>
             {Object.keys(groupedByUser).length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                {t('no_pending_entries')}
+                Ei hyväksyntää odottavia kirjauksia
               </div>
             ) : (
               <div>
                 {Object.entries(groupedByUser).map(([userName, entries]) => (
                   <div key={userName} className="border-b last:border-b-0">
                     <div className="flex justify-between items-center p-4 bg-gray-50">
-                      <h3 className="font-medium">{userName} ({entries.length} {t('entries')})</h3>
+                      <h3 className="font-medium">{userName} ({entries.length} kirjausta)</h3>
                       <Button 
                         size="sm"
                         onClick={() => approveUserEntries(entries[0].user_id)}
                         disabled={approvingEntries}
                       >
                         <CheckCircle className="mr-2 h-4 w-4" />
-                        {t('approve_all_user_entries')}
+                        Hyväksy kaikki käyttäjän kirjaukset
                       </Button>
                     </div>
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>{t('date')}</TableHead>
-                          <TableHead>{t('client')}</TableHead>
-                          <TableHead>{t('project')}</TableHead>
-                          <TableHead>{t('description')}</TableHead>
-                          <TableHead className="text-right">{t('hours')}</TableHead>
-                          <TableHead className="text-right">{t('actions')}</TableHead>
+                          <TableHead>Päivämäärä</TableHead>
+                          <TableHead>Asiakas</TableHead>
+                          <TableHead>Projekti</TableHead>
+                          <TableHead>Kuvaus</TableHead>
+                          <TableHead className="text-right">Tunnit</TableHead>
+                          <TableHead className="text-right">Toiminnot</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>

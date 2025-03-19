@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { BarChart, Calendar, FileText, Settings as SettingsIcon, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -99,7 +100,7 @@ const Header = () => {
               <PopoverTrigger asChild>
                 <Button size="sm" variant="outline" className="hidden md:flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  <span>{t('calendar')}</span>
+                  <span>Kalenteri</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
@@ -121,7 +122,7 @@ const Header = () => {
                 size="icon" 
                 onClick={signOut}
                 className="text-gray-500 hover:text-reportronic-600"
-                title={t('logout') || 'Logout'}
+                title={t('logout') || 'Kirjaudu ulos'}
               >
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -140,7 +141,7 @@ const Header = () => {
             />
             
             <div className="mt-6">
-              <h3 className="text-md font-medium mb-3">{t('today_entries')}</h3>
+              <h3 className="text-md font-medium mb-3">Tämän päivän kirjaukset</h3>
               <TodayEntries 
                 onEntrySaved={handleTimeEntrySaved}
                 onEntryDeleted={handleTimeEntrySaved}
@@ -150,7 +151,7 @@ const Header = () => {
             
             <div className="mt-4 flex justify-end">
               <Button variant="outline" onClick={() => setShowTimeEntry(false)}>
-                {t('close')}
+                Sulje
               </Button>
             </div>
           </div>
