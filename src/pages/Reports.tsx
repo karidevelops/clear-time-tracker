@@ -155,7 +155,9 @@ const Reports = () => {
       }
       
       const mappedEntries = filteredData.map(entry => {
-        const profileFullName = entry.profiles ? entry.profiles.full_name : null;
+        const profileData = entry.profiles;
+        const profileFullName = profileData && typeof profileData === 'object' ? profileData.full_name : null;
+        
         const entryWithStatus: TimeEntry = {
           ...entry,
           user_full_name: profileFullName || 'Unknown User',
