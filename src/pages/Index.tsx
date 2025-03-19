@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, ArrowUp, ArrowRight } from 'lucide-react';
@@ -12,7 +11,6 @@ import { useAuth } from '@/context/AuthContext';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns';
 import WeeklyTimeEntries from '@/components/WeeklyTimeEntries';
 import { TimeEntry as TimeEntryType } from '@/types/timeEntry';
-import ChatAssistant from '@/components/ChatAssistant';
 
 const DAILY_TARGET_HOURS = 7.5;
 const WEEKLY_TARGET_HOURS = 37.5;
@@ -154,127 +152,99 @@ const Index = () => {
           <h1 className="text-3xl font-bold text-reportronic-800">{t('dashboard')}</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card className="mb-6 time-tracker-header">
-              <CardHeader className="bg-reportronic-50 border-b">
-                <CardTitle className="flex items-center text-reportronic-800">
-                  <Clock className="mr-2 h-5 w-5 text-reportronic-500" />
-                  {t('log_time')}
-                </CardTitle>
+        <div>
+          <Card className="mb-6 time-tracker-header">
+            <CardHeader className="bg-reportronic-50 border-b">
+              <CardTitle className="flex items-center text-reportronic-800">
+                <Clock className="mr-2 h-5 w-5 text-reportronic-500" />
+                {t('log_time')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <TimeEntry onEntrySaved={handleTimeEntrySaved} />
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">{t('today')}</CardTitle>
               </CardHeader>
-              <CardContent className="pt-6">
-                <TimeEntry onEntrySaved={handleTimeEntrySaved} />
+              <CardContent>
+                <div className="flex justify-between items-end">
+                  <div className="text-2xl font-bold">{stats.today.toFixed(1)}h</div>
+                  <Clock className="h-8 w-8 text-reportronic-500" />
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {t('target')}: {DAILY_TARGET_HOURS}h
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div 
+                      className="bg-reportronic-600 h-1.5 rounded-full" 
+                      style={{ width: `${Math.min(100, (stats.today / DAILY_TARGET_HOURS) * 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">{t('today')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-end">
-                    <div className="text-2xl font-bold">{stats.today.toFixed(1)}h</div>
-                    <Clock className="h-8 w-8 text-reportronic-500" />
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">{t('this_week')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-end">
+                  <div className="text-2xl font-bold">{stats.week.toFixed(1)}h</div>
+                  <Calendar className="h-8 w-8 text-reportronic-500" />
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {t('target')}: {WEEKLY_TARGET_HOURS}h
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                    <div 
+                      className="bg-reportronic-600 h-1.5 rounded-full" 
+                      style={{ width: `${Math.min(100, (stats.week / WEEKLY_TARGET_HOURS) * 100)}%` }}
+                    ></div>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {t('target')}: {DAILY_TARGET_HOURS}h
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                      <div 
-                        className="bg-reportronic-600 h-1.5 rounded-full" 
-                        style={{ width: `${Math.min(100, (stats.today / DAILY_TARGET_HOURS) * 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">{t('this_week')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-end">
-                    <div className="text-2xl font-bold">{stats.week.toFixed(1)}h</div>
-                    <Calendar className="h-8 w-8 text-reportronic-500" />
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {t('target')}: {WEEKLY_TARGET_HOURS}h
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                      <div 
-                        className="bg-reportronic-600 h-1.5 rounded-full" 
-                        style={{ width: `${Math.min(100, (stats.week / WEEKLY_TARGET_HOURS) * 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">{t('this_month')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-end">
+                  <div className="text-2xl font-bold">{stats.month.toFixed(1)}h</div>
+                  <BarChart3 className="h-8 w-8 text-reportronic-500" />
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">{t('this_month')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-end">
-                    <div className="text-2xl font-bold">{stats.month.toFixed(1)}h</div>
-                    <BarChart3 className="h-8 w-8 text-reportronic-500" />
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">{t('weekly_average')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-end">
+                  <div className="text-2xl font-bold">
+                    {stats.weeklyAverage.toFixed(1)}h
+                    {stats.previousWeeklyAverage > 0 && (
+                      <span className={`ml-1 text-xs font-normal flex items-center ${isGrowing ? 'text-green-600' : 'text-red-600'}`}>
+                        {isGrowing ? <ArrowUp className="h-3 w-3" /> : <ArrowUp className="h-3 w-3 transform rotate-180" />} {percentChange}%
+                      </span>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-500">{t('weekly_average')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-end">
-                    <div className="text-2xl font-bold">
-                      {stats.weeklyAverage.toFixed(1)}h
-                      {stats.previousWeeklyAverage > 0 && (
-                        <span className={`ml-1 text-xs font-normal flex items-center ${isGrowing ? 'text-green-600' : 'text-red-600'}`}>
-                          {isGrowing ? <ArrowUp className="h-3 w-3" /> : <ArrowUp className="h-3 w-3 transform rotate-180" />} {percentChange}%
-                        </span>
-                      )}
-                    </div>
-                    <BarChart3 className="h-8 w-8 text-reportronic-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="mt-6">
-              <WeeklyTimeEntries 
-                timeEntries={monthlyEntries} 
-                title={t('monthly_entries_by_week')} 
-              />
-            </div>
+                  <BarChart3 className="h-8 w-8 text-reportronic-500" />
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          
-          {/* AI Assistant */}
-          <div className="h-[700px]">
-            <Card className="h-full">
-              <CardHeader className="bg-reportronic-50 border-b">
-                <CardTitle className="flex items-center text-reportronic-800">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className="h-5 w-5 mr-2 text-reportronic-500" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 2a8 8 0 0 1 8 8v6a.908.908 0 0 1-.9.9H16v.9a.902.902 0 0 1-.9.9c-.268 0-.521-.112-.7-.312l-1.2-1.332L12 17.112l-1.2-.044-1.2 1.332A.902.902 0 0 1 8 17.8v-.9H4.9a.908.908 0 0 1-.9-.9v-6A8 8 0 0 1 12 2m1.9 14.4a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8m-3.8 0a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8m-2.394-3.003A1 1 0 0 0 7 12.003v2a1 1 0 0 0 1.606.794L10 13.503zM12 6.003a1 1 0 0 0-1-1h-1a1 1 0 1 0 0 2h1a1 1 0 0 0 1-1M11 9.003a1 1 0 0 0 1 1h1a1 1 0 1 0 0-2h-1a1 1 0 0 0-1 1M14 12.003a1 1 0 0 0-1-1h-2a1 1 0 1 0 0 2h2a1 1 0 0 0 1-1M16.394 11.798A1 1 0 0 1 17 12.003v2a1 1 0 0 1-1.606.794L14 13.503z"/>
-                  </svg>
-                  {t('ai_assistant') || 'AI-Avustaja'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 h-[calc(100%-56px)]">
-                <ChatAssistant />
-              </CardContent>
-            </Card>
+
+          <div className="mt-6">
+            <WeeklyTimeEntries 
+              timeEntries={monthlyEntries} 
+              title={t('monthly_entries_by_week')} 
+            />
           </div>
         </div>
       </div>
