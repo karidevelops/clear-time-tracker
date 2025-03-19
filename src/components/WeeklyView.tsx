@@ -1,218 +1,279 @@
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react';
-import { 
-  format, 
-  startOfWeek, 
-  endOfWeek, 
-  addWeeks, 
-  subWeeks, 
-  eachDayOfInterval, 
-  isToday, 
-  getWeek 
-} from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay, addWeeks, subWeeks, parseISO } from 'date-fns';
 import { fi } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import TimeEntry from './TimeEntry';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/context/LanguageContext';
-
-// Target working hours
-const DAILY_TARGET_HOURS = 7.5;
-const WEEKLY_TARGET_HOURS = 37.5;
-
-// Mock data for time entries
-// In a real app, this would come from an API
-const mockTimeEntries = [
-  { id: '1', date: '2023-07-10', hours: 4.5, project: 'Website Development' },
-  { id: '2', date: '2023-07-10', hours: 3, project: 'Mobile App' },
-  { id: '3', date: '2023-07-11', hours: 8, project: 'UI/UX Design' },
-  { id: '4', date: '2023-07-12', hours: 6, project: 'Website Development' },
-  { id: '5', date: '2023-07-13', hours: 7.5, project: 'Backend API' },
-  { id: '6', date: '2023-07-14', hours: 5, project: 'Documentation' },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from '@/context/AuthContext';
+import TimeEntry from './TimeEntry';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { TimeEntry as TimeEntryType } from '@/types/timeEntry';
 
 const WeeklyView = () => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [weekStart, setWeekStart] = useState(startOfWeek(currentDate, { weekStartsOn: 1 }));
-  const [weekEnd, setWeekEnd] = useState(endOfWeek(currentDate, { weekStartsOn: 1 }));
-  const [weekNumber, setWeekNumber] = useState(getWeek(currentDate, { weekStartsOn: 1 }));
-  const [days, setDays] = useState<Date[]>([]);
-  const [timeEntries, setTimeEntries] = useState(mockTimeEntries);
+  const [weekDays, setWeekDays] = useState<Date[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showTimeEntry, setShowTimeEntry] = useState(false);
+  const [timeEntries, setTimeEntries] = useState<TimeEntryType[]>([]);
+  const [dailyHours, setDailyHours] = useState<{[key: string]: number}>({});
 
+  // Set up the days for the current week
   useEffect(() => {
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday as start of week
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
-    setWeekStart(start);
-    setWeekEnd(end);
-    setWeekNumber(getWeek(start, { weekStartsOn: 1 }));
-    setDays(eachDayOfInterval({ start, end }));
+    const days = [];
+    
+    for (let day = start; day <= end; day = addDays(day, 1)) {
+      days.push(day);
+    }
+    
+    setWeekDays(days);
   }, [currentDate]);
 
-  const goToPreviousWeek = () => {
+  // Fetch time entries for the displayed week
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchTimeEntries = async () => {
+      const start = format(weekDays[0] || startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const end = format(weekDays[6] || endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('*, profiles(*), projects(*)')
+        .eq('user_id', user.id)
+        .gte('date', start)
+        .lte('date', end)
+        .order('date', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching time entries:', error);
+        return;
+      }
+      
+      setTimeEntries(data || []);
+      
+      // Calculate daily hours
+      const hours: {[key: string]: number} = {};
+      (data || []).forEach((entry: TimeEntryType) => {
+        const dateKey = entry.date;
+        if (!hours[dateKey]) {
+          hours[dateKey] = 0;
+        }
+        hours[dateKey] += Number(entry.hours);
+      });
+      
+      setDailyHours(hours);
+    };
+    
+    fetchTimeEntries();
+  }, [weekDays, user, currentDate]);
+
+  const handlePreviousWeek = () => {
     setCurrentDate(subWeeks(currentDate, 1));
   };
 
-  const goToNextWeek = () => {
+  const handleNextWeek = () => {
     setCurrentDate(addWeeks(currentDate, 1));
   };
 
-  const goToCurrentWeek = () => {
-    setCurrentDate(new Date());
+  const handleDateClick = (day: Date) => {
+    setSelectedDate(day);
+    setShowTimeEntry(true);
   };
 
-  // Get entries for a specific day
-  const getEntriesForDay = (day: Date) => {
-    const dateString = format(day, 'yyyy-MM-dd');
-    return timeEntries.filter((entry) => entry.date === dateString);
+  const handleTimeEntrySaved = () => {
+    // Refresh time entries after saving
+    const fetchTimeEntries = async () => {
+      const start = format(weekDays[0] || startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const end = format(weekDays[6] || endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('*, profiles(*), projects(*)')
+        .eq('user_id', user?.id)
+        .gte('date', start)
+        .lte('date', end)
+        .order('date', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching time entries:', error);
+        return;
+      }
+      
+      setTimeEntries(data || []);
+      
+      // Calculate daily hours
+      const hours: {[key: string]: number} = {};
+      (data || []).forEach((entry: TimeEntryType) => {
+        const dateKey = entry.date;
+        if (!hours[dateKey]) {
+          hours[dateKey] = 0;
+        }
+        hours[dateKey] += Number(entry.hours);
+      });
+      
+      setDailyHours(hours);
+    };
+    
+    fetchTimeEntries();
+    setShowTimeEntry(false);
   };
 
-  // Calculate total hours for a day
-  const getTotalHoursForDay = (day: Date) => {
-    const entries = getEntriesForDay(day);
-    return entries.reduce((total, entry) => total + entry.hours, 0);
-  };
-
-  // Calculate remaining hours for a day
-  const getRemainingHoursForDay = (day: Date) => {
-    const totalHours = getTotalHoursForDay(day);
-    return DAILY_TARGET_HOURS - totalHours;
-  };
-
-  // Calculate total hours for the week
-  const getTotalHoursForWeek = () => {
-    return days.reduce((total, day) => total + getTotalHoursForDay(day), 0);
-  };
+  // Group time entries by date
+  const entriesByDate: { [key: string]: TimeEntryType[] } = {};
+  timeEntries.forEach(entry => {
+    if (!entriesByDate[entry.date]) {
+      entriesByDate[entry.date] = [];
+    }
+    entriesByDate[entry.date].push(entry);
+  });
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-reportronic-800">
-          {t('weekly_overview')} 
-          <span className="ml-2 text-reportronic-600 text-lg">
-            {t('week')} {weekNumber}
-          </span>
-        </h2>
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={goToPreviousWeek}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            className="min-w-32"
-            size="sm" 
-            onClick={goToCurrentWeek}
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            <span>{format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={goToNextWeek}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
+    <div className="container mx-auto px-4 py-8">
       <Card>
-        <CardHeader className="bg-reportronic-50 py-4 px-6">
-          <div className="grid grid-cols-7 gap-2 text-center">
-            {days.map((day) => (
-              <div key={day.toString()} className="font-medium text-sm text-gray-700">
-                <div>{format(day, 'EEE', { locale: fi })}</div>
-                <div className={cn(
-                  "mt-1 rounded-full w-7 h-7 flex items-center justify-center mx-auto",
-                  isToday(day) && "bg-reportronic-600 text-white"
-                )}>
-                  {format(day, 'd')}
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-xl font-bold">{t('weekly_view')}</CardTitle>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviousWeek}
+              className="h-8 w-8 p-0"
+            >
+              &lt;
+            </Button>
+            <span className="flex h-8 items-center px-2">
+              {format(weekDays[0] || new Date(), 'd.M', { locale: fi })} - {format(weekDays[6] || new Date(), 'd.M', { locale: fi })}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextWeek}
+              className="h-8 w-8 p-0"
+            >
+              &gt;
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-7 gap-1">
+            {weekDays.map((day, i) => (
+              <div
+                key={i}
+                className={`p-2 border rounded ${isToday(day) ? 'border-reportronic-500 bg-reportronic-50' : 'border-gray-200'}`}
+              >
+                <div className="text-center">
+                  <div className="font-medium">{format(day, 'EEEEEE', { locale: fi })}</div>
+                  <div 
+                    className={`text-lg cursor-pointer hover:text-reportronic-500 ${isToday(day) ? 'text-reportronic-500 font-bold' : ''}`}
+                    onClick={() => handleDateClick(day)}
+                  >
+                    {format(day, 'd')}
+                  </div>
+                  
+                  {/* Show hours logged for this day */}
+                  <div className="mt-2 mb-2">
+                    {dailyHours[format(day, 'yyyy-MM-dd')] !== undefined ? (
+                      <Badge className="bg-reportronic-500">
+                        {dailyHours[format(day, 'yyyy-MM-dd')].toFixed(2)} h
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-gray-400">
+                        0 h
+                      </Badge>
+                    )}
+                  </div>
+                  
+                </div>
+                <div className="mt-1 space-y-1">
+                  {entriesByDate[format(day, 'yyyy-MM-dd')]?.map((entry, idx) => (
+                    <div 
+                      key={idx} 
+                      className="text-xs p-1 bg-gray-100 rounded cursor-pointer hover:bg-gray-200"
+                      onClick={() => handleDateClick(day)}
+                    >
+                      <div className="font-medium truncate">
+                        {entry.hours} h
+                      </div>
+                      <div className="truncate text-gray-600">
+                        {entry.description?.substring(0, 20)}{entry.description && entry.description.length > 20 ? '...' : ''}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="grid grid-cols-7 gap-px bg-gray-200">
-            {days.map((day) => {
-              const entries = getEntriesForDay(day);
-              const totalHours = getTotalHoursForDay(day);
-              const remainingHours = getRemainingHoursForDay(day);
-              const dateStr = format(day, 'yyyy-MM-dd');
-              
-              return (
-                <div 
-                  key={day.toString()} 
-                  className={cn(
-                    "time-cell bg-white p-3",
-                    isToday(day) && "bg-reportronic-50"
-                  )}
-                >
-                  {entries.length > 0 ? (
-                    <div className="space-y-2">
-                      {entries.map((entry) => (
-                        <div 
-                          key={entry.id} 
-                          className="text-xs p-2 rounded border-l-4 border-reportronic-400 bg-reportronic-50"
-                        >
-                          <div className="font-medium truncate">{entry.project}</div>
-                          <div className="text-reportronic-700">{entry.hours}h</div>
-                        </div>
-                      ))}
-                      <div className="text-xs text-gray-500 text-right mt-1">
-                        {t('total')}: <span className="font-medium">{totalHours}h</span>
-                        <div className={cn(
-                          "text-xs",
-                          remainingHours > 0 ? "text-orange-500" : "text-green-500"
-                        )}>
-                          {remainingHours > 0 
-                            ? `${remainingHours}h ${t('remaining')}` 
-                            : `${Math.abs(remainingHours)}h ${t('over')}`}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-reportronic-600">
-                            <Plus className="h-5 w-5" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
-                          <TimeEntry />
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          
+          {/* Table showing all time entries for the week */}
+          <div className="mt-8">
+            <h3 className="font-medium text-lg mb-3">{t('weekly_entries')}</h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('date')}</TableHead>
+                  <TableHead>{t('hours')}</TableHead>
+                  <TableHead>{t('project')}</TableHead>
+                  <TableHead>{t('description')}</TableHead>
+                  <TableHead>{t('status')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {timeEntries.length > 0 ? (
+                  timeEntries.map((entry) => (
+                    <TableRow key={entry.id} className="cursor-pointer hover:bg-gray-50" onClick={() => {
+                      setSelectedDate(parseISO(entry.date));
+                      setShowTimeEntry(true);
+                    }}>
+                      <TableCell>{format(parseISO(entry.date), 'dd.MM.yyyy')}</TableCell>
+                      <TableCell>{entry.hours.toFixed(2)} h</TableCell>
+                      <TableCell>{entry.project_id}</TableCell>
+                      <TableCell className="max-w-[300px] truncate">{entry.description}</TableCell>
+                      <TableCell>
+                        {entry.status === 'draft' && <Badge variant="outline" className="text-gray-600 border-gray-300">{t('draft')}</Badge>}
+                        {entry.status === 'pending' && <Badge variant="outline" className="text-orange-600 border-orange-300">{t('pending_approval')}</Badge>}
+                        {entry.status === 'approved' && <Badge variant="outline" className="text-green-600 border-green-300">{t('approved')}</Badge>}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                      {t('no_time_entries')}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
       
-      <div className="flex justify-between items-center p-4 bg-reportronic-50 rounded-lg">
-        <div className="text-sm font-medium">
-          {t('weekly_total')}: <span className="text-reportronic-700">{getTotalHoursForWeek()}h</span>
+      {showTimeEntry && selectedDate && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white rounded-lg w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-4">
+              {format(selectedDate, 'dd.MM.yyyy', { locale: fi })}
+            </h2>
+            <TimeEntry 
+              initialDate={format(selectedDate, 'yyyy-MM-dd')}
+              onEntrySaved={handleTimeEntrySaved}
+            />
+            <div className="mt-4 flex justify-end">
+              <Button variant="outline" onClick={() => setShowTimeEntry(false)}>
+                {t('close')}
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="text-sm font-medium">
-          {t('weekly_target')}: <span className="text-reportronic-700">{WEEKLY_TARGET_HOURS}h</span>
-        </div>
-        <div className="text-sm font-medium">
-          {getTotalHoursForWeek() < WEEKLY_TARGET_HOURS 
-            ? <span className="text-orange-500">{(WEEKLY_TARGET_HOURS - getTotalHoursForWeek()).toFixed(1)}h {t('remaining')}</span>
-            : <span className="text-green-500">{(getTotalHoursForWeek() - WEEKLY_TARGET_HOURS).toFixed(1)}h {t('over')}</span>
-          }
-        </div>
-      </div>
+      )}
     </div>
   );
 };
