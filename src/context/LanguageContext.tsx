@@ -491,9 +491,9 @@ const translations: Record<string, TranslationsType> = {
     back_to_clients: "Takaisin asiakkaisiin",
     saving: "Tallennetaan...",
     error_saving_time_entry: "Virhe tallennettaessa aikakirjausta",
-    not_found: "404 Sivua ei löydy",
-    page_not_found: "Hakemaasi sivua ei löydy.",
-    return_to_home: "Palaa etusivulle",
+    not_found: "404 Not Found",
+    page_not_found: "The page you're looking for doesn't exist.",
+    return_to_home: "Return to Home",
     client_updated_successfully: "Asiakas päivitetty onnistuneesti",
     edit: "Muokkaa",
     remove: "Poista",
@@ -531,12 +531,12 @@ const translations: Record<string, TranslationsType> = {
     approve_time_entry: 'Hyväksy tuntikirjaus',
     approve_time_entry_confirmation: 'Haluatko varmasti hyväksyä tämän tuntikirjauksen?',
     all_projects: 'Kaikki projektit',
-    error_fetching_clients: 'Virhe haettaessa asiakkaita',
-    error_fetching_projects: 'Virhe haettaessa projekteja',
-    error_fetching_project_details: 'Virhe haettaessa projektin tietoja',
-    database_policy_error: 'Tietokantakäytäntövirhe. Yritä uudelleen tai ota yhteyttä tukeen.',
-    duplicate_entry_error: 'Identtinen kirjaus on jo olemassa.',
-    foreign_key_constraint_error: 'Virheellinen projektivalinta. Valitse toinen projekti.',
+    error_fetching_clients: 'Error fetching clients',
+    error_fetching_projects: 'Error fetching projects',
+    error_fetching_project_details: 'Error fetching project details',
+    database_policy_error: 'Database policy error. Please try again or contact support.',
+    duplicate_entry_error: 'A duplicate entry already exists.',
+    foreign_key_constraint_error: 'Invalid project selection. Please choose another project.',
     
     // Chat Assistant translations - Finnish
     chat_welcome_message: "Hei! Olen avustajasi. Miten voin auttaa sinua tuntikirjauksissa tänään?",
@@ -551,7 +551,7 @@ const translations: Record<string, TranslationsType> = {
     error_copying_entries: "Virhe kirjausten kopioinnissa. Yritä uudelleen myöhemmin.",
     today_entries_summary: "Tänään on kirjauksia, yhteensä tuntia:",
     yesterday_entries_summary: "Eilen oli kirjauksia, yhteensä tuntia:",
-    error_fetching_entries: "Virhe kirjausten hakemisessa. Yritä uudelleen myöhemmin.",
+    error_fetching_entries: "Error fetching entries. Please try again later.",
 
     // User management translations - Finnish
     users: 'Käyttäjät',
@@ -570,9 +570,9 @@ const translations: Record<string, TranslationsType> = {
     manage_user_time_entries: 'Hallinnoi käyttäjän tuntikirjauksia',
     no_entries_found: 'Kirjauksia ei löytynyt',
     return_for_edit: 'Palauta muokattavaksi',
-    error_fetching_users: 'Virhe haettaessa käyttäjiä',
-    error_adding_user: 'Virhe lisättäessä käyttäjää',
-    error_setting_role: 'Virhe asetettaessa käyttäjän roolia',
+    error_fetching_users: 'Error fetching users',
+    error_adding_user: 'Error adding user',
+    error_setting_role: 'Error setting user role',
     user_added_successfully: 'Käyttäjä lisätty onnistuneesti',
     unknown_project: 'Tuntematon projekti',
     rejection_comment_placeholder: 'Anna syy hylkäämiselle...',
@@ -701,4 +701,93 @@ const translations: Record<string, TranslationsType> = {
     error_adding_project: "Fel vid tilläggning av projekt",
     add_project_for: 'Lägg till projekt för',
     today_entries: 'Dagens inmatningar',
-    edit_time_entry: 'Redigera tidsinmat
+    edit_time_entry: 'Redigera tidsinmatning',
+    no_entries_today: 'Inga inmatningar för idag',
+    loading: 'Laddar',
+    entry_deleted: 'Inmatning borttagen',
+    error_deleting_entry: 'Fel vid borttagning av inmatning',
+    unknown_client: 'Okänd kund',
+    submit_for_approval: 'Skicka för godkännande',
+    update_time_entry: 'Uppdatera tidsinmatning',
+    time_entry_updated: 'Tidsinmatning uppdaterad',
+    draft: 'Utkast',
+    pending_approval: 'Väntar på godkännande',
+    approved: 'Godkänd',
+    select_status: 'Välj status',
+    only_admins_can_approve: 'Endast administratörer kan godkänna',
+    approve: 'Godkänn',
+    approve_time_entry: 'Godkänn tidsinmatning',
+    approve_time_entry_confirmation: 'Är du säker på att du vill godkänna denna tidsinmatning?',
+    all_projects: 'Alla projekt',
+    error_fetching_clients: 'Fel vid hämtning av kunder',
+    error_fetching_projects: 'Fel vid hämtning av projekt',
+    error_fetching_project_details: 'Fel vid hämtning av projektdetaljer',
+    database_policy_error: 'Databasfelspolicy. Försök igen eller kontakta support.',
+    duplicate_entry_error: 'En dubblett finns redan.',
+    foreign_key_constraint_error: 'Ogiltig projektval. Välj ett annat projekt.',
+    
+    // Chat Assistant translations - Swedish
+    chat_welcome_message: "Hej! Jag är din assistent. Hur kan jag hjälpa dig med tidsregistrering idag?",
+    chat_error_message: "Tyvärr, ett fel inträffade. Försök igen senare.",
+    chat_help_message: "Jag kan hjälpa dig med tidsinmatningar. Till exempel:\n- \"Kopiera gårdagens timmar till idag\"\n- \"Visa dagens inmatningar\"\n- \"Visa gårdagens inmatningar\"",
+    chat_dont_understand: "Jag förstod inte helt din förfrågan. Kan du förtydliga? Du kan till exempel be mig att kopiera gårdagens inmatningar eller visa dagens inmatningar.",
+    chat_placeholder: "Skriv ett meddelande...",
+    ai_assistant: "AI-Assistent",
+    no_entries_yesterday: "Inga inmatningar hittades för igår.",
+    entries_exist_today: "Det finns redan inmatningar för idag. Vill du fortfarande kopiera gårdagens inmatningar?",
+    copied_entries_success: "Kopierade inmatningar från igår till idag.",
+    error_copying_entries: "Fel vid kopiering av inmatningar. Försök igen senare.",
+    today_entries_summary: "Idag har inmatningar, totalt timmar:",
+    yesterday_entries_summary: "Igår hade inmatningar, totalt timmar:",
+    error_fetching_entries: "Fel vid hämtning av inmatningar. Försök igen senare.",
+
+    // User management translations - Swedish
+    users: 'Användare',
+    manage_users: 'Hantera användare',
+    users_list: 'Användarlista',
+    add_user: 'Lägg till användare',
+    add_user_description: 'Skapa ett nytt användarkonto',
+    full_name: 'Fullständigt namn',
+    role: 'Roll',
+    select_role: 'Välj roll',
+    user: 'Användare',
+    admin: 'Administratör',
+    name: 'Namn',
+    no_name: 'Inget namn',
+    view_entries: 'Visa inmatningar',
+    manage_user_time_entries: 'Hantera användarens tidsinmatningar',
+    no_entries_found: 'Inga inmatningar hittades',
+    return_for_edit: 'Återlämna för redigering',
+    error_fetching_users: 'Fel vid hämtning av användare',
+    error_adding_user: 'Fel vid tillägg av användare',
+    error_setting_role: 'Fel vid inställning av användarroll',
+    user_added_successfully: 'Användare tillagd framgångsrikt',
+    unknown_project: 'Okänt projekt',
+    rejection_comment_placeholder: 'Ange en anledning för avslag...',
+    return_time_entry: 'Återlämna tidsinmatning',
+    return_time_entry_confirmation: 'Är du säker på att du vill återlämna denna tidsinmatning för redigering?',
+  },
+};
+
+const LanguageProvider = ({ children }: { children: ReactNode }) => {
+  const [language, setLanguage] = useState('en');
+
+  const t = (key: string) => {
+    if (translations[language] && translations[language][key]) {
+      return translations[language][key];
+    }
+    return key;
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+};
+
+const useLanguage = () => {
+  return useContext(LanguageContext);
+};
+
+export { LanguageContext, useLanguage, LanguageProvider };
