@@ -673,4 +673,50 @@ const translations: Record<string, TranslationsType> = {
     error_copying_entries: "Fel vid kopiering av inmatningar. Försök igen senare.",
     today_entries_summary: "Idag har inmatningar, totalt timmar:",
     yesterday_entries_summary: "Igår hade inmatningar, totalt timmar:",
-    error
+    error_fetching_entries: "Fel vid hämtning av inmatningar. Försök igen senare.",
+    monthly_entries: 'Månadsvis inmatningar',
+    monthly_entries_by_week: 'Månadsvis inmatningar per vecka',
+    select_valid_project: 'Vänligen välj ett giltigt projekt',
+    invalid_uuid_format: 'Ogiltigt projektformat',
+  },
+};
+
+export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [language, setLanguage] = useState('en');
+
+  useEffect(() => {
+    const storedLanguage = localStorage.getItem('language');
+    if (storedLanguage) {
+      setLanguage(storedLanguage);
+    } else {
+      const browserLang = navigator.language.split('-')[0];
+      if (browserLang && translations[browserLang]) {
+        setLanguage(browserLang);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('language', language);
+  }, [language]);
+
+  const t = (key: string): string => {
+    if (translations[language] && translations[language][key]) {
+      return translations[language][key];
+    }
+    if (translations.en && translations.en[key]) {
+      return translations.en[key];
+    }
+    return key;
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+};
+
+export const useLanguage = () => useContext(LanguageContext);
+
+export default LanguageContext;
