@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Clock, BarChart3, CheckCircle2, Clock4 } from 'lucide-react';
+import { Edit, Trash2, Clock, BarChart3, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -153,7 +153,6 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
         return;
       }
       
-      // Group entries by date
       const entriesByDate = new Map<string, number>();
       
       data.forEach(entry => {
@@ -162,12 +161,10 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
         entriesByDate.set(dateKey, currentHours + entry.hours);
       });
       
-      // Convert to array format
       const hoursData: MonthlyHoursData[] = Array.from(entriesByDate.entries()).map(
         ([date, hours]) => ({ date, hours })
       );
       
-      // Group by weeks
       const entriesByWeek = new Map<number, WeeklyHoursData>();
       
       hoursData.forEach(entry => {
@@ -194,20 +191,17 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
         });
       });
       
-      // Convert to array and sort by week number
       const weeksData: WeeklyHoursData[] = Array.from(entriesByWeek.values()).sort(
         (a, b) => a.weekNumber - b.weekNumber
       );
       
-      // Calculate total
       const total = hoursData.reduce((sum, day) => sum + day.hours, 0);
       
       setMonthlyHours(hoursData);
       setWeeklyHours(weeksData);
       setTotalMonthlyHours(total);
       
-      // Continue calculating weekly average for backward compatibility
-      const average = total / 4; // Simplified weekly average calculation
+      const average = total / 4;
       setWeeklyAverage(average);
       
     } catch (error) {
@@ -424,65 +418,6 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
               {t('no_entries_today')}
             </div>
           )}
-          
-          <div className="border-t p-3 bg-gray-50">
-            <div className="space-y-3">
-              <div className="flex items-center text-sm font-medium text-gray-600">
-                <BarChart3 className="mr-2 h-4 w-4 text-reportronic-500" />
-                {t('this_month')}
-              </div>
-              
-              <div className="max-h-[250px] overflow-y-auto text-sm">
-                {weeklyHours.length > 0 ? (
-                  <div className="space-y-3">
-                    {weeklyHours.map((week) => (
-                      <div key={week.weekNumber} className="border-b pb-2 last:border-0">
-                        <div className="flex justify-between font-medium mb-1">
-                          <span>
-                            {t('week')} {week.weekNumber}: {format(parseISO(week.startDate), 'dd.MM')} - {format(parseISO(week.endDate), 'dd.MM')}
-                          </span>
-                          <span className="text-reportronic-600">{week.hours.toFixed(1)}h</span>
-                        </div>
-                        <div className="space-y-1 pl-2 text-xs">
-                          {week.entries.map((entry) => (
-                            <div key={entry.date} className="flex justify-between text-gray-600">
-                              <span>{format(parseISO(entry.date), 'dd.MM')}</span>
-                              <span>{entry.hours.toFixed(1)}h</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                    <div className="border-t pt-1 mt-2 flex justify-between font-semibold">
-                      <span>{t('total')}</span>
-                      <span>{totalMonthlyHours.toFixed(1)}h</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-gray-500">{t('no_entries_this_month')}</div>
-                )}
-              </div>
-              
-              {entries.some(entry => entry.status === 'draft') && (
-                <div className="pt-2">
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
-                    onClick={() => {
-                      const draftEntry = entries.find(e => e.status === 'draft');
-                      if (draftEntry) {
-                        handleSubmitForApproval(draftEntry.id);
-                      }
-                    }}
-                  >
-                    <Clock4 className="mr-2 h-4 w-4" />
-                    {t('submit_for_approval')}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
