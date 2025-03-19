@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Calendar } from "@/components/ui/calendar";
@@ -102,9 +101,7 @@ const Reports = () => {
   // Handle project selection change
   const handleProjectChange = (projectId: string, clientId?: string | null) => {
     setSelectedProject(projectId);
-    if (clientId) {
-      setSelectedClientId(clientId);
-    }
+    setSelectedClientId(clientId);
   };
   
   // Function to handle search button click

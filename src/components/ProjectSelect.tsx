@@ -17,7 +17,7 @@ import {
 interface ProjectSelectProps {
   value: string;
   onChange: (value: string, clientId?: string | null) => void;
-  disabled?: boolean; // Added disabled prop
+  disabled?: boolean;
 }
 
 const ProjectSelect = ({ value, onChange, disabled = false }: ProjectSelectProps) => {
@@ -95,8 +95,13 @@ const ProjectSelect = ({ value, onChange, disabled = false }: ProjectSelectProps
   }, [selectedProject, selectedClient]);
 
   const handleClientChange = (clientId: string) => {
-    setSelectedClient(clientId);
-    onChange('all', clientId); // When client changes, select "all" projects but pass clientId
+    if (clientId === 'all') {
+      setSelectedClient(null);
+      onChange('all', null); // Reset to all projects and all clients
+    } else {
+      setSelectedClient(clientId);
+      onChange('all', clientId); // When client changes, select "all" projects but pass clientId
+    }
   };
 
   const handleProjectChange = (projectId: string) => {
@@ -115,7 +120,7 @@ const ProjectSelect = ({ value, onChange, disabled = false }: ProjectSelectProps
       <div className="space-y-2">
         <Label htmlFor="client">{t('client')}</Label>
         <Select 
-          value={selectedClient || ''} 
+          value={selectedClient || 'all'} 
           onValueChange={handleClientChange}
           disabled={isLoadingClients || disabled}
         >
@@ -123,6 +128,7 @@ const ProjectSelect = ({ value, onChange, disabled = false }: ProjectSelectProps
             <SelectValue placeholder={t('select_client')} />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">{t('all_clients')}</SelectItem>
             {clients.map((client) => (
               <SelectItem key={client.id} value={client.id}>
                 {client.name}
@@ -132,7 +138,7 @@ const ProjectSelect = ({ value, onChange, disabled = false }: ProjectSelectProps
         </Select>
       </div>
 
-      {selectedClient && (
+      {(selectedClient || selectedClient === 'all') && (
         <div className="space-y-2">
           <Label htmlFor="project">{t('project')}</Label>
           <Select 
