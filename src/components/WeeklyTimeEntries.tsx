@@ -7,6 +7,8 @@ import { fi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { TimeEntry } from '@/types/timeEntry';
+import { supabase } from '@/integrations/supabase/client';
+import { getAllProjects, getProjectById } from '@/data/ClientsData';
 
 interface WeeklyTimeEntriesProps {
   timeEntries: TimeEntry[];
@@ -22,6 +24,10 @@ interface WeekData {
   isExpanded: boolean;
 }
 
+interface ProjectInfo {
+  [key: string]: { name: string; clientName: string };
+}
+
 const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({ 
   timeEntries, 
   title = 'Viikottaiset tunnit' // Default title in Finnish
@@ -29,6 +35,55 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
   const { t } = useLanguage();
   const [weeklyData, setWeeklyData] = useState<WeekData[]>([]);
   const [totalMonthHours, setTotalMonthHours] = useState(0);
+  const [projectInfo, setProjectInfo] = useState<ProjectInfo>({});
+
+  useEffect(() => {
+    fetchProjectInfo();
+  }, []);
+
+  const fetchProjectInfo = async () => {
+    try {
+      // First try to get from Supabase
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          id,
+          name,
+          client_id,
+          clients (
+            name
+          )
+        `);
+
+      if (!error && data && data.length > 0) {
+        const projectMap: ProjectInfo = {};
+        data.forEach(project => {
+          projectMap[project.id] = {
+            name: project.name,
+            clientName: project.clients?.name || 'Unknown Client'
+          };
+        });
+        setProjectInfo(projectMap);
+      } else {
+        // Fallback to static data
+        const projects = getAllProjects();
+        const projectMap: ProjectInfo = {};
+        projects.forEach(project => {
+          projectMap[project.id] = {
+            name: project.name,
+            clientName: 'Unknown Client'
+          };
+        });
+        setProjectInfo(projectMap);
+      }
+    } catch (error) {
+      console.error('Error fetching project info:', error);
+    }
+  };
+
+  const getProjectName = (projectId: string) => {
+    return projectInfo[projectId]?.name || projectId;
+  };
 
   useEffect(() => {
     if (!timeEntries || timeEntries.length === 0) return;
@@ -162,7 +217,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                         {week.entries.map(entry => (
                           <tr key={entry.id} className="hover:bg-gray-100">
                             <td className="py-2 px-3">{format(parseISO(entry.date), 'EEE d.M', { locale: fi })}</td>
-                            <td className="py-2 px-3">{entry.project_id}</td>
+                            <td className="py-2 px-3">{getProjectName(entry.project_id)}</td>
                             <td className="py-2 px-3">{entry.description || "-"}</td>
                             <td className="py-2 px-3 text-right">{Number(entry.hours).toFixed(1)}h</td>
                           </tr>
