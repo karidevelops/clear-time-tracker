@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Settings as SettingsIcon, LogOut, FileText } from 'lucide-react';
+import { Calendar, Settings as SettingsIcon, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -25,6 +25,22 @@ import TimeEntry from './TimeEntry';
 import { useAuth } from '@/context/AuthContext';
 import TodayEntries from './TodayEntries';
 import { supabase } from '@/integrations/supabase/client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+
+interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+}
 
 const Header = () => {
   const { t, language } = useLanguage();
@@ -34,6 +50,18 @@ const Header = () => {
   const [showTimeEntry, setShowTimeEntry] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const { signOut, user } = useAuth();
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  
+  useEffect(() => {
+    if (user) {
+      setSelectedUser({
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || ''
+      });
+    }
+  }, [user]);
   
   useEffect(() => {
     const checkIfAdmin = async () => {
@@ -47,8 +75,48 @@ const Header = () => {
         }
         
         setIsAdmin(data || false);
+        
+        if (data) {
+          fetchAllUsers();
+        }
       } catch (error) {
         console.error('Error checking admin status:', error);
+      }
+    };
+    
+    const fetchAllUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name');
+          
+        if (error) {
+          console.error('Error fetching users:', error);
+          return;
+        }
+        
+        const usersWithEmail: User[] = [];
+        
+        for (const profile of data) {
+          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+          
+          if (userError) {
+            console.error('Error fetching user:', userError);
+            continue;
+          }
+          
+          if (userData && userData.user) {
+            usersWithEmail.push({
+              id: profile.id,
+              email: userData.user.email || '',
+              full_name: profile.full_name || userData.user.email?.split('@')[0] || ''
+            });
+          }
+        }
+        
+        setAllUsers(usersWithEmail);
+      } catch (error) {
+        console.error('Error fetching users:', error);
       }
     };
     
@@ -109,6 +177,27 @@ const Header = () => {
     }
   };
 
+  const handleUserChange = (userId: string) => {
+    const newSelectedUser = allUsers.find(u => u.id === userId);
+    if (newSelectedUser) {
+      setSelectedUser(newSelectedUser);
+    }
+  };
+
+  const getUserInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const getDisplayName = () => {
+    if (!selectedUser) return '';
+    return selectedUser.full_name || selectedUser.email.split('@')[0] || '';
+  };
+
   return (
     <header className="reportronic-header sticky top-0 z-10 border-b border-gray-200 bg-white">
       <div className="reportronic-container">
@@ -142,23 +231,53 @@ const Header = () => {
           </nav>
           
           <div className="flex items-center space-x-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button size="sm" variant="outline" className="hidden md:flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>Kalenteri</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <CalendarComponent
-                  mode="single"
-                  selected={date}
-                  onSelect={handleCalendarSelect}
-                  locale={getLocale()}
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+            {isAdmin && allUsers.length > 0 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="hidden md:flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>{getDisplayName()}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>{t('select_user')}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {allUsers.map(u => (
+                      <DropdownMenuItem 
+                        key={u.id} 
+                        onClick={() => handleUserChange(u.id)}
+                        className={selectedUser?.id === u.id ? "bg-gray-100" : ""}
+                      >
+                        <Avatar className="h-6 w-6 mr-2">
+                          <AvatarFallback>{getUserInitials(u.full_name || u.email)}</AvatarFallback>
+                        </Avatar>
+                        <span>{u.full_name || u.email.split('@')[0]}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button size="sm" variant="outline" className="hidden md:flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>{getDisplayName()}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <CalendarComponent
+                    mode="single"
+                    selected={date}
+                    onSelect={handleCalendarSelect}
+                    locale={getLocale()}
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
 
             <div className="flex items-center space-x-3">
               <LanguageSwitcher />
@@ -184,6 +303,7 @@ const Header = () => {
             <TimeEntry 
               initialDate={format(date, 'yyyy-MM-dd')}
               onEntrySaved={handleTimeEntrySaved}
+              userId={selectedUser?.id}
             />
             
             <div className="mt-6">
@@ -192,6 +312,7 @@ const Header = () => {
                 onEntrySaved={handleTimeEntrySaved}
                 onEntryDeleted={handleTimeEntrySaved}
                 inDialog={true}
+                userId={selectedUser?.id}
               />
             </div>
             
