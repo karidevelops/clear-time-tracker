@@ -14,7 +14,10 @@ export interface TimeEntry {
   approved_at?: string | null;
   status: TimeEntryStatus;
   user_full_name?: string;
-  profiles?: {
-    full_name: string | null;
-  } | null | any; // Explicitly allowing null and any to handle error cases
+  // Make projects optional since it will only be available when joined
+  projects?: {
+    id: string;
+    name: string;
+    client_id?: string | null;
+  } | null;
 }

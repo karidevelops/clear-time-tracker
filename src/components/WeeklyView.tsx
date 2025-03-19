@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay, addWeeks, subWeeks, parseISO } from 'date-fns';
@@ -34,9 +33,8 @@ const WeeklyView = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState(true);
 
-  // Set up the days for the current week
   useEffect(() => {
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday as start of week
+    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
     const days = [];
     
@@ -47,7 +45,6 @@ const WeeklyView = () => {
     setWeekDays(days);
   }, [currentDate]);
 
-  // Fetch project information
   useEffect(() => {
     fetchProjectInfo();
   }, []);
@@ -98,46 +95,47 @@ const WeeklyView = () => {
     return projectInfo[projectId]?.clientName || '';
   };
 
-  // Fetch time entries for the displayed week
   useEffect(() => {
     if (!user) return;
     
     const fetchTimeEntries = async () => {
-      const start = format(weekDays[0] || startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-      const end = format(weekDays[6] || endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-      
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('*, profiles(*), projects(*)')
-        .eq('user_id', user.id)
-        .gte('date', start)
-        .lte('date', end)
-        .order('date', { ascending: true });
-      
-      if (error) {
-        console.error('Error fetching time entries:', error);
-        return;
-      }
-      
-      // Cast the data to ensure status is of type TimeEntryStatus
-      const typedData = (data || []).map(entry => ({
-        ...entry,
-        status: entry.status as TimeEntryStatus
-      })) as TimeEntryType[];
-      
-      setTimeEntries(typedData);
-      
-      // Calculate daily hours
-      const hours: {[key: string]: number} = {};
-      typedData.forEach((entry: TimeEntryType) => {
-        const dateKey = entry.date;
-        if (!hours[dateKey]) {
-          hours[dateKey] = 0;
+      try {
+        const start = format(weekDays[0] || startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const end = format(weekDays[6] || endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        
+        const { data, error } = await supabase
+          .from('time_entries')
+          .select('*, projects(*)')
+          .eq('user_id', user.id)
+          .gte('date', start)
+          .lte('date', end)
+          .order('date', { ascending: true });
+        
+        if (error) {
+          console.error('Error fetching time entries:', error);
+          return;
         }
-        hours[dateKey] += Number(entry.hours);
-      });
-      
-      setDailyHours(hours);
+        
+        const typedData = (data || []).map(entry => ({
+          ...entry,
+          status: entry.status as TimeEntryStatus
+        })) as TimeEntryType[];
+        
+        setTimeEntries(typedData);
+        
+        const hours: {[key: string]: number} = {};
+        typedData.forEach((entry: TimeEntryType) => {
+          const dateKey = entry.date;
+          if (!hours[dateKey]) {
+            hours[dateKey] = 0;
+          }
+          hours[dateKey] += Number(entry.hours);
+        });
+        
+        setDailyHours(hours);
+      } catch (error) {
+        console.error('Error in fetchTimeEntries:', error);
+      }
     };
     
     fetchTimeEntries();
@@ -164,41 +162,43 @@ const WeeklyView = () => {
   const refreshTimeEntries = async () => {
     if (!user) return;
     
-    const start = format(weekDays[0] || startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const end = format(weekDays[6] || endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    
-    const { data, error } = await supabase
-      .from('time_entries')
-      .select('*, profiles(*), projects(*)')
-      .eq('user_id', user.id)
-      .gte('date', start)
-      .lte('date', end)
-      .order('date', { ascending: true });
-    
-    if (error) {
-      console.error('Error fetching time entries:', error);
-      return;
-    }
-    
-    // Cast the data to ensure status is of type TimeEntryStatus
-    const typedData = (data || []).map(entry => ({
-      ...entry,
-      status: entry.status as TimeEntryStatus
-    })) as TimeEntryType[];
-    
-    setTimeEntries(typedData);
-    
-    // Calculate daily hours
-    const hours: {[key: string]: number} = {};
-    typedData.forEach((entry: TimeEntryType) => {
-      const dateKey = entry.date;
-      if (!hours[dateKey]) {
-        hours[dateKey] = 0;
+    try {
+      const start = format(weekDays[0] || startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const end = format(weekDays[6] || endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select('*, projects(*)')
+        .eq('user_id', user.id)
+        .gte('date', start)
+        .lte('date', end)
+        .order('date', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching time entries:', error);
+        return;
       }
-      hours[dateKey] += Number(entry.hours);
-    });
-    
-    setDailyHours(hours);
+      
+      const typedData = (data || []).map(entry => ({
+        ...entry,
+        status: entry.status as TimeEntryStatus
+      })) as TimeEntryType[];
+      
+      setTimeEntries(typedData);
+      
+      const hours: {[key: string]: number} = {};
+      typedData.forEach((entry: TimeEntryType) => {
+        const dateKey = entry.date;
+        if (!hours[dateKey]) {
+          hours[dateKey] = 0;
+        }
+        hours[dateKey] += Number(entry.hours);
+      });
+      
+      setDailyHours(hours);
+    } catch (error) {
+      console.error('Error in refreshTimeEntries:', error);
+    }
   };
 
   const handleEdit = (entry: TimeEntryType) => {
@@ -280,7 +280,6 @@ const WeeklyView = () => {
     setCurrentEntry(null);
   };
 
-  // Group time entries by date
   const entriesByDate: { [key: string]: TimeEntryType[] } = {};
   timeEntries.forEach(entry => {
     if (!entriesByDate[entry.date]) {
@@ -289,7 +288,6 @@ const WeeklyView = () => {
     entriesByDate[entry.date].push(entry);
   });
 
-  // Get total week hours
   const totalWeekHours = Object.values(dailyHours).reduce((sum, hours) => sum + hours, 0);
 
   return (
@@ -335,7 +333,6 @@ const WeeklyView = () => {
                     {format(day, 'd')}
                   </div>
                   
-                  {/* Show hours logged for this day */}
                   <div className="mt-2 mb-2">
                     {dailyHours[format(day, 'yyyy-MM-dd')] !== undefined ? (
                       <Badge className="bg-reportronic-500">
@@ -368,7 +365,6 @@ const WeeklyView = () => {
             ))}
           </div>
           
-          {/* Table showing all time entries for the week */}
           <div className="mt-8">
             <div 
               className="flex justify-between items-center pb-3 cursor-pointer" 
