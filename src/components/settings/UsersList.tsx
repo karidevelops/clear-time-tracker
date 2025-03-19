@@ -9,9 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Trash2, Check, Edit, RotateCcw } from "lucide-react";
+import { UserPlus, Trash2, Check, Edit, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { timeEntryStatuses, timeEntryStatusColors } from "@/utils/statusUtils";
 import { toast } from "sonner";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -27,6 +26,7 @@ interface User {
   email: string;
   full_name: string | null;
   role: string;
+  showEntries?: boolean;
 }
 
 interface TimeEntryWithDetails {
@@ -52,10 +52,8 @@ export const UsersList = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [selectedUserName, setSelectedUserName] = useState<string | null>(null);
-  const [timeEntries, setTimeEntries] = useState<TimeEntryWithDetails[]>([]);
-  const [entriesLoading, setEntriesLoading] = useState(false);
+  const [userTimeEntries, setUserTimeEntries] = useState<Record<string, TimeEntryWithDetails[]>>({});
+  const [entriesLoading, setEntriesLoading] = useState<Record<string, boolean>>({});
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
   const [selectedAction, setSelectedAction] = useState<'approve' | 'reject' | null>(null);
@@ -132,6 +130,7 @@ export const UsersList = () => {
         email: emailMap.get(profile.id) || profile.id,
         full_name: profile.full_name,
         role: roleMap.get(profile.id) || 'user',
+        showEntries: false
       })) || [];
 
       setUsers(combinedUsers);
@@ -144,7 +143,12 @@ export const UsersList = () => {
   };
 
   const fetchUserTimeEntries = async (userId: string) => {
-    setEntriesLoading(true);
+    if (userTimeEntries[userId] && userTimeEntries[userId].length > 0) {
+      return; // Data already loaded
+    }
+    
+    setEntriesLoading(prev => ({ ...prev, [userId]: true }));
+    
     try {
       const { data, error } = await supabase
         .from('time_entries')
@@ -184,19 +188,30 @@ export const UsersList = () => {
         client_name: entry.projects?.clients?.name || t('unknown_client'),
       }));
 
-      setTimeEntries(formattedEntries);
+      setUserTimeEntries(prev => ({
+        ...prev,
+        [userId]: formattedEntries
+      }));
     } catch (error) {
       console.error("Error in fetchUserTimeEntries:", error);
       toast.error(t('error_fetching_entries'));
     } finally {
-      setEntriesLoading(false);
+      setEntriesLoading(prev => ({ ...prev, [userId]: false }));
     }
   };
 
-  const handleUserSelect = (userId: string, userName: string | null) => {
-    setSelectedUserId(userId);
-    setSelectedUserName(userName || userId);
-    fetchUserTimeEntries(userId);
+  const toggleUserEntries = (userId: string) => {
+    setUsers(prevUsers => 
+      prevUsers.map(user => 
+        user.id === userId 
+          ? { ...user, showEntries: !user.showEntries } 
+          : user
+      )
+    );
+    
+    if (!userTimeEntries[userId]) {
+      fetchUserTimeEntries(userId);
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof addUserSchema>) => {
@@ -287,8 +302,20 @@ export const UsersList = () => {
         toast.success(t('entry_rejected'));
       }
 
-      if (selectedUserId) {
-        fetchUserTimeEntries(selectedUserId);
+      // Update the entries in the state
+      const entryUserId = Object.keys(userTimeEntries).find(userId => 
+        userTimeEntries[userId].some(entry => entry.id === entryId)
+      );
+      
+      if (entryUserId) {
+        setUserTimeEntries(prev => ({
+          ...prev,
+          [entryUserId]: prev[entryUserId].map(entry => 
+            entry.id === entryId 
+              ? { ...entry, status: isApproved ? 'approved' : 'draft' } 
+              : entry
+          )
+        }));
       }
     } catch (error) {
       console.error("Error updating entry status:", error);
@@ -325,153 +352,150 @@ export const UsersList = () => {
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue="users">
-          <TabsList>
-            <TabsTrigger value="users">{t('users_list')}</TabsTrigger>
-            {selectedUserId && (
-              <TabsTrigger value="timeEntries">{selectedUserName} - {t('time_entries')}</TabsTrigger>
-            )}
-          </TabsList>
-
-          <TabsContent value="users" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('users')}</CardTitle>
-                <CardDescription>{t('manage_users')}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('users')}</CardTitle>
+            <CardDescription>{t('manage_users')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('name')}</TableHead>
+                  <TableHead>{t('email')}</TableHead>
+                  <TableHead>{t('role')}</TableHead>
+                  <TableHead>{t('actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map(user => (
+                  <React.Fragment key={user.id}>
                     <TableRow>
-                      <TableHead>{t('name')}</TableHead>
-                      <TableHead>{t('email')}</TableHead>
-                      <TableHead>{t('role')}</TableHead>
-                      <TableHead>{t('actions')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map(user => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.full_name || t('no_name')}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={user.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-300' : ''}>
-                            {user.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleUserSelect(user.id, user.full_name)}
-                            >
+                      <TableCell>{user.full_name || t('no_name')}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={user.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-300' : ''}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => toggleUserEntries(user.id)}
+                          className="flex items-center"
+                        >
+                          {user.showEntries ? (
+                            <>
+                              {t('hide_entries')}
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            </>
+                          ) : (
+                            <>
                               {t('view_entries')}
-                            </Button>
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    
+                    {/* Time Entries Row */}
+                    {user.showEntries && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="p-0 border-t-0">
+                          <div className="bg-slate-50 p-4 rounded-md">
+                            {entriesLoading[user.id] ? (
+                              <div className="py-4 text-center">
+                                <p>{t('loading')}...</p>
+                              </div>
+                            ) : !userTimeEntries[user.id] || userTimeEntries[user.id].length === 0 ? (
+                              <div className="py-4 text-center">
+                                <p>{t('no_entries_found')}</p>
+                              </div>
+                            ) : (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="text-xs">{t('date')}</TableHead>
+                                    <TableHead className="text-xs">{t('hours')}</TableHead>
+                                    <TableHead className="text-xs">{t('project')}</TableHead>
+                                    <TableHead className="text-xs">{t('description')}</TableHead>
+                                    <TableHead className="text-xs">{t('status')}</TableHead>
+                                    <TableHead className="text-xs">{t('actions')}</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {userTimeEntries[user.id].map(entry => (
+                                    <TableRow key={entry.id}>
+                                      <TableCell className="text-sm">{formatDate(entry.date)}</TableCell>
+                                      <TableCell className="text-sm">{entry.hours}</TableCell>
+                                      <TableCell className="text-sm">{entry.project_name} ({entry.client_name})</TableCell>
+                                      <TableCell className="text-sm max-w-xs truncate">{entry.description || '-'}</TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          variant="outline"
+                                          className={`
+                                            ${entry.status === 'approved' ? 'bg-green-100 text-green-800 border-green-300' : 
+                                              entry.status === 'pending' ? 'bg-orange-100 text-orange-800 border-orange-300' : 
+                                              'bg-gray-100 text-gray-800 border-gray-300'}
+                                          `}
+                                        >
+                                          {t(entry.status)}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex gap-2">
+                                          {entry.status === 'pending' && (
+                                            <>
+                                              <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+                                                onClick={() => handleEntryAction(entry.id, 'approve')}
+                                              >
+                                                <Check className="h-4 w-4 mr-1" />
+                                                {t('approve')}
+                                              </Button>
+                                              <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                                                onClick={() => handleEntryAction(entry.id, 'reject')}
+                                              >
+                                                <RotateCcw className="h-4 w-4 mr-1" />
+                                                {t('return')}
+                                              </Button>
+                                            </>
+                                          )}
+                                          {entry.status === 'approved' && (
+                                            <Button 
+                                              variant="outline" 
+                                              size="sm"
+                                              className="bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
+                                              onClick={() => handleEntryAction(entry.id, 'reject')}
+                                            >
+                                              <RotateCcw className="h-4 w-4 mr-1" />
+                                              {t('return')}
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {selectedUserId && (
-            <TabsContent value="timeEntries" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>{selectedUserName} - {t('time_entries')}</CardTitle>
-                  <CardDescription>{t('manage_user_time_entries')}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {entriesLoading ? (
-                    <div className="flex justify-center py-4">
-                      <p>{t('loading')}...</p>
-                    </div>
-                  ) : timeEntries.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p>{t('no_entries_found')}</p>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('date')}</TableHead>
-                          <TableHead>{t('hours')}</TableHead>
-                          <TableHead>{t('project')}</TableHead>
-                          <TableHead>{t('description')}</TableHead>
-                          <TableHead>{t('status')}</TableHead>
-                          <TableHead>{t('actions')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {timeEntries.map(entry => (
-                          <TableRow key={entry.id}>
-                            <TableCell>{formatDate(entry.date)}</TableCell>
-                            <TableCell>{entry.hours}</TableCell>
-                            <TableCell>{entry.project_name} ({entry.client_name})</TableCell>
-                            <TableCell className="max-w-xs truncate">{entry.description || '-'}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={`
-                                  ${entry.status === 'approved' ? 'bg-green-100 text-green-800 border-green-300' : 
-                                    entry.status === 'pending' ? 'bg-orange-100 text-orange-800 border-orange-300' : 
-                                    'bg-gray-100 text-gray-800 border-gray-300'}
-                                `}
-                              >
-                                {t(entry.status)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                {entry.status === 'pending' && (
-                                  <>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
-                                      onClick={() => handleEntryAction(entry.id, 'approve')}
-                                    >
-                                      <Check className="h-4 w-4 mr-1" />
-                                      {t('approve')}
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
-                                      onClick={() => handleEntryAction(entry.id, 'reject')}
-                                    >
-                                      <RotateCcw className="h-4 w-4 mr-1" />
-                                      {t('return_for_edit')}
-                                    </Button>
-                                  </>
-                                )}
-                                {entry.status === 'approved' && (
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    className="bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
-                                    onClick={() => handleEntryAction(entry.id, 'reject')}
-                                  >
-                                    <RotateCcw className="h-4 w-4 mr-1" />
-                                    {t('return_for_edit')}
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-        </Tabs>
+                    )}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
