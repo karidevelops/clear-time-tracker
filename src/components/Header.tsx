@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Settings as SettingsIcon, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface User {
   id: string;
@@ -86,32 +94,36 @@ const Header = () => {
     
     const fetchAllUsers = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, full_name');
           
-        if (error) {
-          console.error('Error fetching users:', error);
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
           return;
         }
         
         const usersWithEmail: User[] = [];
         
-        for (const profile of data) {
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+        for (const profile of profiles) {
+          // Get user email from auth.users via admin function
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', profile.id)
+            .single();
           
           if (userError) {
-            console.error('Error fetching user:', userError);
+            console.error('Error fetching user profile:', userError);
             continue;
           }
           
-          if (userData && userData.user) {
-            usersWithEmail.push({
-              id: profile.id,
-              email: userData.user.email || '',
-              full_name: profile.full_name || userData.user.email?.split('@')[0] || ''
-            });
-          }
+          // Create user object with available data
+          usersWithEmail.push({
+            id: profile.id,
+            email: userData.email || '',
+            full_name: profile.full_name || ''
+          });
         }
         
         setAllUsers(usersWithEmail);
@@ -152,6 +164,7 @@ const Header = () => {
   };
 
   const handleTimeEntrySaved = () => {
+    // We can implement additional logic here if needed
   };
 
   const isActive = (path: string) => {
