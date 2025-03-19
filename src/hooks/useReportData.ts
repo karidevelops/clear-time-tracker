@@ -32,7 +32,7 @@ interface TimeEntryWithProfile {
   status: string;
   profiles: {
     full_name: string | null;
-  } | null;
+  } | null | any; // Adding 'any' to handle potential error responses
 }
 
 export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
@@ -137,7 +137,9 @@ export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
       
       if (error) throw error;
       
-      let filteredData = data as TimeEntryWithProfile[] || [];
+      // First cast to unknown, then to our expected type to avoid TypeScript errors
+      let filteredData = (data as unknown) as TimeEntryWithProfile[] || [];
+      
       if (filters.clientId) {
         filteredData = filteredData.filter(entry => {
           const project = projects.find(p => p.id === entry.project_id);
@@ -148,9 +150,12 @@ export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
       const mappedEntries = filteredData.map(entry => {
         let profileFullName = 'Unknown User';
         
-        // Check if profiles data exists and has full_name property
-        if (entry.profiles) {
-          profileFullName = entry.profiles.full_name || 'Unknown User';
+        // More robust check for profiles data
+        if (entry.profiles && 
+            typeof entry.profiles === 'object' && 
+            !('error' in entry.profiles) && 
+            entry.profiles.full_name) {
+          profileFullName = entry.profiles.full_name;
         }
         
         const entryWithStatus: TimeEntry = {
