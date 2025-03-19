@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
@@ -25,6 +26,7 @@ const Reports = () => {
   const [clients, setClients] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [approvingEntries, setApprovingEntries] = useState(false);
   const [filters, setFilters] = useState({
     dateRange: {
       from: startOfMonth(subMonths(new Date(), 1)),
@@ -35,6 +37,19 @@ const Reports = () => {
     clientId: '',
     status: [] as TimeEntryStatus[]
   });
+  const [loadingPendingEntries, setLoadingPendingEntries] = useState(false);
+
+  // Group pending entries by user
+  const groupedByUser = timeEntries
+    .filter(entry => entry.status === 'pending')
+    .reduce<{ [key: string]: TimeEntry[] }>((acc, entry) => {
+      const userName = entry.user_full_name || 'Unknown User';
+      if (!acc[userName]) {
+        acc[userName] = [];
+      }
+      acc[userName].push(entry);
+      return acc;
+    }, {});
 
   const checkUserRole = async () => {
     try {
@@ -144,7 +159,7 @@ const Reports = () => {
         const entryWithStatus: TimeEntry = {
           ...entry,
           user_full_name: entry.profiles && typeof entry.profiles === 'object' ? 
-            entry.profiles.full_name || 'Unknown User' : 'Unknown User',
+            (entry.profiles.full_name || 'Unknown User') : 'Unknown User',
           status: (entry.status as TimeEntryStatus) || 'draft'
         };
         return entryWithStatus;
@@ -175,6 +190,80 @@ const Reports = () => {
   const getProjectName = (projectId: string) => {
     const project = projects.find(p => p.id === projectId);
     return project ? project.name : 'Unknown Project';
+  };
+
+  const handleApprove = async (entry: TimeEntry) => {
+    // Add basic approval handling function
+    try {
+      setApprovingEntries(true);
+      const { error } = await supabase
+        .from('time_entries')
+        .update({
+          status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', entry.id);
+
+      if (error) throw error;
+      
+      toast.success(t('entry_approved'));
+      fetchTimeEntries();
+    } catch (error) {
+      console.error('Error approving entry:', error);
+      toast.error(t('error_approving_entry'));
+    } finally {
+      setApprovingEntries(false);
+    }
+  };
+
+  const approveUserEntries = async (userId: string) => {
+    try {
+      setApprovingEntries(true);
+      const { error } = await supabase
+        .from('time_entries')
+        .update({
+          status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('status', 'pending')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      
+      toast.success(t('entries_approved'));
+      fetchTimeEntries();
+    } catch (error) {
+      console.error('Error approving entries:', error);
+      toast.error(t('error_approving_entries'));
+    } finally {
+      setApprovingEntries(false);
+    }
+  };
+
+  const approveMonthEntries = async () => {
+    try {
+      setApprovingEntries(true);
+      const { error } = await supabase
+        .from('time_entries')
+        .update({
+          status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('status', 'pending');
+
+      if (error) throw error;
+      
+      toast.success(t('all_entries_approved'));
+      fetchTimeEntries();
+    } catch (error) {
+      console.error('Error approving all entries:', error);
+      toast.error(t('error_approving_all_entries'));
+    } finally {
+      setApprovingEntries(false);
+    }
   };
 
   const exportToCsv = () => {
@@ -312,7 +401,7 @@ const Reports = () => {
           <CardContent>
             <ReportFilters 
               dateRange={filters.dateRange}
-              setDateRange={(newDateRange) => setFilters({...filters, dateRange: newDateRange})}
+              setDateRange={(newDateRange) => setFilters({...filters, dateRange: newDateRange as any})}
               filterPeriod="last-month"
               setFilterPeriod={() => {}}
               selectedProject={filters.projectId}
@@ -337,7 +426,14 @@ const Reports = () => {
         {isAdmin && (
           <ApprovalSection 
             pendingEntries={timeEntries.filter(entry => entry.status === 'pending')}
-            onStatusUpdated={fetchTimeEntries}
+            loadingPendingEntries={loadingPendingEntries}
+            groupedByUser={groupedByUser}
+            approveMonthEntries={approveMonthEntries}
+            approveUserEntries={approveUserEntries}
+            handleApprove={handleApprove}
+            getClientName={getClientName}
+            getProjectName={getProjectName}
+            approvingEntries={approvingEntries}
           />
         )}
         
