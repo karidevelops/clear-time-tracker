@@ -1,16 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, PenLine } from 'lucide-react';
 import { format, parseISO, getWeek, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { TimeEntry } from '@/types/timeEntry';
+import { Button } from '@/components/ui/button';
 
 interface WeeklyTimeEntriesProps {
   timeEntries: TimeEntry[];
   title?: string;
+  onEditEntry?: (entry: TimeEntry) => void;
 }
 
 interface WeekData {
@@ -24,7 +26,8 @@ interface WeekData {
 
 const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({ 
   timeEntries, 
-  title = 'Viikottaiset tunnit' // Default title in Finnish
+  title = 'Viikottaiset kirjaukset', // Changed default title
+  onEditEntry
 }) => {
   const { t } = useLanguage();
   const [weeklyData, setWeeklyData] = useState<WeekData[]>([]);
@@ -98,6 +101,13 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
     return `${format(start, 'd.M')} - ${format(end, 'd.M.yyyy')}`;
   };
 
+  const handleEditEntry = (entry: TimeEntry, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent expanding/collapsing when clicking the edit button
+    if (onEditEntry) {
+      onEditEntry(entry);
+    }
+  };
+
   if (!weeklyData || weeklyData.length === 0) {
     return (
       <Card>
@@ -156,6 +166,7 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                           <th className="py-2 px-3 text-left font-medium text-gray-500">{t('project')}</th>
                           <th className="py-2 px-3 text-left font-medium text-gray-500">{t('description')}</th>
                           <th className="py-2 px-3 text-right font-medium text-gray-500">{t('hours')}</th>
+                          <th className="py-2 px-3 text-right font-medium text-gray-500">{t('actions')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -165,10 +176,20 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
                             <td className="py-2 px-3">{entry.project_id}</td>
                             <td className="py-2 px-3">{entry.description || "-"}</td>
                             <td className="py-2 px-3 text-right">{Number(entry.hours).toFixed(1)}h</td>
+                            <td className="py-2 px-3 text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-8 w-8 p-0" 
+                                onClick={(e) => handleEditEntry(entry, e)}
+                              >
+                                <PenLine className="h-4 w-4 text-gray-500" />
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                         <tr className="bg-gray-100">
-                          <td colSpan={3} className="py-2 px-3 text-right font-medium">{t('total')}:</td>
+                          <td colSpan={4} className="py-2 px-3 text-right font-medium">{t('total')}:</td>
                           <td className="py-2 px-3 text-right font-medium text-reportronic-600">{week.totalHours.toFixed(1)}h</td>
                         </tr>
                       </tbody>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
@@ -159,7 +158,7 @@ const Reports = () => {
         const entryWithStatus: TimeEntry = {
           ...entry,
           user_full_name: entry.profiles && typeof entry.profiles === 'object' ? 
-            (entry.profiles.full_name || 'Unknown User') : 'Unknown User',
+            (entry.profiles?.full_name || 'Unknown User') : 'Unknown User',
           status: (entry.status as TimeEntryStatus) || 'draft'
         };
         return entryWithStatus;
