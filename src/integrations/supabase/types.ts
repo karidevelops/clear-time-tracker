@@ -91,32 +91,41 @@ export type Database = {
       }
       time_entries: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string | null
           date: string
           description: string | null
           hours: number
           id: string
           project_id: string
+          status: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           date: string
           description?: string | null
           hours: number
           id?: string
           project_id: string
+          status?: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           date?: string
           description?: string | null
           hours?: number
           id?: string
           project_id?: string
+          status?: string
           updated_at?: string | null
           user_id?: string
         }

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Clock, BarChart3 } from 'lucide-react';
+import { Edit, Trash2, Clock, BarChart3, CheckCircle2, Clock4 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -10,6 +10,7 @@ import { format, startOfToday, startOfWeek, endOfWeek } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import TimeEntry from './TimeEntry';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface TimeEntryItem {
   id: string;
@@ -19,6 +20,9 @@ interface TimeEntryItem {
   project: string;
   client: string;
   project_id: string;
+  status: 'draft' | 'pending' | 'approved';
+  approved_by?: string;
+  approved_at?: string;
 }
 
 const TodayEntries = ({ onEntrySaved, onEntryDeleted }: { 
@@ -32,8 +36,27 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
   const [isLoading, setIsLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [currentEntry, setCurrentEntry] = useState<TimeEntryItem | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const today = startOfToday();
   const todayStr = format(today, 'yyyy-MM-dd');
+
+  // Check if the current user is an admin
+  const checkUserRole = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('is_admin');
+      
+      if (error) {
+        console.error('Error checking admin status:', error);
+        return;
+      }
+      
+      setIsAdmin(data || false);
+    } catch (error) {
+      console.error('Exception checking admin status:', error);
+    }
+  };
 
   const fetchTodayEntries = async () => {
     if (!user?.id) return;
@@ -48,6 +71,9 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
           hours,
           description,
           project_id,
+          status,
+          approved_by,
+          approved_at,
           projects (
             name,
             client_id,
@@ -72,7 +98,10 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
         description: entry.description || '',
         project: entry.projects?.name || 'Unknown Project',
         client: entry.projects?.clients?.name || 'Unknown Client',
-        project_id: entry.project_id
+        project_id: entry.project_id,
+        status: entry.status,
+        approved_by: entry.approved_by,
+        approved_at: entry.approved_at
       }));
 
       setEntries(mappedEntries);
@@ -133,14 +162,27 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
   useEffect(() => {
     fetchTodayEntries();
     fetchWeeklyAverage();
+    checkUserRole();
   }, [user]); // Added user as a dependency
 
   const handleEdit = (entry: TimeEntryItem) => {
+    // Don't allow editing approved entries
+    if (entry.status === 'approved' && !isAdmin) {
+      toast.info(t('cannot_edit_approved_entry'));
+      return;
+    }
+    
     setCurrentEntry(entry);
     setEditDialogOpen(true);
   };
 
-  const handleDelete = async (entryId: string) => {
+  const handleDelete = async (entryId: string, status: string) => {
+    // Don't allow deleting approved entries
+    if (status === 'approved' && !isAdmin) {
+      toast.info(t('cannot_delete_approved_entry'));
+      return;
+    }
+    
     if (!confirm(t('confirm_delete'))) return;
 
     try {
@@ -178,8 +220,73 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
     }
   };
 
+  const handleSubmitForApproval = async (entryId: string) => {
+    try {
+      const { error } = await supabase
+        .from('time_entries')
+        .update({ status: 'pending' })
+        .eq('id', entryId);
+
+      if (error) {
+        console.error('Error submitting for approval:', error);
+        toast.error(t('error_submitting_for_approval'));
+        return;
+      }
+
+      toast.success(t('entry_submitted_for_approval'));
+      fetchTodayEntries();
+    } catch (error) {
+      console.error('Exception submitting for approval:', error);
+      toast.error(t('error_submitting_for_approval'));
+    }
+  };
+
+  const handleApproveEntry = async (entryId: string) => {
+    if (!isAdmin) {
+      toast.error(t('only_admins_can_approve'));
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('time_entries')
+        .update({ 
+          status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', entryId);
+
+      if (error) {
+        console.error('Error approving entry:', error);
+        toast.error(t('error_approving_entry'));
+        return;
+      }
+
+      toast.success(t('entry_approved'));
+      fetchTodayEntries();
+    } catch (error) {
+      console.error('Exception approving entry:', error);
+      toast.error(t('error_approving_entry'));
+    }
+  };
+
   // Calculate total hours for today
   const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
+
+  // Function to render status badge
+  const renderStatusBadge = (status: string) => {
+    switch(status) {
+      case 'draft':
+        return <Badge variant="outline" className="text-gray-600 border-gray-300">{t('draft')}</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="text-orange-600 border-orange-300">{t('pending_approval')}</Badge>;
+      case 'approved':
+        return <Badge variant="outline" className="text-green-600 border-green-300">{t('approved')}</Badge>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
@@ -204,25 +311,60 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
                       {entry.description && (
                         <div className="text-sm text-gray-700 mt-1">{entry.description}</div>
                       )}
+                      <div className="mt-2 flex items-center space-x-2">
+                        {renderStatusBadge(entry.status)}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="text-reportronic-700 font-medium">{entry.hours}h</div>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-7 w-7" 
-                        onClick={() => handleEdit(entry)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-7 w-7 text-red-600" 
-                        onClick={() => handleDelete(entry.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      
+                      {entry.status === 'draft' && (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-7 w-7 text-blue-600" 
+                          onClick={() => handleSubmitForApproval(entry.id)}
+                          title={t('submit_for_approval')}
+                        >
+                          <Clock4 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
+                      {isAdmin && entry.status === 'pending' && (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-7 w-7 text-green-600" 
+                          onClick={() => handleApproveEntry(entry.id)}
+                          title={t('approve')}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
+                      {(entry.status !== 'approved' || isAdmin) && (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-7 w-7" 
+                          onClick={() => handleEdit(entry)}
+                          title={t('edit')}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
+                      {(entry.status !== 'approved' || isAdmin) && (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-7 w-7 text-red-600" 
+                          onClick={() => handleDelete(entry.id, entry.status)}
+                          title={t('delete')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -258,6 +400,8 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
               initialDescription={currentEntry.description}
               initialProjectId={currentEntry.project_id}
               entryId={currentEntry.id}
+              initialStatus={currentEntry.status}
+              isAdmin={isAdmin}
               onEntrySaved={handleEntrySaved}
             />
           )}

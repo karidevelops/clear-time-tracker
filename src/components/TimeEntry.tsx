@@ -4,20 +4,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Save } from 'lucide-react';
+import { Save, Clock4, CheckCircle2 } from 'lucide-react';
 import ProjectSelect from './ProjectSelect';
 import { toast } from 'sonner';
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 interface TimeEntryProps {
   initialDate?: string;
   initialHours?: string;
   initialDescription?: string;
   initialProjectId?: string;
+  initialStatus?: 'draft' | 'pending' | 'approved';
   entryId?: string;
+  isAdmin?: boolean;
   onEntrySaved?: (entryData: any) => void;
 }
 
@@ -26,7 +30,9 @@ const TimeEntry = ({
   initialHours = '', 
   initialDescription = '', 
   initialProjectId = '',
+  initialStatus = 'draft',
   entryId,
+  isAdmin = false,
   onEntrySaved 
 }: TimeEntryProps) => {
   const { t } = useLanguage();
@@ -38,6 +44,7 @@ const TimeEntry = ({
   const [hours, setHours] = useState<string>(initialHours);
   const [description, setDescription] = useState<string>(initialDescription);
   const [project, setProject] = useState<string>(initialProjectId);
+  const [status, setStatus] = useState<'draft' | 'pending' | 'approved'>(initialStatus);
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!entryId;
 
@@ -47,7 +54,8 @@ const TimeEntry = ({
     if (initialHours) setHours(initialHours);
     if (initialDescription) setDescription(initialDescription);
     if (initialProjectId) setProject(initialProjectId);
-  }, [initialDate, initialHours, initialDescription, initialProjectId]);
+    if (initialStatus) setStatus(initialStatus);
+  }, [initialDate, initialHours, initialDescription, initialProjectId, initialStatus]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +77,8 @@ const TimeEntry = ({
       hours: parseFloat(hours),
       description,
       project_id: project,
-      user_id: user.id
+      user_id: user.id,
+      status
     };
     
     setIsLoading(true);
@@ -128,9 +137,76 @@ const TimeEntry = ({
     }
   };
 
+  const handleSubmitForApproval = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setStatus('pending');
+    
+    // Call submit handler with updated status
+    const event = { preventDefault: () => {} } as React.FormEvent;
+    await handleSubmit(event);
+  };
+
+  const handleApprove = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (!isAdmin) {
+      toast.error(t('only_admins_can_approve'));
+      return;
+    }
+    
+    setStatus('approved');
+    
+    // Call submit handler with updated status
+    const event = { preventDefault: () => {} } as React.FormEvent;
+    await handleSubmit(event);
+  };
+
+  // Function to render status badge
+  const renderStatusBadge = (status: string) => {
+    switch(status) {
+      case 'draft':
+        return <Badge variant="outline" className="text-gray-600 border-gray-300">{t('draft')}</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="text-orange-600 border-orange-300">{t('pending_approval')}</Badge>;
+      case 'approved':
+        return <Badge variant="outline" className="text-green-600 border-green-300">{t('approved')}</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  const canEdit = isAdmin || status !== 'approved';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {isEditing && (
+          <div className="md:col-span-2 flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">{t('status')}:</span>
+              {renderStatusBadge(status)}
+            </div>
+            {isAdmin && (
+              <div className="space-x-2">
+                <Select 
+                  value={status} 
+                  onValueChange={(value: any) => setStatus(value)}
+                  disabled={!isAdmin}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder={t('select_status')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">{t('draft')}</SelectItem>
+                    <SelectItem value="pending">{t('pending_approval')}</SelectItem>
+                    <SelectItem value="approved">{t('approved')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="date">{t('date')}</Label>
           <Input
@@ -139,6 +215,7 @@ const TimeEntry = ({
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="border-gray-300"
+            disabled={!canEdit}
           />
         </div>
         
@@ -153,13 +230,15 @@ const TimeEntry = ({
             value={hours}
             onChange={(e) => setHours(e.target.value)}
             className="border-gray-300"
+            disabled={!canEdit}
           />
         </div>
       </div>
       
       <ProjectSelect 
         value={project} 
-        onChange={setProject} 
+        onChange={setProject}
+        disabled={!canEdit}
       />
       
       <div className="space-y-2">
@@ -171,17 +250,48 @@ const TimeEntry = ({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="border-gray-300 resize-none"
+          disabled={!canEdit}
         />
       </div>
     
-      <Button 
-        type="submit" 
-        className="w-full md:w-auto bg-reportronic-500 hover:bg-reportronic-600 text-white"
-        disabled={isLoading}
-      >
-        <Save className="mr-2 h-4 w-4" />
-        {isLoading ? t('saving') : isEditing ? t('update_time_entry') : t('save_time_entry')}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        {canEdit && (
+          <Button 
+            type="submit" 
+            className="bg-reportronic-500 hover:bg-reportronic-600 text-white"
+            disabled={isLoading}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {isLoading ? t('saving') : isEditing ? t('update_time_entry') : t('save_time_entry')}
+          </Button>
+        )}
+        
+        {status === 'draft' && canEdit && (
+          <Button 
+            type="button"
+            variant="outline"
+            className="border-orange-500 text-orange-600 hover:bg-orange-50"
+            disabled={isLoading}
+            onClick={handleSubmitForApproval}
+          >
+            <Clock4 className="mr-2 h-4 w-4" />
+            {t('submit_for_approval')}
+          </Button>
+        )}
+        
+        {isAdmin && status === 'pending' && (
+          <Button 
+            type="button"
+            variant="outline"
+            className="border-green-500 text-green-600 hover:bg-green-50"
+            disabled={isLoading}
+            onClick={handleApprove}
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            {t('approve')}
+          </Button>
+        )}
+      </div>
     </form>
   );
 };
