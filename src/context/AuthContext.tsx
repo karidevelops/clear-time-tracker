@@ -76,9 +76,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signOut = async () => {
     try {
+      // Clear local session state first
+      setUser(null);
+      setSession(null);
+      
+      // Then attempt to sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        // If we get a session missing error, we're already signed out, so we can ignore it
+        if (error.message === 'Auth session missing!' || 
+            error.name === 'AuthSessionMissingError') {
+          // This is fine, it means we're already signed out
+          toast.success('Signed out successfully');
+          return;
+        }
+        
+        // Handle other errors
         console.error('Error signing out:', error);
         toast.error('Error signing out');
         return;

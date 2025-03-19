@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Settings as SettingsIcon, LogOut, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,7 +35,6 @@ const Header = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { signOut, user } = useAuth();
   
-  // Check if user is admin
   useEffect(() => {
     const checkIfAdmin = async () => {
       if (!user) return;
@@ -57,7 +55,6 @@ const Header = () => {
     checkIfAdmin();
   }, [user]);
   
-  // Get date-fns locale based on current language
   const getLocale = () => {
     switch (language) {
       case 'fi':
@@ -77,9 +74,7 @@ const Header = () => {
   };
 
   const handleLogTime = () => {
-    // Navigate to home page where the time entry form is
     navigate('/');
-    // We can scroll to the time entry form if needed
     setTimeout(() => {
       const timeEntryCard = document.querySelector('.time-tracker-header + div .card');
       if (timeEntryCard) {
@@ -89,21 +84,15 @@ const Header = () => {
   };
 
   const handleTimeEntrySaved = () => {
-    // We keep the time entry dialog open so user can see their entries
-    // They can close it manually when done
   };
-  
-  // Helper function to check if a path is active
+
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') {
       return true;
     }
-    // For other paths, check if the current path starts with the given path
-    // This handles nested routes like /reports/123
     return path !== '/' && location.pathname.startsWith(path);
   };
-  
-  // Get the CSS classes for a nav link
+
   const getLinkClasses = (path: string) => {
     const baseClasses = "transition-colors px-3 py-2";
     return isActive(path)
@@ -115,13 +104,11 @@ const Header = () => {
     e.preventDefault();
     try {
       await signOut();
-      // Navigation to /auth will happen through the ProtectedRoute in App.tsx 
-      // when the auth state changes
     } catch (error) {
       console.error('Error during sign out:', error);
     }
   };
-  
+
   return (
     <header className="reportronic-header sticky top-0 z-10 border-b border-gray-200 bg-white">
       <div className="reportronic-container">
