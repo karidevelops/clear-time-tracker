@@ -171,8 +171,6 @@ const Reports = () => {
   
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('reports')}</h1>
-      
       <Card>
         <CardHeader>
           <CardTitle>{t('generate_report')}</CardTitle>
