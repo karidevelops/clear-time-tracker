@@ -157,12 +157,15 @@ const Reports = () => {
       const mappedEntries = filteredData.map(entry => {
         let profileFullName = 'Unknown User';
         
-        // Fix: Added an explicit check for null entry.profiles
+        // Fix: Added more robust null checking for profiles
         const profiles = entry.profiles;
         if (profiles !== null && 
             profiles !== undefined && 
             typeof profiles === 'object') {
-          profileFullName = profiles.full_name || 'Unknown User';
+          // Add explicit null check for profiles.full_name
+          profileFullName = (profiles.full_name !== null && profiles.full_name !== undefined) 
+            ? profiles.full_name 
+            : 'Unknown User';
         }
         
         const entryWithStatus: TimeEntry = {
