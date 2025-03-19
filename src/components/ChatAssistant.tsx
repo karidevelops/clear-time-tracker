@@ -175,8 +175,10 @@ const ChatAssistant = () => {
       
       if (insertError) throw insertError;
       
-      return t('copied_entries_success', { count: newEntries.length }) || 
-        `Kopioitu ${newEntries.length} kirjausta eiliseltä tälle päivälle.`;
+      // Fix: Use proper translation with object parameter instead of multiple arguments
+      const count = newEntries.length;
+      return t('copied_entries_success', { count }) || 
+        `Kopioitu ${count} kirjausta eiliseltä tälle päivälle.`;
     } catch (error) {
       console.error('Error copying entries:', error);
       return t('error_copying_entries') || 'Virhe kirjausten kopioinnissa. Yritä uudelleen myöhemmin.';
@@ -203,8 +205,11 @@ const ChatAssistant = () => {
       
       const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
       
-      let response = t('today_entries_summary', { count: entries.length, hours: totalHours }) || 
-        `Tänään on ${entries.length} kirjausta, yhteensä ${totalHours} tuntia:\n\n`;
+      // Fix: Use proper translation with object parameter
+      const count = entries.length;
+      const hours = totalHours;
+      let response = t('today_entries_summary', { count, hours }) || 
+        `Tänään on ${count} kirjausta, yhteensä ${hours} tuntia:\n\n`;
       
       entries.forEach((entry, index) => {
         response += `${index + 1}. ${(entry.projects as any)?.name || 'Tuntematon projekti'}: ${entry.hours}h - ${entry.description || 'Ei kuvausta'}\n`;
@@ -237,8 +242,11 @@ const ChatAssistant = () => {
       
       const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
       
-      let response = t('yesterday_entries_summary', { count: entries.length, hours: totalHours }) || 
-        `Eilen oli ${entries.length} kirjausta, yhteensä ${totalHours} tuntia:\n\n`;
+      // Fix: Use proper translation with object parameter
+      const count = entries.length;
+      const hours = totalHours;
+      let response = t('yesterday_entries_summary', { count, hours }) || 
+        `Eilen oli ${count} kirjausta, yhteensä ${hours} tuntia:\n\n`;
       
       entries.forEach((entry, index) => {
         response += `${index + 1}. ${(entry.projects as any)?.name || 'Tuntematon projekti'}: ${entry.hours}h - ${entry.description || 'Ei kuvausta'}\n`;
