@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, BarChart3, Calendar, ArrowUp, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useLanguage } from '@/context/LanguageContext';
 import TimeEntry from '@/components/TimeEntry';
@@ -26,6 +27,7 @@ const projects = [
 const Index = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     today: 0,
@@ -35,13 +37,26 @@ const Index = () => {
     previousWeeklyAverage: 0
   });
   const [monthlyEntries, setMonthlyEntries] = useState<TimeEntryType[]>([]);
+  const [activeUserId, setActiveUserId] = useState<string | null>(null);
+
+  // Extract user ID from URL query parameters or use current user
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const userIdParam = searchParams.get('userId');
+    
+    if (userIdParam) {
+      setActiveUserId(userIdParam);
+    } else if (user?.id) {
+      setActiveUserId(user.id);
+    }
+  }, [location.search, user]);
 
   useEffect(() => {
-    if (user?.id) {
+    if (activeUserId) {
       fetchStats();
       fetchMonthlyEntries();
     }
-  }, [user]);
+  }, [activeUserId]);
 
   const handleTimeEntrySaved = () => {
     fetchStats();
@@ -55,9 +70,9 @@ const Index = () => {
     : "0.0";
 
   async function fetchStats() {
-    if (!user?.id) return;
+    if (!activeUserId) return;
     
-    const userId = user.id;
+    const userId = activeUserId;
     const today = startOfToday();
     const weekStart = startOfWeek(today);
     const monthStart = startOfMonth(today);
@@ -121,7 +136,7 @@ const Index = () => {
   }
 
   async function fetchMonthlyEntries() {
-    if (!user?.id) return;
+    if (!activeUserId) return;
     
     try {
       const today = new Date();
@@ -132,7 +147,7 @@ const Index = () => {
       const { data, error } = await supabase
         .from('time_entries')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', activeUserId)
         .gte('date', monthStartStr)
         .lte('date', monthEndStr)
         .order('date', { ascending: false });
@@ -157,7 +172,7 @@ const Index = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <TimeEntry onEntrySaved={handleTimeEntrySaved} />
+              <TimeEntry onEntrySaved={handleTimeEntrySaved} userId={activeUserId || undefined} />
             </CardContent>
           </Card>
 

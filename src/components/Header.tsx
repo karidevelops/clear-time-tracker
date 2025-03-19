@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Settings as SettingsIcon, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -153,7 +154,12 @@ const Header = () => {
   };
 
   const handleTimeEntrySaved = () => {
-    // We can implement additional logic here if needed
+    // Force a refresh of the current route to update the data
+    const currentPath = location.pathname;
+    navigate('/', { replace: true });
+    setTimeout(() => {
+      navigate(currentPath, { replace: true });
+    }, 100);
   };
 
   const isActive = (path: string) => {
@@ -183,6 +189,13 @@ const Header = () => {
     const newSelectedUser = allUsers.find(u => u.id === userId);
     if (newSelectedUser) {
       setSelectedUser(newSelectedUser);
+      
+      // Force refresh the current view after user change
+      const currentPath = location.pathname;
+      navigate('/', { replace: true });
+      setTimeout(() => {
+        navigate(currentPath, { replace: true });
+      }, 100);
     }
   };
 

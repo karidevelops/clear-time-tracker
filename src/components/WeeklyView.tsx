@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay, addWeeks, subWeeks, parseISO } from 'date-fns';
@@ -17,11 +18,13 @@ import { useToast } from '@/hooks/use-toast';
 import { getAllProjects, getProjectById } from '@/data/ClientsData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import { isHolidayOrWeekend, getHolidayName } from '@/utils/dateUtils';
+import { useLocation } from 'react-router-dom';
 
 const WeeklyView = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekDays, setWeekDays] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -33,6 +36,18 @@ const WeeklyView = () => {
   const [currentEntry, setCurrentEntry] = useState<TimeEntryType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState(true);
+  const [activeUserId, setActiveUserId] = useState<string | undefined>(undefined);
+  
+  // Extract user ID from URL query parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const userIdParam = searchParams.get('userId');
+    if (userIdParam) {
+      setActiveUserId(userIdParam);
+    } else if (user) {
+      setActiveUserId(user.id);
+    }
+  }, [location.search, user]);
 
   useEffect(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -97,7 +112,7 @@ const WeeklyView = () => {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!activeUserId) return;
     
     const fetchTimeEntries = async () => {
       try {
@@ -107,7 +122,7 @@ const WeeklyView = () => {
         const { data, error } = await supabase
           .from('time_entries')
           .select('*, projects(*)')
-          .eq('user_id', user.id)
+          .eq('user_id', activeUserId)
           .gte('date', start)
           .lte('date', end)
           .order('date', { ascending: true });
@@ -140,7 +155,7 @@ const WeeklyView = () => {
     };
     
     fetchTimeEntries();
-  }, [weekDays, user, currentDate]);
+  }, [weekDays, activeUserId, currentDate]);
 
   const handlePreviousWeek = () => {
     setCurrentDate(subWeeks(currentDate, 1));
@@ -161,7 +176,7 @@ const WeeklyView = () => {
   };
 
   const refreshTimeEntries = async () => {
-    if (!user) return;
+    if (!activeUserId) return;
     
     try {
       const start = format(weekDays[0] || startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -170,7 +185,7 @@ const WeeklyView = () => {
       const { data, error } = await supabase
         .from('time_entries')
         .select('*, projects(*)')
-        .eq('user_id', user.id)
+        .eq('user_id', activeUserId)
         .gte('date', start)
         .lte('date', end)
         .order('date', { ascending: true });
@@ -234,14 +249,14 @@ const WeeklyView = () => {
   };
 
   const handleCopy = async (entry: TimeEntryType) => {
-    if (!user) return;
+    if (!activeUserId) return;
     
     const newEntry = {
       date: entry.date,
       description: entry.description,
       hours: entry.hours,
       project_id: entry.project_id,
-      user_id: user.id,
+      user_id: activeUserId,
       status: 'draft' as TimeEntryStatus
     };
     
@@ -487,6 +502,7 @@ const WeeklyView = () => {
             <TimeEntry 
               initialDate={format(selectedDate, 'yyyy-MM-dd')}
               onEntrySaved={handleTimeEntrySaved}
+              userId={activeUserId}
             />
             <div className="mt-4 flex justify-end">
               <Button variant="outline" onClick={() => setShowTimeEntry(false)}>
@@ -516,6 +532,7 @@ const WeeklyView = () => {
                 initialStatus={currentEntry.status}
                 entryId={currentEntry.id}
                 onEntrySaved={handleEntrySaved}
+                userId={activeUserId}
               />
             )}
           </div>
