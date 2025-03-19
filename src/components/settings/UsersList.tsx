@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,16 +94,20 @@ export const UsersList = () => {
         console.error("Error fetching user roles:", rolesError);
       }
 
-      const { data: authUsers, error: authError } = await supabase
-        .from('auth.users')
-        .select('id, email');
+      // Get email addresses from auth.users through RPC function
+      // We cannot directly query auth.users from the client
+      const { data: authUsers, error: authError } = await supabase.rpc('get_user_emails');
       
+      if (authError) {
+        console.error("Error fetching user emails:", authError);
+      }
+
       const roleMap = new Map();
       userRoles?.forEach(role => roleMap.set(role.user_id, role.role));
       
       const emailMap = new Map();
       if (authUsers) {
-        authUsers.forEach(user => emailMap.set(user.id, user.email));
+        authUsers.forEach((user: {id: string, email: string}) => emailMap.set(user.id, user.email));
       }
 
       const combinedUsers: User[] = profiles?.map(profile => ({
