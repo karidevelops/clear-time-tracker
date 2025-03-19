@@ -33,6 +33,7 @@ interface TimeEntryProps {
   entryId?: string;
   isAdmin?: boolean;
   onEntrySaved?: (entryData: any) => void;
+  userId?: string; // Add the userId property
 }
 
 const TimeEntry = ({ 
@@ -43,7 +44,8 @@ const TimeEntry = ({
   initialStatus = 'draft',
   entryId,
   isAdmin = false,
-  onEntrySaved 
+  onEntrySaved,
+  userId
 }: TimeEntryProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -75,7 +77,7 @@ const TimeEntry = ({
       return;
     }
     
-    if (!user) {
+    if (!user && !userId) {
       toast.error(t('login_required'));
       navigate('/auth');
       return;
@@ -86,7 +88,7 @@ const TimeEntry = ({
       hours: parseFloat(hours),
       description,
       project_id: project,
-      user_id: user.id,
+      user_id: userId || user?.id,
       status
     };
     

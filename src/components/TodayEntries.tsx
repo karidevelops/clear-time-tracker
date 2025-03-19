@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,9 +45,10 @@ interface TodayEntriesProps {
   onEntrySaved?: (entry: any) => void;
   onEntryDeleted?: () => void;
   inDialog?: boolean;
+  userId?: string;
 }
 
-const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayEntriesProps) => {
+const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false, userId }: TodayEntriesProps) => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [entries, setEntries] = useState<TimeEntryItem[]>([]);
@@ -62,6 +62,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
   const [isAdmin, setIsAdmin] = useState(false);
   const today = startOfToday();
   const todayStr = format(today, 'yyyy-MM-dd');
+  const activeUserId = userId || user?.id;
 
   const checkUserRole = async () => {
     if (!user?.id) return;
@@ -81,7 +82,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
   };
 
   const fetchTodayEntries = async () => {
-    if (!user?.id) return;
+    if (!activeUserId) return;
     
     setIsLoading(true);
     try {
@@ -104,7 +105,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
             )
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', activeUserId)
         .eq('date', todayStr)
         .order('created_at', { ascending: false });
 
@@ -135,7 +136,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
   };
 
   const fetchMonthlyHours = async () => {
-    if (!user?.id) return;
+    if (!activeUserId) return;
     
     try {
       const monthStart = startOfMonth(today);
@@ -147,7 +148,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
       const { data, error } = await supabase
         .from('time_entries')
         .select('hours, date')
-        .eq('user_id', user.id)
+        .eq('user_id', activeUserId)
         .gte('date', monthStartStr)
         .lte('date', monthEndStr)
         .order('date', { ascending: true });
@@ -217,7 +218,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
     fetchTodayEntries();
     fetchMonthlyHours();
     checkUserRole();
-  }, [user]);
+  }, [user, userId]);
 
   const handleEdit = (entry: TimeEntryItem) => {
     if (entry.status === 'approved' && !isAdmin) {
@@ -381,7 +382,6 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
     }
   };
 
-  // For dialog mode, render a simpler version without the Card wrapper
   if (inDialog) {
     return (
       <>
@@ -483,7 +483,6 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted, inDialog = false }: TodayE
     );
   }
 
-  // Regular card view for the main page
   return (
     <>
       <Card>
