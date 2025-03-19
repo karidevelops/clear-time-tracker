@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,7 +107,17 @@ const TimeEntry = ({
       
       if (error) {
         console.error('Error saving time entry:', error);
-        toast.error(t('error_saving_time_entry'));
+        
+        // Provide more specific error messages based on error codes
+        if (error.code === '42P17') {
+          toast.error(t('database_policy_error'));
+        } else if (error.code === '23505') {
+          toast.error(t('duplicate_entry_error'));
+        } else if (error.code === '23503') {
+          toast.error(t('foreign_key_constraint_error'));
+        } else {
+          toast.error(t('error_saving_time_entry'));
+        }
         return;
       }
       

@@ -6,7 +6,7 @@ interface LanguageContextType {
   t: (key: string) => string;
 }
 
-interface Translations {
+interface TranslationsType {
   login: string;
   register: string;
   email: string;
@@ -148,6 +148,9 @@ interface Translations {
   error_fetching_clients: string;
   error_fetching_projects: string;
   error_fetching_project_details: string;
+  database_policy_error: string;
+  duplicate_entry_error: string;
+  foreign_key_constraint_error: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -156,7 +159,7 @@ const LanguageContext = createContext<LanguageContextType>({
   t: (key: string) => key,
 });
 
-const translations: Record<string, Translations> = {
+const translations: Record<string, TranslationsType> = {
   en: {
     dashboard: 'Dashboard',
     weekly_view: 'Weekly View',
@@ -298,6 +301,9 @@ const translations: Record<string, Translations> = {
     error_fetching_clients: 'Error fetching clients',
     error_fetching_projects: 'Error fetching projects',
     error_fetching_project_details: 'Error fetching project details',
+    database_policy_error: 'Database policy error. Please try again or contact support.',
+    duplicate_entry_error: 'A duplicate entry already exists.',
+    foreign_key_constraint_error: 'Invalid project selection. Please choose another project.'
   },
   fi: {
     dashboard: 'Tuntikirjaus',
@@ -440,6 +446,9 @@ const translations: Record<string, Translations> = {
     error_fetching_clients: 'Virhe haettaessa asiakkaita',
     error_fetching_projects: 'Virhe haettaessa projekteja',
     error_fetching_project_details: 'Virhe haettaessa projektin tietoja',
+    database_policy_error: 'Tietokantakäytäntövirhe. Yritä uudelleen tai ota yhteyttä tukeen.',
+    duplicate_entry_error: 'Identtinen kirjaus on jo olemassa.',
+    foreign_key_constraint_error: 'Virheellinen projektivalinta. Valitse toinen projekti.'
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -582,6 +591,9 @@ const translations: Record<string, Translations> = {
     error_fetching_clients: 'Fel vid hämtning av kunder',
     error_fetching_projects: 'Fel vid hämtning av projekt',
     error_fetching_project_details: 'Fel vid hämtning av projektdetaljer',
+    database_policy_error: 'Databasprincipfel. Försök igen eller kontakta support.',
+    duplicate_entry_error: 'En dubblett finns redan.',
+    foreign_key_constraint_error: 'Ogiltigt projektval. Välj ett annat projekt.'
   },
 };
 
