@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,10 +76,13 @@ export const UsersList = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      // Instead of using admin.listUsers(), get users from profiles and user_roles tables
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name');
       
-      if (authError) {
-        console.error("Error fetching users:", authError);
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
         toast.error(t('error_fetching_users'));
         return;
       }
@@ -91,25 +95,19 @@ export const UsersList = () => {
         console.error("Error fetching user roles:", rolesError);
       }
 
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name');
+      // Get emails from auth.users, but don't use them directly
+      // Instead, get data from profiles and user_roles tables
       
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-      }
-
+      // Map roles to users
       const roleMap = new Map();
       userRoles?.forEach(role => roleMap.set(role.user_id, role.role));
 
-      const profileMap = new Map();
-      profiles?.forEach(profile => profileMap.set(profile.id, profile.full_name));
-
-      const combinedUsers = authUsers?.users.map(user => ({
-        id: user.id,
-        email: user.email || '',
-        full_name: profileMap.get(user.id) || null,
-        role: roleMap.get(user.id) || 'user',
+      // Convert profiles to user objects
+      const combinedUsers: User[] = profiles?.map(profile => ({
+        id: profile.id,
+        email: profile.id, // We don't have direct access to emails, using id as placeholder
+        full_name: profile.full_name,
+        role: roleMap.get(profile.id) || 'user',
       })) || [];
 
       setUsers(combinedUsers);
@@ -179,13 +177,60 @@ export const UsersList = () => {
 
   const onSubmit = async (values: z.infer<typeof addUserSchema>) => {
     try {
-      toast.info(t('user_add_not_implemented'));
+      // First, create the user in auth.users using signup
+      const { data: signupData, error: signupError } = await supabase.auth.signUp({
+        email: values.email,
+        password: generateRandomPassword(), // Generate a random password
+        options: {
+          data: {
+            full_name: values.full_name
+          }
+        }
+      });
+
+      if (signupError) {
+        console.error("Error signing up user:", signupError);
+        toast.error(t('error_adding_user'));
+        return;
+      }
+
+      const newUserId = signupData.user?.id;
+      
+      if (!newUserId) {
+        toast.error(t('error_adding_user'));
+        return;
+      }
+
+      // If role is admin, update the user_roles table
+      if (values.role === 'admin') {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .update({ role: 'admin' })
+          .eq('user_id', newUserId);
+        
+        if (roleError) {
+          console.error("Error updating user role:", roleError);
+          toast.error(t('error_setting_role'));
+        }
+      }
+
+      toast.success(t('user_added_successfully'));
       setAddUserDialogOpen(false);
       form.reset();
+      fetchUsers(); // Refresh the user list
     } catch (error) {
       console.error("Error adding user:", error);
       toast.error(t('error_adding_user'));
     }
+  };
+
+  const generateRandomPassword = () => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+    let password = '';
+    for (let i = 0; i < 16; i++) {
+      password += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return password;
   };
 
   const handleEntryAction = (entryId: string, action: 'approve' | 'reject') => {
