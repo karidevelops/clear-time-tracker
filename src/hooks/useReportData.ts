@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,24 +14,6 @@ interface ReportFilters {
   projectId: string;
   clientId: string;
   status: TimeEntryStatus[];
-}
-
-// Define the type for the time entry response from Supabase
-interface TimeEntryWithProfile {
-  id: string;
-  date: string;
-  hours: number;
-  project_id: string;
-  description: string | null;
-  user_id: string;
-  created_at?: string | null;
-  updated_at?: string | null;
-  approved_by?: string | null;
-  approved_at?: string | null;
-  status: string;
-  profiles: {
-    full_name: string | null;
-  } | null | any; // Adding 'any' to handle potential error responses
 }
 
 export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
@@ -111,10 +92,7 @@ export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
       
       let query = supabase
         .from('time_entries')
-        .select(`
-          *,
-          profiles (full_name)
-        `)
+        .select('*')
         .gte('date', fromDate)
         .lte('date', toDate)
         .order('date', { ascending: false });
@@ -137,30 +115,39 @@ export const useReportData = (isAdmin: boolean, userId: string | undefined) => {
       
       if (error) throw error;
       
-      // First cast to unknown, then to our expected type to avoid TypeScript errors
-      let filteredData = (data as unknown) as TimeEntryWithProfile[] || [];
+      let timeEntriesData = data || [];
+      
+      const userIds = [...new Set(timeEntriesData.map(entry => entry.user_id))];
+      
+      let userProfiles: Record<string, string> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
+        
+        if (!profilesError && profilesData) {
+          userProfiles = profilesData.reduce((acc, profile) => {
+            acc[profile.id] = profile.full_name || 'Unknown User';
+            return acc;
+          }, {} as Record<string, string>);
+        }
+      }
       
       if (filters.clientId) {
-        filteredData = filteredData.filter(entry => {
+        timeEntriesData = timeEntriesData.filter(entry => {
           const project = projects.find(p => p.id === entry.project_id);
           return project && project.client_id === filters.clientId;
         });
       }
       
-      const mappedEntries = filteredData.map(entry => {
-        let profileFullName = 'Unknown User';
-        
-        // More robust check for profiles data
-        if (entry.profiles && 
-            typeof entry.profiles === 'object' && 
-            !('error' in entry.profiles) && 
-            entry.profiles.full_name) {
-          profileFullName = entry.profiles.full_name;
-        }
+      const mappedEntries = timeEntriesData.map(entry => {
+        const userFullName = userProfiles[entry.user_id] || 'Unknown User';
         
         const entryWithStatus: TimeEntry = {
           ...entry,
-          user_full_name: profileFullName,
+          user_full_name: userFullName,
           status: (entry.status as TimeEntryStatus) || 'draft'
         };
         return entryWithStatus;

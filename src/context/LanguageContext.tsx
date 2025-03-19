@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface LanguageContextType {
@@ -306,7 +307,7 @@ const translations: Record<string, TranslationsType> = {
     foreign_key_constraint_error: 'Invalid project selection. Please choose another project.'
   },
   fi: {
-    dashboard: 'Tuntikirjaus',
+    dashboard: 'Kojelauta',
     weekly_view: 'Viikkonäkymä',
     reports: 'Raportit',
     settings: 'Asetukset',
@@ -448,7 +449,26 @@ const translations: Record<string, TranslationsType> = {
     error_fetching_project_details: 'Virhe haettaessa projektin tietoja',
     database_policy_error: 'Tietokantakäytäntövirhe. Yritä uudelleen tai ota yhteyttä tukeen.',
     duplicate_entry_error: 'Identtinen kirjaus on jo olemassa.',
-    foreign_key_constraint_error: 'Virheellinen projektivalinta. Valitse toinen projekti.'
+    foreign_key_constraint_error: 'Virheellinen projektivalinta. Valitse toinen projekti.',
+    error_fetching_time_entries: 'Virhe haettaessa aikakirjauksia',
+    time_entries: 'Aikakirjaukset',
+    no_time_entries_found: 'Aikakirjauksia ei löytynyt',
+    summary: 'Yhteenveto',
+    total_entries: 'Kirjauksia yhteensä',
+    export_to_csv: 'Vie CSV-muodossa',
+    export_to_excel: 'Vie Excel-muodossa',
+    export_to_pdf: 'Vie PDF-muodossa',
+    date_range: 'Aikaväli',
+    quick_filters: 'Pikasuodattimet',
+    last_month: 'Viime kuukausi',
+    all_time: 'Kaikki ajat',
+    select_date_range: 'Valitse aikaväli',
+    filter_reports: 'Suodata raportteja',
+    filter_pending_entries: 'Suodata odottavia kirjauksia',
+    user: 'Käyttäjä',
+    all_users: 'Kaikki käyttäjät',
+    avg_hours_per_day: 'Keskimääräiset tunnit / päivä',
+    logout: 'Kirjaudu ulos'
   },
   sv: {
     dashboard: 'Instrumentbräda',
