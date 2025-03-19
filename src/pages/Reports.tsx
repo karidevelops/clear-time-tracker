@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { FileText } from "lucide-react";
@@ -18,7 +17,7 @@ import ReportSummary from "@/components/reports/ReportSummary";
 import TimeEntriesTable from "@/components/reports/TimeEntriesTable";
 import ApprovalSection from "@/components/reports/ApprovalSection";
 import ApprovalDialog from "@/components/reports/ApprovalDialog";
-import { TimeEntry } from "@/types/timeEntry";
+import { TimeEntry, TimeEntryStatus } from "@/types/timeEntry";
 
 interface Project {
   id: string;
@@ -207,7 +206,7 @@ const Reports = () => {
           let userName = t('unknown_user');
           
           if (entry.profiles && typeof entry.profiles === 'object' && entry.profiles !== null && !('error' in entry.profiles)) {
-            userName = entry.profiles.full_name || t('unknown_user');
+            userName = entry.profiles?.full_name || t('unknown_user');
           }
           
           return {
