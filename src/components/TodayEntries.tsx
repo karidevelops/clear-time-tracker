@@ -5,8 +5,7 @@ import { Edit, Trash2, Clock, BarChart3, CheckCircle2, Clock4 } from 'lucide-rea
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { format, startOfToday, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, getWeek } from 'date-fns';
-import { fi } from 'date-fns/locale';
+import { format, startOfToday, startOfMonth, endOfMonth, parseISO, getWeek, startOfWeek, endOfWeek } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import TimeEntry from './TimeEntry';
 import { toast } from 'sonner';
@@ -48,9 +47,7 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [entries, setEntries] = useState<TimeEntryItem[]>([]);
-  const [weeklyAverage, setWeeklyAverage] = useState<number>(0);
   const [monthlyHours, setMonthlyHours] = useState<MonthlyHoursData[]>([]);
-  const [weeklyHours, setWeeklyHours] = useState<WeeklyHoursData[]>([]);
   const [totalMonthlyHours, setTotalMonthlyHours] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -167,48 +164,11 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
         ([date, hours]) => ({ date, hours })
       );
       
-      // Group by weeks
-      const entriesByWeek = new Map<number, WeeklyHoursData>();
-      
-      hoursData.forEach(entry => {
-        const entryDate = parseISO(entry.date);
-        const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(entryDate, { weekStartsOn: 1 });
-        const weekNumber = getWeek(entryDate, { weekStartsOn: 1 });
-        
-        if (!entriesByWeek.has(weekNumber)) {
-          entriesByWeek.set(weekNumber, {
-            weekNumber,
-            startDate: format(weekStart, 'yyyy-MM-dd'),
-            endDate: format(weekEnd, 'yyyy-MM-dd'),
-            hours: 0,
-            entries: []
-          });
-        }
-        
-        const weekData = entriesByWeek.get(weekNumber)!;
-        weekData.hours += entry.hours;
-        weekData.entries.push({
-          date: entry.date,
-          hours: entry.hours
-        });
-      });
-      
-      // Convert to array and sort by week number
-      const weeksData: WeeklyHoursData[] = Array.from(entriesByWeek.values()).sort(
-        (a, b) => a.weekNumber - b.weekNumber
-      );
-      
       // Calculate total
       const total = hoursData.reduce((sum, day) => sum + day.hours, 0);
       
       setMonthlyHours(hoursData);
-      setWeeklyHours(weeksData);
       setTotalMonthlyHours(total);
-      
-      // Continue calculating weekly average for backward compatibility
-      const average = total / 4; // Simplified weekly average calculation
-      setWeeklyAverage(average);
       
     } catch (error) {
       console.error('Exception fetching monthly hours:', error);
@@ -433,26 +393,8 @@ const TodayEntries = ({ onEntrySaved, onEntryDeleted }: {
               </div>
               
               <div className="max-h-[250px] overflow-y-auto text-sm">
-                {weeklyHours.length > 0 ? (
+                {monthlyHours.length > 0 ? (
                   <div className="space-y-3">
-                    {weeklyHours.map((week) => (
-                      <div key={week.weekNumber} className="border-b pb-2 last:border-0">
-                        <div className="flex justify-between font-medium mb-1">
-                          <span>
-                            {t('week')} {week.weekNumber}: {format(parseISO(week.startDate), 'dd.MM')} - {format(parseISO(week.endDate), 'dd.MM')}
-                          </span>
-                          <span className="text-reportronic-600">{week.hours.toFixed(1)}h</span>
-                        </div>
-                        <div className="space-y-1 pl-2 text-xs">
-                          {week.entries.map((entry) => (
-                            <div key={entry.date} className="flex justify-between text-gray-600">
-                              <span>{format(parseISO(entry.date), 'dd.MM')}</span>
-                              <span>{entry.hours.toFixed(1)}h</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
                     <div className="border-t pt-1 mt-2 flex justify-between font-semibold">
                       <span>{t('total')}</span>
                       <span>{totalMonthlyHours.toFixed(1)}h</span>
