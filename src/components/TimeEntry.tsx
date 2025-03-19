@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -346,8 +347,9 @@ const TimeEntry = ({
         )}
       </div>
 
+      {/* Submit All Month Entries button moved to the bottom of the form, before the AlertDialog */}
       {status === 'draft' && canEdit && (
-        <div className="mt-6 mb-6 pt-4 border-t border-gray-200">
+        <div className="mt-10 pt-4 border-t border-gray-200 mb-2">
           <Button 
             type="button"
             variant="outline"
