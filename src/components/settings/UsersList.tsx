@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -509,7 +510,7 @@ export const UsersList = () => {
                                     <TableRow key={entry.id}>
                                       <TableCell className="text-sm">{formatDate(entry.date)}</TableCell>
                                       <TableCell className="text-sm">{entry.hours}</TableCell>
-                                      <TableCell className="text-sm">{entry.project_name} ({entry.client_name})}</TableCell>
+                                      <TableCell className="text-sm">{entry.project_name} ({entry.client_name})</TableCell>
                                       <TableCell className="text-sm max-w-xs truncate">{entry.description || '-'}</TableCell>
                                       <TableCell>
                                         <Badge
