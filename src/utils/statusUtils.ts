@@ -20,5 +20,13 @@ export const timeEntryMessages = {
   approve_all: 'Approve All',
   approving: 'Approving...',
   all_entries_approved_for_month: 'All entries for {{month}} have been approved',
-  error_approving_entries: 'Error approving entries'
+  error_approving_entries: 'Error approving entries',
+  approve_time_entry: 'Approve Time Entry',
+  return_time_entry: 'Return Time Entry',
+  approve_time_entry_confirmation: 'Are you sure you want to approve this time entry?',
+  return_time_entry_confirmation: 'Are you sure you want to return this time entry?',
+  rejection_comment_placeholder: 'Add a comment about why this entry is being returned',
+  entry_approved: 'Entry approved successfully',
+  entry_rejected: 'Entry returned for edits',
+  error_updating_entry: 'Error updating entry status'
 };

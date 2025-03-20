@@ -277,7 +277,15 @@ export const UsersList = () => {
     setApprovalDialogOpen(true);
   };
 
-  const handleApprovalComplete = async (isApproved: boolean, comment?: string) => {
+  const handleApprovalConfirm = (comment?: string) => {
+    if (!selectedEntry || selectedAction === null) return;
+    
+    const isApproved = selectedAction === 'approve';
+    handleApprovalUpdate(isApproved, comment);
+    setApprovalDialogOpen(false);
+  };
+
+  const handleApprovalUpdate = async (isApproved: boolean, comment?: string) => {
     try {
       if (!selectedEntry) return;
       
@@ -640,7 +648,7 @@ export const UsersList = () => {
           open={approvalDialogOpen}
           onOpenChange={setApprovalDialogOpen}
           isApproving={selectedAction === 'approve'}
-          onConfirm={handleApprovalComplete}
+          onConfirm={handleApprovalConfirm}
         />
       )}
 
