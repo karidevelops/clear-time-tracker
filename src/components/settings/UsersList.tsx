@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Trash2, Check, Edit, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { UserPlus, Trash2, Check, Edit, RotateCcw, ChevronDown, ChevronUp, CalendarCheck } from "lucide-react";
 import { timeEntryStatuses, timeEntryStatusColors } from "@/utils/statusUtils";
 import { toast } from "sonner";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -57,6 +56,11 @@ export const UsersList = () => {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
   const [selectedAction, setSelectedAction] = useState<'approve' | 'reject' | null>(null);
+  const [bulkApprovalDialogOpen, setBulkApprovalDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    new Date().toISOString().substring(0, 7) // Current month in YYYY-MM format
+  );
 
   const form = useForm<z.infer<typeof addUserSchema>>({
     resolver: zodResolver(addUserSchema),
@@ -92,13 +96,10 @@ export const UsersList = () => {
         console.error("Error fetching user roles:", rolesError);
       }
 
-      // Get email addresses from auth.users through custom fetch
-      // We cannot directly query auth.users from the client or use RPC until the function is properly typed
       let authUsers = [];
       let authError = null;
       
       try {
-        // Using a direct fetch with the raw SQL function
         const response = await supabase.functions.invoke('get-user-emails', {
           method: 'GET'
         });
@@ -302,7 +303,6 @@ export const UsersList = () => {
         toast.success(t('entry_rejected'));
       }
 
-      // Update the entries in the state
       const entryUserId = Object.keys(userTimeEntries).find(userId => 
         userTimeEntries[userId].some(entry => entry.id === entryId)
       );
@@ -331,6 +331,65 @@ export const UsersList = () => {
     else if (language === 'sv') locale = sv;
     
     return format(date, 'PPP', { locale });
+  };
+
+  const handleBulkApprove = (userId: string) => {
+    setSelectedUserId(userId);
+    setBulkApprovalDialogOpen(true);
+  };
+
+  const approvePendingEntriesForMonth = async () => {
+    if (!selectedUserId || !selectedMonth) return;
+    
+    setLoading(true);
+    try {
+      const year = parseInt(selectedMonth.split('-')[0]);
+      const month = parseInt(selectedMonth.split('-')[1]) - 1; // JS months are 0-indexed
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 0); // Last day of month
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({
+          status: 'approved',
+          approved_at: new Date().toISOString(),
+          approved_by: user?.id
+        })
+        .eq('user_id', selectedUserId)
+        .eq('status', 'pending')
+        .gte('date', startDateStr)
+        .lte('date', endDateStr);
+      
+      if (error) throw error;
+      
+      await fetchUserTimeEntries(selectedUserId);
+      
+      const monthName = new Date(year, month).toLocaleString(language === 'fi' ? 'fi-FI' : language === 'sv' ? 'sv-SE' : 'en-US', { month: 'long' });
+      toast.success(t('all_entries_approved_for_month', { month: monthName }));
+      
+      setBulkApprovalDialogOpen(false);
+    } catch (error) {
+      console.error("Error approving entries:", error);
+      toast.error(t('error_approving_entries'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getMonthName = (monthStr: string) => {
+    const [year, month] = monthStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    
+    let locale = enUS;
+    if (language === 'fi') locale = fi;
+    else if (language === 'sv') locale = sv;
+    
+    return format(date, 'MMMM yyyy', { locale });
   };
 
   return (
@@ -364,7 +423,7 @@ export const UsersList = () => {
                   <TableHead>{t('name')}</TableHead>
                   <TableHead>{t('email')}</TableHead>
                   <TableHead>{t('role')}</TableHead>
-                  <TableHead>{t('actions')}</TableHead>
+                  <TableHead className="text-right">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -379,28 +438,38 @@ export const UsersList = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => toggleUserEntries(user.id)}
-                          className="flex items-center"
-                        >
-                          {user.showEntries ? (
-                            <>
-                              {t('hide_entries')}
-                              <ChevronUp className="ml-1 h-4 w-4" />
-                            </>
-                          ) : (
-                            <>
-                              {t('view_entries')}
-                              <ChevronDown className="ml-1 h-4 w-4" />
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => toggleUserEntries(user.id)}
+                          >
+                            {user.showEntries ? (
+                              <>
+                                {t('hide_entries')}
+                                <ChevronUp className="ml-1 h-4 w-4" />
+                              </>
+                            ) : (
+                              <>
+                                {t('view_entries')}
+                                <ChevronDown className="ml-1 h-4 w-4" />
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+                            onClick={() => handleBulkApprove(user.id)}
+                          >
+                            <CalendarCheck className="mr-1 h-4 w-4" />
+                            {t('approve_all_hours')}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                     
-                    {/* Time Entries Row */}
                     {user.showEntries && (
                       <TableRow>
                         <TableCell colSpan={4} className="p-0 border-t-0">
@@ -581,6 +650,62 @@ export const UsersList = () => {
           }}
         />
       )}
+
+      <Dialog open={bulkApprovalDialogOpen} onOpenChange={setBulkApprovalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('approve_all_hours')}</DialogTitle>
+            <DialogDescription>
+              {t('approve_all_hours_description')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Label htmlFor="month-select">{t('select_month')}</Label>
+            <Select 
+              value={selectedMonth} 
+              onValueChange={setSelectedMonth}
+            >
+              <SelectTrigger id="month-select" className="w-full mt-2">
+                <SelectValue placeholder={t('select_month')} />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const date = new Date();
+                  date.setMonth(date.getMonth() - i);
+                  const monthValue = date.toISOString().substring(0, 7); // YYYY-MM
+                  return (
+                    <SelectItem key={monthValue} value={monthValue}>
+                      {getMonthName(monthValue)}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            
+            <p className="mt-4 text-sm text-gray-600">
+              {t('approve_all_hours_warning')}
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setBulkApprovalDialogOpen(false)}
+            >
+              {t('cancel')}
+            </Button>
+            <Button 
+              onClick={approvePendingEntriesForMonth}
+              className="bg-green-600 hover:bg-green-700"
+              disabled={loading}
+            >
+              <CalendarCheck className="mr-2 h-4 w-4" />
+              {loading ? t('approving') : t('approve_all')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
