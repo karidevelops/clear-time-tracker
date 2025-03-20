@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +32,7 @@ interface TimeEntryProps {
   entryId?: string;
   isAdmin?: boolean;
   onEntrySaved?: (entryData: any) => void;
-  userId?: string; // Add the userId property
+  userId?: string;
 }
 
 const TimeEntry = ({ 
@@ -369,22 +368,6 @@ const TimeEntry = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Submit All Month Entries button moved to the very bottom of the form */}
-      {status === 'draft' && canEdit && (
-        <div className="mt-10 pt-4 border-t border-gray-200 mb-2">
-          <Button 
-            type="button"
-            variant="outline"
-            className="border-orange-500 text-orange-600 hover:bg-orange-50 w-full"
-            disabled={isLoading}
-            onClick={() => setShowSubmitDialog(true)}
-          >
-            <Clock4 className="mr-2 h-4 w-4" />
-            Lähetä tunnit hyväksyntään
-          </Button>
-        </div>
-      )}
     </form>
   );
 };

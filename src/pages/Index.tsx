@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, BarChart3, Calendar, ArrowUp, ArrowRight } from 'lucide-react';
+import { Clock, BarChart3, Calendar, ArrowUp, ArrowRight, Clock4 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -12,6 +11,17 @@ import { useAuth } from '@/context/AuthContext';
 import { format, startOfToday, startOfWeek, startOfMonth, endOfWeek, endOfMonth, parseISO } from 'date-fns';
 import WeeklyTimeEntries from '@/components/WeeklyTimeEntries';
 import { TimeEntry as TimeEntryType } from '@/types/timeEntry';
+import { toast } from 'sonner';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const DAILY_TARGET_HOURS = 7.5;
 const WEEKLY_TARGET_HOURS = 37.5;
@@ -38,8 +48,9 @@ const Index = () => {
   });
   const [monthlyEntries, setMonthlyEntries] = useState<TimeEntryType[]>([]);
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [submittingEntries, setSubmittingEntries] = useState(false);
 
-  // Extract user ID from URL query parameters or use current user
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const userIdParam = searchParams.get('userId');
@@ -160,6 +171,46 @@ const Index = () => {
     }
   }
 
+  async function handleSubmitMonthEntries() {
+    if (!activeUserId) {
+      toast.error(t('login_required'));
+      return;
+    }
+
+    setSubmittingEntries(true);
+    try {
+      const today = new Date();
+      const startOfMonthDate = startOfMonth(today);
+      const endOfMonthDate = endOfMonth(today);
+      
+      const startDateStr = format(startOfMonthDate, 'yyyy-MM-dd');
+      const endDateStr = format(endOfMonthDate, 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .update({ status: 'pending' })
+        .eq('user_id', activeUserId)
+        .eq('status', 'draft')
+        .gte('date', startDateStr)
+        .lte('date', endDateStr);
+        
+      if (error) {
+        console.error('Error submitting month entries:', error);
+        toast.error(t('error_submitting_entries'));
+        return;
+      }
+      
+      toast.success(t('month_entries_submitted'));
+      fetchMonthlyEntries(); // Refresh the entries after submission
+    } catch (error) {
+      console.error('Exception submitting month entries:', error);
+      toast.error(t('error_submitting_entries'));
+    } finally {
+      setSubmittingEntries(false);
+      setShowSubmitDialog(false);
+    }
+  }
+
   return (
     <Layout>
       <div className="py-6 space-y-6">
@@ -257,6 +308,40 @@ const Index = () => {
               title={t('monthly_entries_by_week')} 
             />
           </div>
+          
+          <div className="mt-10 pt-4 border-t border-gray-200 mb-2">
+            <Button 
+              type="button"
+              variant="outline"
+              className="border-orange-500 text-orange-600 hover:bg-orange-50 w-full"
+              disabled={submittingEntries}
+              onClick={() => setShowSubmitDialog(true)}
+            >
+              <Clock4 className="mr-2 h-4 w-4" />
+              Lähetä tunnit hyväksyntään
+            </Button>
+          </div>
+          
+          <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('submit_month_entries')}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('submit_month_entries_confirmation')}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={submittingEntries}>{t('cancel')}</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleSubmitMonthEntries}
+                  disabled={submittingEntries}
+                  className="bg-orange-500 text-white hover:bg-orange-600"
+                >
+                  {submittingEntries ? t('submitting') : t('submit')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </Layout>
