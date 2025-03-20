@@ -277,8 +277,10 @@ export const UsersList = () => {
     setApprovalDialogOpen(true);
   };
 
-  const handleApprovalComplete = async (entryId: string, isApproved: boolean, comment?: string) => {
+  const handleApprovalComplete = async (isApproved: boolean, comment?: string) => {
     try {
+      if (!selectedEntry) return;
+      
       if (isApproved) {
         const { error } = await supabase
           .from('time_entries')
@@ -287,7 +289,7 @@ export const UsersList = () => {
             approved_at: new Date().toISOString(),
             approved_by: await supabase.auth.getUser().then(res => res.data.user?.id)
           })
-          .eq('id', entryId);
+          .eq('id', selectedEntry);
 
         if (error) throw error;
         toast.success(t('entry_approved'));
@@ -297,21 +299,21 @@ export const UsersList = () => {
           .update({
             status: 'draft',
           })
-          .eq('id', entryId);
+          .eq('id', selectedEntry);
 
         if (error) throw error;
         toast.success(t('entry_rejected'));
       }
 
       const entryUserId = Object.keys(userTimeEntries).find(userId => 
-        userTimeEntries[userId].some(entry => entry.id === entryId)
+        userTimeEntries[userId].some(entry => entry.id === selectedEntry)
       );
       
       if (entryUserId) {
         setUserTimeEntries(prev => ({
           ...prev,
           [entryUserId]: prev[entryUserId].map(entry => 
-            entry.id === entryId 
+            entry.id === selectedEntry 
               ? { ...entry, status: isApproved ? 'approved' : 'draft' } 
               : entry
           )
@@ -638,16 +640,7 @@ export const UsersList = () => {
           open={approvalDialogOpen}
           onOpenChange={setApprovalDialogOpen}
           isApproving={selectedAction === 'approve'}
-          onConfirm={(comment) => {
-            if (selectedEntry) {
-              handleApprovalComplete(
-                selectedEntry, 
-                selectedAction === 'approve',
-                comment
-              );
-            }
-            setApprovalDialogOpen(false);
-          }}
+          onConfirm={handleApprovalComplete}
         />
       )}
 
