@@ -28,5 +28,8 @@ export const timeEntryMessages = {
   rejection_comment_placeholder: 'Add a comment about why this entry is being returned',
   entry_approved: 'Entry approved successfully',
   entry_rejected: 'Entry returned for edits',
-  error_updating_entry: 'Error updating entry status'
+  error_updating_entry: 'Error updating entry status',
+  approve: 'Approve',
+  return_for_edit: 'Return for Edit',
+  return: 'Return'
 };

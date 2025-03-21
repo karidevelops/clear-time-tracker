@@ -2,7 +2,6 @@
 import React from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
-import { format, parseISO } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TimeEntry } from "@/types/timeEntry";
 import { Textarea } from "@/components/ui/textarea";
 
 interface ApprovalDialogProps {
