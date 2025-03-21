@@ -18,6 +18,7 @@ const ChatWindow = () => {
     { role: "system", content: "You are a helpful assistant." },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -36,6 +37,7 @@ const ChatWindow = () => {
     setMessages((prev) => [...prev, userMessage]);
     setMessage("");
     setIsLoading(true);
+    setError(null);
     
     try {
       console.log("Sending messages to Edge Function:", [...messages, userMessage]);
@@ -60,6 +62,7 @@ const ChatWindow = () => {
       ]);
     } catch (error) {
       console.error("Error sending message:", error);
+      setError("Failed to get response. Please try again.");
       toast({
         title: "Error",
         description: "Failed to get a response. Please try again.",
@@ -116,6 +119,13 @@ const ChatWindow = () => {
               <div className="flex justify-start">
                 <div className="max-w-[80%] p-3 rounded-lg bg-white border border-gray-200">
                   <p className="text-sm">Thinking...</p>
+                </div>
+              </div>
+            )}
+            {error && (
+              <div className="flex justify-center">
+                <div className="max-w-[80%] p-2 rounded-lg bg-red-50 border border-red-200 text-red-600">
+                  <p className="text-xs">{error}</p>
                 </div>
               </div>
             )}

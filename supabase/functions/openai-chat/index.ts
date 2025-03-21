@@ -28,10 +28,14 @@ serve(async (req) => {
 
     console.log('Sending request to OpenAI API with', messages.length, 'messages');
     
+    // Use the manually supplied API key from the user instead of the environment variable
+    // This is a temporary fix until we properly set up the secret in Supabase
+    const manualApiKey = "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";
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${manualApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
