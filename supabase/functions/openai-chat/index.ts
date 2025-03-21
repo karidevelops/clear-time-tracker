@@ -22,7 +22,8 @@ serve(async (req) => {
 
     console.log('Sending request to OpenAI API with', messages.length, 'messages');
     
-    // Get the API key from environment variable or use the provided key for testing
+    // Get the API key from environment variable or use the provided key
+    // Using a hardcoded key is not recommended for production, but useful for testing
     const apiKey = Deno.env.get('OPENAI_API_KEY') || "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";
     
     if (!apiKey) {
@@ -36,23 +37,7 @@ serve(async (req) => {
     try {
       console.log('Making request to OpenAI API...');
       
-      // Make a simple request to test API connectivity
-      const test_response = await fetch('https://api.openai.com/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      console.log('OpenAI API models test status:', test_response.status);
-      
-      if (!test_response.ok) {
-        const errorData = await test_response.text();
-        console.error('OpenAI API connectivity test failed:', errorData);
-        throw new Error(`OpenAI API connection test failed: ${test_response.statusText} (${test_response.status})`);
-      }
-      
-      // Now make the actual chat completion request
+      // Make the chat completion request
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
