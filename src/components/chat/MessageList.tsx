@@ -1,7 +1,7 @@
 
 import { useRef, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, MessageSquareText } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -33,9 +33,6 @@ const MessageList = ({
     scrollToBottom();
   }, [messages]);
 
-  // Show help if there are only system messages (empty chat)
-  const showHelp = messages.length === 1 && messages[0].role === "system";
-
   return (
     <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gray-50">
       {apiStatus === "success" && (
@@ -58,17 +55,6 @@ const MessageList = ({
             >
               Dismiss
             </button>
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {showHelp && (
-        <Alert className="mb-3 bg-blue-50 border-blue-200">
-          <MessageSquareText className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-xs text-blue-800">
-            <p className="font-medium mb-1">Voit kirjata tunteja kirjoittamalla:</p>
-            <p className="text-xs text-blue-700 font-mono">log 7.5h Projektin Nimi: Työn kuvaus</p>
-            <p className="mt-1 text-xs">Esimerkki: log 4h Website Development: Lomakkeiden toteutus</p>
           </AlertDescription>
         </Alert>
       )}

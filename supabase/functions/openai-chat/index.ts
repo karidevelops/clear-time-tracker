@@ -22,8 +22,9 @@ serve(async (req) => {
 
     console.log('Sending request to OpenAI API with', messages.length, 'messages');
     
-    // Get the API key from environment variable
-    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    // Get the API key from environment variable or use the provided key
+    // Using a hardcoded key is not recommended for production, but useful for testing
+    const apiKey = Deno.env.get('OPENAI_API_KEY') || "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";
     
     if (!apiKey) {
       console.error('OpenAI API key is missing');
