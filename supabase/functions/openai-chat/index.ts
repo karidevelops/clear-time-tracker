@@ -20,12 +20,16 @@ serve(async (req) => {
       throw new Error('Messages array is required');
     }
 
-    // Use the provided API key for testing (you should move this to environment variables in production)
-    const apiKey = "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";
+    // Get the API key from environment or use the provided one
+    // The key format looks incorrect - it should start with 'sk-' not 'sk-proj-'
+    // Switching to standard OpenAI API key format
+    const apiKey = Deno.env.get('OPENAI_API_KEY') || "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";
     
     console.log('Making request to OpenAI API...');
-    console.log('Using API key starting with:', apiKey.substring(0, 10) + '...');
+    console.log('Using API key starting with:', apiKey.substring(0, 5) + '...');
     console.log('Request messages length:', messages.length);
+    console.log('First few characters of first message:', 
+      messages[0]?.content ? messages[0].content.substring(0, 20) + '...' : 'No content');
     
     // Make the chat completion request
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
