@@ -2,7 +2,6 @@
 project_id = "prj_DqQJgGRkFLBE9yyWdWHyfCkb"
 
 [api]
-# No need for enabled_apis by default
 port = 54321
 schemas = ["public", "storage", "graphql_public"]
 extra_search_path = ["public", "extensions"]
