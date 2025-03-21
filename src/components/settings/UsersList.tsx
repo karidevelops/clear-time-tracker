@@ -10,10 +10,11 @@ import { toast } from "sonner";
 import { UserItem } from "./UserItem";
 import { UserForm } from "./UserForm";
 import { BulkApprovalDialog } from "./BulkApprovalDialog";
-import { ApprovalDialog } from "@/components/reports/ApprovalDialog";
+import ApprovalDialog from "@/components/reports/ApprovalDialog";
 import { User } from "@/types/user";
 import { TimeEntryWithDetails } from "@/types/timeEntry";
 import * as z from "zod";
+import { addUserSchema } from "./UserForm";
 
 export const UsersList = () => {
   const { t, language } = useLanguage();

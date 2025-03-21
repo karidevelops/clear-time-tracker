@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const addUserSchema = z.object({
+export const addUserSchema = z.object({
   email: z.string().email(),
   full_name: z.string().min(1, "Full name is required"),
   role: z.enum(["admin", "user"]),

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, CalendarCheck } from "lucide-react";
 import { TimeEntriesList } from "./TimeEntriesList";
 import { User } from "@/types/user";
+import { TimeEntryWithDetails } from "@/types/timeEntry";
 
 interface UserItemProps {
   user: User;
