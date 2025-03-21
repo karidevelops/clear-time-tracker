@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay, addWeeks, subWeeks, parseISO } from 'date-fns';
+import { Calendar as CalendarIcon, CalendarDays } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay, addWeeks, subWeeks, parseISO, getWeek } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +37,6 @@ const WeeklyView = () => {
   const [expandedWeek, setExpandedWeek] = useState(true);
   const [activeUserId, setActiveUserId] = useState<string | undefined>(undefined);
   
-  // Extract user ID from URL query parameters
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const userIdParam = searchParams.get('userId');
@@ -310,7 +308,13 @@ const WeeklyView = () => {
     <div className="container mx-auto px-4 py-8">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-xl font-bold">{t('weekly_view')}</CardTitle>
+          <CardTitle className="text-xl font-bold">
+            {t('weekly_view')}
+            <Badge variant="outline" className="ml-2 text-reportronic-500 border-reportronic-300">
+              <CalendarDays className="h-3.5 w-3.5 mr-1 inline" />
+              {t('week')} {getWeek(weekDays[0] || currentDate, { weekStartsOn: 1 })}
+            </Badge>
+          </CardTitle>
           <div className="flex space-x-2">
             <Button
               variant="outline"
