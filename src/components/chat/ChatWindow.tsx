@@ -41,29 +41,22 @@ const ChatWindow = () => {
     setError(null);
     
     try {
-      console.log("Sending messages to Edge Function:", [...messages, userMessage]);
-      
       const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
         body: { messages: [...messages, userMessage] },
       });
       
       console.log("Response from Edge Function:", data);
-      console.log("Supabase error:", supabaseError);
       
       if (supabaseError) {
         console.error("Supabase function error:", supabaseError);
         throw new Error(supabaseError.message || "Error calling the chat function");
       }
       
-      if (!data) {
-        throw new Error("No data received from server");
-      }
-      
-      if (data.error) {
+      if (data?.error) {
         throw new Error(data.error);
       }
       
-      if (!data.response) {
+      if (!data || !data.response) {
         throw new Error("Invalid response format from server");
       }
       

@@ -21,10 +21,15 @@ serve(async (req) => {
     }
 
     console.log('Sending request to OpenAI API with', messages.length, 'messages');
-    console.log('Request messages:', JSON.stringify(messages));
     
-    // Use a valid OpenAI API key
-    const apiKey = "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";
+    // Get the API key from environment variable first, fallback to a default if needed
+    // You should set the OPENAI_API_KEY environment variable in Supabase
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!apiKey) {
+      console.error('OpenAI API key is missing');
+      throw new Error('OpenAI API key is not configured. Please set the OPENAI_API_KEY environment variable.');
+    }
     
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -34,12 +39,12 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',  // Using a more reliable model
+          model: 'gpt-3.5-turbo',
           messages,
           temperature: 0.7,
         }),
       });
-
+      
       console.log('OpenAI API response status:', response.status);
       
       if (!response.ok) {
@@ -69,14 +74,9 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in openai-chat function:', error);
     
-    // Provide more detailed error information
-    const errorMessage = error.message || 'Unknown error occurred';
-    const errorResponse = {
-      error: errorMessage,
-      details: error.stack || 'No stack trace available'
-    };
-    
-    return new Response(JSON.stringify(errorResponse), {
+    return new Response(JSON.stringify({
+      error: error.message || 'Unknown error occurred'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
