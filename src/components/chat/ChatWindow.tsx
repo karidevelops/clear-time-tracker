@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, AlertCircle } from "lucide-react";
+import { MessageCircle, X, Send, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,7 @@ const ChatWindow = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiTestResult, setApiTestResult] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -30,6 +31,54 @@ const ChatWindow = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const testOpenAIAPI = async () => {
+    setIsLoading(true);
+    setError(null);
+    setApiTestResult(null);
+    
+    try {
+      console.log("Testing OpenAI API connection...");
+      
+      const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
+        body: { messages: [{ role: "user", content: "Hello" }] },
+      });
+      
+      console.log("Test response from Edge Function:", data);
+      
+      if (supabaseError) {
+        console.error("Supabase function error:", supabaseError);
+        throw new Error(supabaseError.message || "Error calling the chat function");
+      }
+      
+      if (data?.error) {
+        console.error("API response error:", data.error);
+        throw new Error(data.error);
+      }
+      
+      if (!data || !data.response) {
+        console.error("Invalid response format:", data);
+        throw new Error("Invalid response format from server");
+      }
+      
+      setApiTestResult(data.test_result || "Test successful but no test result returned");
+      toast({
+        title: "API Test Successful",
+        description: "OpenAI API is working correctly",
+      });
+    } catch (error) {
+      console.error("Error testing API:", error);
+      const errorMessage = error.message || "Failed to test API. Please check your API key.";
+      setError(errorMessage);
+      toast({
+        title: "API Test Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
@@ -98,6 +147,15 @@ const ChatWindow = () => {
           <div className="flex items-center justify-between p-3 bg-reportronic-500 text-white">
             <h3 className="font-medium">Chat Assistant</h3>
             <div className="flex items-center space-x-2">
+              <Button
+                onClick={testOpenAIAPI}
+                size="sm"
+                variant="ghost"
+                className="px-2 text-white hover:bg-reportronic-600"
+                disabled={isLoading}
+              >
+                Test API
+              </Button>
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-1 hover:bg-reportronic-600 rounded"
@@ -108,6 +166,15 @@ const ChatWindow = () => {
           </div>
           
           <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gray-50">
+            {apiTestResult && (
+              <Alert className="mb-3 bg-green-100 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-xs text-green-800">
+                  API Test: {apiTestResult}
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {error && (
               <Alert variant="destructive" className="mb-3">
                 <AlertCircle className="h-4 w-4" />
