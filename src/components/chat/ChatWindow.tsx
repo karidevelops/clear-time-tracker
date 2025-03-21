@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, ChevronUp, ChevronDown } from "lucide-react";
+import { MessageCircle, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,12 +38,20 @@ const ChatWindow = () => {
     setIsLoading(true);
     
     try {
+      console.log("Sending messages to Edge Function:", [...messages, userMessage]);
+      
       const { data, error } = await supabase.functions.invoke("openai-chat", {
         body: { messages: [...messages, userMessage] },
       });
       
       if (error) {
+        console.error("Supabase function error:", error);
         throw new Error(error.message);
+      }
+      
+      if (!data || !data.response) {
+        console.error("Invalid response format:", data);
+        throw new Error("Invalid response from server");
       }
       
       setMessages((prev) => [

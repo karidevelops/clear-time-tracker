@@ -45,7 +45,5 @@ enable_confirmations = true
 enabled = false
 
 [functions]
-[functions.realtime-chat]
-verify_jwt = false
 [functions.openai-chat]
 verify_jwt = false
