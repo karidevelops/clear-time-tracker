@@ -15,7 +15,7 @@ interface ApprovalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isApproving: boolean;
-  onConfirm: (comment?: string) => void;
+  onConfirm: (comment: string) => void;
 }
 
 const ApprovalDialog: React.FC<ApprovalDialogProps> = ({

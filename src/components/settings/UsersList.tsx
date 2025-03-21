@@ -277,7 +277,7 @@ export const UsersList = () => {
     setApprovalDialogOpen(true);
   };
 
-  const handleApprovalConfirm = (comment?: string) => {
+  const handleApprovalConfirm = (comment: string) => {
     if (!selectedEntry || selectedAction === null) return;
     
     const isApproved = selectedAction === 'approve';
