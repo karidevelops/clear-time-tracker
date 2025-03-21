@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp, MoreHorizontal } from 'lucide-react';
@@ -296,11 +297,12 @@ const WeeklyTimeEntries: React.FC<WeeklyTimeEntriesProps> = ({
         weekStartsOn: 1
       });
       const totalHours = entries.reduce((sum, entry) => sum + Number(entry.hours), 0);
+      // Sort entries in reverse chronological order (newest first)
       weeks.push({
         weekNumber,
         startDate: weekStart,
         endDate: weekEnd,
-        entries: entries.sort((a, b) => a.date.localeCompare(b.date)),
+        entries: entries.sort((a, b) => b.date.localeCompare(a.date)),
         totalHours,
         isExpanded: false
       });
