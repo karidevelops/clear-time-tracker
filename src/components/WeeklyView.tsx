@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, CalendarDays } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay, addWeeks, subWeeks, parseISO, getWeek } from 'date-fns';
+import { Calendar as CalendarIcon, CalendarDays, ChevronDown } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, addDays, isToday, isSameDay, addWeeks, subWeeks, parseISO, getWeek, setWeek } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,12 +13,14 @@ import TimeEntry from './TimeEntry';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { TimeEntry as TimeEntryType, TimeEntryStatus } from '@/types/timeEntry';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { MoreHorizontal, ChevronDown as ChevronDownIcon, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getAllProjects, getProjectById } from '@/data/ClientsData';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from '@/components/ui/sheet';
 import { isHolidayOrWeekend, getHolidayName } from '@/utils/dateUtils';
 import { useLocation } from 'react-router-dom';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 const WeeklyView = () => {
   const { t } = useLanguage();
@@ -36,6 +39,7 @@ const WeeklyView = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState(true);
   const [activeUserId, setActiveUserId] = useState<string | undefined>(undefined);
+  const [weekNumberOpen, setWeekNumberOpen] = useState(false);
   
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -303,6 +307,20 @@ const WeeklyView = () => {
   });
 
   const totalWeekHours = Object.values(dailyHours).reduce((sum, hours) => sum + hours, 0);
+  
+  const currentYear = new Date().getFullYear();
+  const weekNumbers = Array.from({ length: 53 }, (_, i) => i + 1);
+
+  const selectWeekNumber = (weekNum: number) => {
+    try {
+      // Create a date for the selected week
+      const newDate = setWeek(new Date(currentYear, 0, 1), weekNum, { weekStartsOn: 1 });
+      setCurrentDate(newDate);
+      setWeekNumberOpen(false);
+    } catch (error) {
+      console.error('Error setting week:', error);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -310,10 +328,34 @@ const WeeklyView = () => {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-xl font-bold">
             {t('weekly_view')}
-            <Badge variant="outline" className="ml-2 text-reportronic-500 border-reportronic-300">
-              <CalendarDays className="h-3.5 w-3.5 mr-1 inline" />
-              {t('week')} {getWeek(weekDays[0] || currentDate, { weekStartsOn: 1 })}
-            </Badge>
+            <Popover open={weekNumberOpen} onOpenChange={setWeekNumberOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="ml-2 h-8 gap-1">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {t('week')} {getWeek(weekDays[0] || currentDate, { weekStartsOn: 1 })}
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-48" align="start">
+                <Command>
+                  <CommandInput placeholder={t('search_week')} />
+                  <CommandList>
+                    <CommandEmpty>{t('no_weeks_found')}</CommandEmpty>
+                    <CommandGroup>
+                      {weekNumbers.map((weekNum) => (
+                        <CommandItem 
+                          key={weekNum}
+                          onSelect={() => selectWeekNumber(weekNum)}
+                          className="cursor-pointer"
+                        >
+                          {t('week')} {weekNum}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </CardTitle>
           <div className="flex space-x-2">
             <Button
@@ -418,7 +460,7 @@ const WeeklyView = () => {
               <h3 className="font-medium text-lg">
                 {expandedWeek ? 
                   <ChevronUp className="h-4 w-4 inline mr-2 text-reportronic-500" /> : 
-                  <ChevronDown className="h-4 w-4 inline mr-2 text-reportronic-500" />}
+                  <ChevronDownIcon className="h-4 w-4 inline mr-2 text-reportronic-500" />}
                 {t('weekly_entries')}
               </h3>
               <div className="text-reportronic-600 font-medium">
