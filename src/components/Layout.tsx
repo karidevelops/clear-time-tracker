@@ -2,6 +2,7 @@
 import { ReactNode } from 'react';
 import Header from './Header';
 import { useLanguage } from '@/context/LanguageContext';
+import ChatWindow from './chat/ChatWindow';
 
 interface LayoutProps {
   children: ReactNode;
@@ -25,6 +26,7 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </div>
       </footer>
+      <ChatWindow />
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -323,6 +322,16 @@ export const UsersList = () => {
     }
   };
 
+  const handleApprovalUpdate = (isApproved: boolean) => {
+    if (selectedEntry) {
+      handleApprovalComplete(
+        selectedEntry, 
+        isApproved
+      );
+    }
+    setApprovalDialogOpen(false);
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     let locale = enUS;
@@ -584,3 +593,4 @@ export const UsersList = () => {
     </div>
   );
 };
+
