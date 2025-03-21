@@ -24,6 +24,8 @@ serve(async (req) => {
     const apiKey = "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";
     
     console.log('Making request to OpenAI API...');
+    console.log('Using API key starting with:', apiKey.substring(0, 10) + '...');
+    console.log('Request messages length:', messages.length);
     
     // Make the chat completion request
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -36,20 +38,40 @@ serve(async (req) => {
         model: 'gpt-4o-mini',
         messages,
         temperature: 0.7,
+        max_tokens: 800,
       }),
     });
     
     console.log('OpenAI API response status:', response.status);
     
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenAI API error response:', errorData);
+      const errorText = await response.text();
+      console.error('OpenAI API error response status:', response.status);
+      console.error('OpenAI API error response body:', errorText);
       
-      throw new Error(`OpenAI API error: ${response.statusText} (${response.status})`);
+      let errorMessage;
+      try {
+        // Try to parse the error as JSON
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error?.message || `API error: ${response.statusText} (${response.status})`;
+        console.error('Parsed error message:', errorMessage);
+      } catch (e) {
+        // If the error isn't valid JSON, use the raw text
+        errorMessage = `API error: ${response.statusText} (${response.status}) - ${errorText.substring(0, 100)}`;
+        console.error('Error parsing error response:', e.message);
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
     console.log('Received response from OpenAI API');
+    console.log('Response choice count:', data.choices?.length || 0);
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid response format:', JSON.stringify(data).substring(0, 200));
+      throw new Error('Invalid response format from OpenAI API');
+    }
     
     return new Response(JSON.stringify({ 
       response: data.choices[0].message.content
@@ -58,6 +80,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in openai-chat function:', error.message);
+    console.error('Error stack:', error.stack);
     
     return new Response(JSON.stringify({
       error: error.message || 'Unknown error occurred'
