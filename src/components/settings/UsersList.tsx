@@ -4,17 +4,48 @@ import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { UserPlus } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserPlus, Trash2, Check, Edit, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { timeEntryStatuses, timeEntryStatusColors } from "@/utils/statusUtils";
 import { toast } from "sonner";
-import { UserItem } from "./UserItem";
-import { UserForm } from "./UserForm";
-import { BulkApprovalDialog } from "./BulkApprovalDialog";
-import ApprovalDialog from "@/components/reports/ApprovalDialog";
-import { User } from "@/types/user";
-import { TimeEntryWithDetails } from "@/types/timeEntry";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { addUserSchema } from "./UserForm";
+import { format } from "date-fns";
+import { fi, sv, enUS } from 'date-fns/locale';
+import ApprovalDialog from "@/components/reports/ApprovalDialog";
+
+interface User {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: string;
+  showEntries?: boolean;
+}
+
+interface TimeEntryWithDetails {
+  id: string;
+  date: string;
+  hours: number;
+  description: string | null;
+  status: string;
+  user_id: string;
+  user_full_name: string | null;
+  project_name: string;
+  client_name: string;
+}
+
+const addUserSchema = z.object({
+  email: z.string().email(),
+  full_name: z.string().min(1, "Full name is required"),
+  role: z.enum(["admin", "user"]),
+});
 
 export const UsersList = () => {
   const { t, language } = useLanguage();
@@ -26,11 +57,15 @@ export const UsersList = () => {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
   const [selectedAction, setSelectedAction] = useState<'approve' | 'reject' | null>(null);
-  const [bulkApprovalDialogOpen, setBulkApprovalDialogOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().substring(0, 7) // Current month in YYYY-MM format
-  );
+
+  const form = useForm<z.infer<typeof addUserSchema>>({
+    resolver: zodResolver(addUserSchema),
+    defaultValues: {
+      email: "",
+      full_name: "",
+      role: "user",
+    },
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -57,10 +92,13 @@ export const UsersList = () => {
         console.error("Error fetching user roles:", rolesError);
       }
 
+      // Get email addresses from auth.users through custom fetch
+      // We cannot directly query auth.users from the client or use RPC until the function is properly typed
       let authUsers = [];
       let authError = null;
       
       try {
+        // Using a direct fetch with the raw SQL function
         const response = await supabase.functions.invoke('get-user-emails', {
           method: 'GET'
         });
@@ -91,7 +129,8 @@ export const UsersList = () => {
         id: profile.id,
         email: emailMap.get(profile.id) || profile.id,
         full_name: profile.full_name,
-        role: roleMap.get(profile.id) || 'user'
+        role: roleMap.get(profile.id) || 'user',
+        showEntries: false
       })) || [];
 
       setUsers(combinedUsers);
@@ -161,7 +200,21 @@ export const UsersList = () => {
     }
   };
 
-  const handleAddUser = async (values: z.infer<typeof addUserSchema>) => {
+  const toggleUserEntries = (userId: string) => {
+    setUsers(prevUsers => 
+      prevUsers.map(user => 
+        user.id === userId 
+          ? { ...user, showEntries: !user.showEntries } 
+          : user
+      )
+    );
+    
+    if (!userTimeEntries[userId]) {
+      fetchUserTimeEntries(userId);
+    }
+  };
+
+  const onSubmit = async (values: z.infer<typeof addUserSchema>) => {
     try {
       const { data: signupData, error: signupError } = await supabase.auth.signUp({
         email: values.email,
@@ -200,6 +253,7 @@ export const UsersList = () => {
 
       toast.success(t('user_added_successfully'));
       setAddUserDialogOpen(false);
+      form.reset();
       fetchUsers();
     } catch (error) {
       console.error("Error adding user:", error);
@@ -222,18 +276,8 @@ export const UsersList = () => {
     setApprovalDialogOpen(true);
   };
 
-  const handleApprovalConfirm = (comment: string) => {
-    if (!selectedEntry || selectedAction === null) return;
-    
-    const isApproved = selectedAction === 'approve';
-    handleApprovalUpdate(isApproved, comment);
-    setApprovalDialogOpen(false);
-  };
-
-  const handleApprovalUpdate = async (isApproved: boolean, comment: string) => {
+  const handleApprovalComplete = async (entryId: string, isApproved: boolean, comment?: string) => {
     try {
-      if (!selectedEntry) return;
-      
       if (isApproved) {
         const { error } = await supabase
           .from('time_entries')
@@ -242,7 +286,7 @@ export const UsersList = () => {
             approved_at: new Date().toISOString(),
             approved_by: await supabase.auth.getUser().then(res => res.data.user?.id)
           })
-          .eq('id', selectedEntry);
+          .eq('id', entryId);
 
         if (error) throw error;
         toast.success(t('entry_approved'));
@@ -251,23 +295,23 @@ export const UsersList = () => {
           .from('time_entries')
           .update({
             status: 'draft',
-            rejection_comment: comment
           })
-          .eq('id', selectedEntry);
+          .eq('id', entryId);
 
         if (error) throw error;
         toast.success(t('entry_rejected'));
       }
 
+      // Update the entries in the state
       const entryUserId = Object.keys(userTimeEntries).find(userId => 
-        userTimeEntries[userId].some(entry => entry.id === selectedEntry)
+        userTimeEntries[userId].some(entry => entry.id === entryId)
       );
       
       if (entryUserId) {
         setUserTimeEntries(prev => ({
           ...prev,
           [entryUserId]: prev[entryUserId].map(entry => 
-            entry.id === selectedEntry 
+            entry.id === entryId 
               ? { ...entry, status: isApproved ? 'approved' : 'draft' } 
               : entry
           )
@@ -279,52 +323,14 @@ export const UsersList = () => {
     }
   };
 
-  const handleBulkApprove = (userId: string) => {
-    setSelectedUserId(userId);
-    setBulkApprovalDialogOpen(true);
-  };
-
-  const approvePendingEntriesForMonth = async () => {
-    if (!selectedUserId || !selectedMonth) return;
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    let locale = enUS;
     
-    setLoading(true);
-    try {
-      const year = parseInt(selectedMonth.split('-')[0]);
-      const month = parseInt(selectedMonth.split('-')[1]) - 1; // JS months are 0-indexed
-      const startDate = new Date(year, month, 1);
-      const endDate = new Date(year, month + 1, 0); // Last day of month
-      
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const { data, error } = await supabase
-        .from('time_entries')
-        .update({
-          status: 'approved',
-          approved_at: new Date().toISOString(),
-          approved_by: user?.id
-        })
-        .eq('user_id', selectedUserId)
-        .eq('status', 'pending')
-        .gte('date', startDateStr)
-        .lte('date', endDateStr);
-      
-      if (error) throw error;
-      
-      await fetchUserTimeEntries(selectedUserId);
-      
-      const monthName = new Date(year, month).toLocaleString(language === 'fi' ? 'fi-FI' : language === 'sv' ? 'sv-SE' : 'en-US', { month: 'long' });
-      toast.success(t('all_entries_approved_for_month', { month: monthName }));
-      
-      setBulkApprovalDialogOpen(false);
-    } catch (error) {
-      console.error("Error approving entries:", error);
-      toast.error(t('error_approving_entries'));
-    } finally {
-      setLoading(false);
-    }
+    if (language === 'fi') locale = fi;
+    else if (language === 'sv') locale = sv;
+    
+    return format(date, 'PPP', { locale });
   };
 
   return (
@@ -358,20 +364,133 @@ export const UsersList = () => {
                   <TableHead>{t('name')}</TableHead>
                   <TableHead>{t('email')}</TableHead>
                   <TableHead>{t('role')}</TableHead>
-                  <TableHead className="text-right">{t('actions')}</TableHead>
+                  <TableHead>{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map(user => (
-                  <UserItem
-                    key={user.id}
-                    user={user}
-                    onBulkApprove={handleBulkApprove}
-                    fetchUserTimeEntries={fetchUserTimeEntries}
-                    entriesLoading={entriesLoading}
-                    userTimeEntries={userTimeEntries}
-                    handleEntryAction={handleEntryAction}
-                  />
+                  <React.Fragment key={user.id}>
+                    <TableRow>
+                      <TableCell>{user.full_name || t('no_name')}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={user.role === 'admin' ? 'bg-purple-100 text-purple-800 border-purple-300' : ''}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => toggleUserEntries(user.id)}
+                          className="flex items-center"
+                        >
+                          {user.showEntries ? (
+                            <>
+                              {t('hide_entries')}
+                              <ChevronUp className="ml-1 h-4 w-4" />
+                            </>
+                          ) : (
+                            <>
+                              {t('view_entries')}
+                              <ChevronDown className="ml-1 h-4 w-4" />
+                            </>
+                          )}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    
+                    {/* Time Entries Row */}
+                    {user.showEntries && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="p-0 border-t-0">
+                          <div className="bg-slate-50 p-4 rounded-md">
+                            {entriesLoading[user.id] ? (
+                              <div className="py-4 text-center">
+                                <p>{t('loading')}...</p>
+                              </div>
+                            ) : !userTimeEntries[user.id] || userTimeEntries[user.id].length === 0 ? (
+                              <div className="py-4 text-center">
+                                <p>{t('no_entries_found')}</p>
+                              </div>
+                            ) : (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="text-xs">{t('date')}</TableHead>
+                                    <TableHead className="text-xs">{t('hours')}</TableHead>
+                                    <TableHead className="text-xs">{t('project')}</TableHead>
+                                    <TableHead className="text-xs">{t('description')}</TableHead>
+                                    <TableHead className="text-xs">{t('status')}</TableHead>
+                                    <TableHead className="text-xs">{t('actions')}</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {userTimeEntries[user.id].map(entry => (
+                                    <TableRow key={entry.id}>
+                                      <TableCell className="text-sm">{formatDate(entry.date)}</TableCell>
+                                      <TableCell className="text-sm">{entry.hours}</TableCell>
+                                      <TableCell className="text-sm">{entry.project_name} ({entry.client_name})</TableCell>
+                                      <TableCell className="text-sm max-w-xs truncate">{entry.description || '-'}</TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          variant="outline"
+                                          className={`
+                                            ${entry.status === 'approved' ? 'bg-green-100 text-green-800 border-green-300' : 
+                                              entry.status === 'pending' ? 'bg-orange-100 text-orange-800 border-orange-300' : 
+                                              'bg-gray-100 text-gray-800 border-gray-300'}
+                                          `}
+                                        >
+                                          {t(entry.status)}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell>
+                                        <div className="flex gap-2">
+                                          {entry.status === 'pending' && (
+                                            <>
+                                              <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+                                                onClick={() => handleEntryAction(entry.id, 'approve')}
+                                              >
+                                                <Check className="h-4 w-4 mr-1" />
+                                                {t('approve')}
+                                              </Button>
+                                              <Button 
+                                                variant="outline" 
+                                                size="sm"
+                                                className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                                                onClick={() => handleEntryAction(entry.id, 'reject')}
+                                              >
+                                                <RotateCcw className="h-4 w-4 mr-1" />
+                                                {t('return')}
+                                              </Button>
+                                            </>
+                                          )}
+                                          {entry.status === 'approved' && (
+                                            <Button 
+                                              variant="outline" 
+                                              size="sm"
+                                              className="bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
+                                              onClick={() => handleEntryAction(entry.id, 'reject')}
+                                            >
+                                              <RotateCcw className="h-4 w-4 mr-1" />
+                                              {t('return')}
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
@@ -379,29 +498,89 @@ export const UsersList = () => {
         </Card>
       )}
 
-      <UserForm
-        open={addUserDialogOpen}
-        onOpenChange={setAddUserDialogOpen}
-        onSubmit={handleAddUser}
-      />
+      <Dialog open={addUserDialogOpen} onOpenChange={setAddUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('add_user')}</DialogTitle>
+            <DialogDescription>{t('add_user_description')}</DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('email')}</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="full_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('full_name')}</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('role')}</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('select_role')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="user">{t('user')}</SelectItem>
+                        <SelectItem value="admin">{t('admin')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">{t('add_user')}</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
       {selectedEntry && (
         <ApprovalDialog
           open={approvalDialogOpen}
           onOpenChange={setApprovalDialogOpen}
           isApproving={selectedAction === 'approve'}
-          onConfirm={handleApprovalConfirm}
+          onConfirm={(comment) => {
+            if (selectedEntry) {
+              handleApprovalComplete(
+                selectedEntry, 
+                selectedAction === 'approve',
+                comment
+              );
+            }
+            setApprovalDialogOpen(false);
+          }}
         />
       )}
-
-      <BulkApprovalDialog
-        open={bulkApprovalDialogOpen}
-        onOpenChange={setBulkApprovalDialogOpen}
-        selectedMonth={selectedMonth}
-        onMonthChange={setSelectedMonth}
-        onConfirm={approvePendingEntriesForMonth}
-        loading={loading}
-      />
     </div>
   );
 };
