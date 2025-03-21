@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Clock } from "lucide-react";
 
 interface ChatHeaderProps {
   onClose: () => void;
@@ -11,7 +11,10 @@ interface ChatHeaderProps {
 const ChatHeader = ({ onClose, onTestAPI, isLoading }: ChatHeaderProps) => {
   return (
     <div className="flex items-center justify-between p-3 bg-reportronic-500 text-white">
-      <h3 className="font-medium">Chat Assistant</h3>
+      <h3 className="font-medium flex items-center">
+        <Clock className="mr-1.5 h-4 w-4" />
+        Reportronic Assistant
+      </h3>
       <div className="flex items-center space-x-2">
         <Button
           onClick={onTestAPI}

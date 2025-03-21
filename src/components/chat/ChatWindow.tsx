@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
+import { useAuth } from "@/context/AuthContext";
+import { format } from "date-fns";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -16,12 +17,13 @@ interface Message {
 const ChatWindow = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "system", content: "You are a helpful assistant." },
+    { role: "system", content: "You are a helpful assistant. You can also log work hours. To log hours, use format: 'log 7.5h Project Name: Description'." },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<"unknown" | "success" | "error">("unknown");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const testOpenAIAPI = async () => {
     setIsLoading(true);
@@ -67,6 +69,88 @@ const ChatWindow = () => {
     }
   };
 
+  const handleLogHours = async (message: string) => {
+    if (!user) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Kirjautuminen vaaditaan tuntien kirjaamiseen. Ole hyvä ja kirjaudu sisään ensin." },
+      ]);
+      return false;
+    }
+
+    try {
+      const match = message.match(/^log\s+(\d+\.?\d*)h\s+([^:]+):\s*(.+)$/i);
+      
+      if (!match) {
+        return false;
+      }
+      
+      const [_, hoursStr, projectName, description] = match;
+      const hours = parseFloat(hoursStr);
+      
+      if (isNaN(hours) || hours <= 0) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "Tuntimäärän täytyy olla positiivinen numero." },
+        ]);
+        return true;
+      }
+      
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('id')
+        .ilike('name', `%${projectName.trim()}%`)
+        .limit(1);
+        
+      if (projectError || !projectData || projectData.length === 0) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Projektia nimeltä "${projectName.trim()}" ei löytynyt. Tarkista projektin nimi.` },
+        ]);
+        return true;
+      }
+      
+      const projectId = projectData[0].id;
+      const today = format(new Date(), 'yyyy-MM-dd');
+      
+      const { data, error: saveError } = await supabase
+        .from('time_entries')
+        .insert({
+          user_id: user.id,
+          project_id: projectId,
+          hours: hours,
+          description: description.trim(),
+          date: today,
+          status: 'draft'
+        });
+        
+      if (saveError) {
+        console.error('Error saving time entry:', saveError);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Virhe tuntien tallennuksessa: ${saveError.message}` },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `${hours}h kirjattu projektille "${projectName.trim()}". Kuvaus: ${description.trim()}` },
+        ]);
+        toast({
+          title: "Tunnit kirjattu",
+          description: `${hours}h kirjattu projektille "${projectName.trim()}"`,
+        });
+      }
+      return true;
+    } catch (err) {
+      console.error("Error in handleLogHours:", err);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Virhe tuntien kirjauksessa. Yritä uudelleen." },
+      ]);
+      return true;
+    }
+  };
+
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
     
@@ -74,6 +158,16 @@ const ChatWindow = () => {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
     setError(null);
+    
+    const isLoggingCommand = message.trim().toLowerCase().startsWith('log ');
+    
+    if (isLoggingCommand) {
+      const handled = await handleLogHours(message);
+      if (handled) {
+        setIsLoading(false);
+        return;
+      }
+    }
     
     try {
       console.log("Sending request to Edge Function...");
