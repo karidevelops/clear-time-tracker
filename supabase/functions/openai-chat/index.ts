@@ -22,8 +22,7 @@ serve(async (req) => {
 
     console.log('Sending request to OpenAI API with', messages.length, 'messages');
     
-    // Get the API key from environment variable first, fallback to a default if needed
-    // You should set the OPENAI_API_KEY environment variable in Supabase
+    // Get the API key from environment variable
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     
     if (!apiKey) {
@@ -32,6 +31,7 @@ serve(async (req) => {
     }
     
     try {
+      console.log('Making request to OpenAI API...');
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -39,7 +39,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4o-mini', // Updated to a more current model
           messages,
           temperature: 0.7,
         }),
