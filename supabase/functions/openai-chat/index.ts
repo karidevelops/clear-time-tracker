@@ -20,22 +20,28 @@ serve(async (req) => {
       throw new Error('Messages array is required');
     }
 
-    // Get the OpenAI API key from environment variables
-    const apiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is not set');
-    }
-
     console.log('Sending request to OpenAI API with', messages.length, 'messages');
     
-    // Use the manually supplied API key from the user instead of the environment variable
-    // This is a temporary fix until we properly set up the secret in Supabase
-    const manualApiKey = "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";
+    // Get the OpenAI API key
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    // Fallback to a manually supplied API key if the environment variable isn't set
+    // This is a temporary solution until the secrets are properly configured
+    const manualApiKey = "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";
+    
+    // Use either the environment variable or the fallback key
+    const finalApiKey = apiKey || manualApiKey;
+    
+    if (!finalApiKey) {
+      throw new Error('OpenAI API key is not available');
+    }
+    
+    console.log('API Key available:', finalApiKey ? 'Yes' : 'No');
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${manualApiKey}`,
+        'Authorization': `Bearer ${finalApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -52,6 +58,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log('Received response from OpenAI API');
     
     return new Response(JSON.stringify({ 
       response: data.choices[0].message.content 
@@ -60,7 +67,15 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in openai-chat function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    
+    // Provide more detailed error information
+    const errorMessage = error.message || 'Unknown error occurred';
+    const errorResponse = {
+      error: errorMessage,
+      details: error.stack || 'No stack trace available'
+    };
+    
+    return new Response(JSON.stringify(errorResponse), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

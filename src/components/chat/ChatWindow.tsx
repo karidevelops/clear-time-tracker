@@ -48,12 +48,21 @@ const ChatWindow = () => {
       
       if (error) {
         console.error("Supabase function error:", error);
-        throw new Error(error.message);
+        throw new Error(error.message || "Error calling the chat function");
       }
       
-      if (!data || !data.response) {
-        console.error("Invalid response format:", data);
-        throw new Error("Invalid response from server");
+      console.log("Response from Edge Function:", data);
+      
+      if (!data) {
+        throw new Error("No data received from server");
+      }
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      if (!data.response) {
+        throw new Error("Invalid response format from server");
       }
       
       setMessages((prev) => [
@@ -62,10 +71,11 @@ const ChatWindow = () => {
       ]);
     } catch (error) {
       console.error("Error sending message:", error);
-      setError("Failed to get response. Please try again.");
+      const errorMessage = error.message || "Failed to get response. Please try again.";
+      setError(errorMessage);
       toast({
-        title: "Error",
-        description: "Failed to get a response. Please try again.",
+        title: "Chat Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
