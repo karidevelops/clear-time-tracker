@@ -30,48 +30,30 @@ serve(async (req) => {
       throw new Error('OpenAI API key is not configured. Please set the OPENAI_API_KEY environment variable.');
     }
     
-    // Test API key validity with a simple echo request
-    console.log('Testing OpenAI API connectivity...');
+    // Log API key format (safely) for debugging
+    console.log('API Key format check:', apiKey ? `Key exists with length ${apiKey.length}` : 'Key is missing');
     
     try {
       console.log('Making request to OpenAI API...');
       
-      // First, let's log a masked version of the API key for debugging
-      console.log('API Key format (masked):', `${apiKey.slice(0, 3)}...${apiKey.slice(-4)}`);
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
+      // Make a simple request to test API connectivity
+      const test_response = await fetch('https://api.openai.com/v1/models', {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: 'Say "API test successful"' }],
-          temperature: 0.7,
-          max_tokens: 20,
-        }),
       });
       
-      console.log('OpenAI API test response status:', response.status);
+      console.log('OpenAI API models test status:', test_response.status);
       
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('OpenAI API test error response:', errorData);
-        
-        try {
-          const parsedError = JSON.parse(errorData);
-          throw new Error(`OpenAI API error: ${parsedError.error?.message || response.statusText}`);
-        } catch {
-          throw new Error(`OpenAI API error: ${response.statusText} (${response.status})`);
-        }
+      if (!test_response.ok) {
+        const errorData = await test_response.text();
+        console.error('OpenAI API connectivity test failed:', errorData);
+        throw new Error(`OpenAI API connection test failed: ${test_response.statusText} (${test_response.status})`);
       }
-
-      const testData = await response.json();
-      console.log('OpenAI API connectivity test successful!');
       
-      // Now, make the actual request with user messages
-      const actualResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Now make the actual chat completion request
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -84,35 +66,34 @@ serve(async (req) => {
         }),
       });
       
-      console.log('OpenAI API actual response status:', actualResponse.status);
+      console.log('OpenAI API response status:', response.status);
       
-      if (!actualResponse.ok) {
-        const errorData = await actualResponse.text();
+      if (!response.ok) {
+        const errorData = await response.text();
         console.error('OpenAI API error response:', errorData);
         
         try {
           const parsedError = JSON.parse(errorData);
-          throw new Error(`OpenAI API error: ${parsedError.error?.message || actualResponse.statusText}`);
+          throw new Error(`OpenAI API error: ${parsedError.error?.message || response.statusText}`);
         } catch {
-          throw new Error(`OpenAI API error: ${actualResponse.statusText} (${actualResponse.status})`);
+          throw new Error(`OpenAI API error: ${response.statusText} (${response.status})`);
         }
       }
 
-      const data = await actualResponse.json();
+      const data = await response.json();
       console.log('Received response from OpenAI API');
       
       return new Response(JSON.stringify({ 
-        response: data.choices[0].message.content,
-        test_result: testData.choices[0].message.content
+        response: data.choices[0].message.content
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (apiError) {
-      console.error('Error calling OpenAI API:', apiError);
+      console.error('Error calling OpenAI API:', apiError.message);
       throw new Error(`Failed to call OpenAI API: ${apiError.message}`);
     }
   } catch (error) {
-    console.error('Error in openai-chat function:', error);
+    console.error('Error in openai-chat function:', error.message);
     
     return new Response(JSON.stringify({
       error: error.message || 'Unknown error occurred'

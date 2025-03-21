@@ -20,7 +20,7 @@ const ChatWindow = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiTestResult, setApiTestResult] = useState<string | null>(null);
+  const [apiStatus, setApiStatus] = useState<"unknown" | "success" | "error">("unknown");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -35,7 +35,7 @@ const ChatWindow = () => {
   const testOpenAIAPI = async () => {
     setIsLoading(true);
     setError(null);
-    setApiTestResult(null);
+    setApiStatus("unknown");
     
     try {
       console.log("Testing OpenAI API connection...");
@@ -56,12 +56,7 @@ const ChatWindow = () => {
         throw new Error(data.error);
       }
       
-      if (!data || !data.response) {
-        console.error("Invalid response format:", data);
-        throw new Error("Invalid response format from server");
-      }
-      
-      setApiTestResult(data.test_result || "Test successful but no test result returned");
+      setApiStatus("success");
       toast({
         title: "API Test Successful",
         description: "OpenAI API is working correctly",
@@ -70,6 +65,7 @@ const ChatWindow = () => {
       console.error("Error testing API:", error);
       const errorMessage = error.message || "Failed to test API. Please check your API key.";
       setError(errorMessage);
+      setApiStatus("error");
       toast({
         title: "API Test Failed",
         description: errorMessage,
@@ -166,11 +162,11 @@ const ChatWindow = () => {
           </div>
           
           <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gray-50">
-            {apiTestResult && (
+            {apiStatus === "success" && (
               <Alert className="mb-3 bg-green-100 border-green-200">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-xs text-green-800">
-                  API Test: {apiTestResult}
+                  API Test: Connection successful!
                 </AlertDescription>
               </Alert>
             )}
