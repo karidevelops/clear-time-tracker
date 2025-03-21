@@ -20,13 +20,8 @@ serve(async (req) => {
       throw new Error('Messages array is required');
     }
 
-    // Get the API key from environment variable
-    const apiKey = Deno.env.get('OPENAI_API_KEY');
-    
-    if (!apiKey) {
-      console.error('OpenAI API key is missing');
-      throw new Error('OpenAI API key is not configured');
-    }
+    // Use the provided API key for testing (you should move this to environment variables in production)
+    const apiKey = "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";
     
     console.log('Making request to OpenAI API...');
     
