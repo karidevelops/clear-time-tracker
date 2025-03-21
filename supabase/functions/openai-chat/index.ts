@@ -21,50 +21,51 @@ serve(async (req) => {
     }
 
     console.log('Sending request to OpenAI API with', messages.length, 'messages');
+    console.log('Request messages:', JSON.stringify(messages));
     
-    // Get the OpenAI API key
-    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    // Use a valid OpenAI API key
+    const apiKey = "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";
     
-    // Fallback to a manually supplied API key if the environment variable isn't set
-    // This is a temporary solution until the secrets are properly configured
-    const manualApiKey = "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";
-    
-    // Use either the environment variable or the fallback key
-    const finalApiKey = apiKey || manualApiKey;
-    
-    if (!finalApiKey) {
-      throw new Error('OpenAI API key is not available');
-    }
-    
-    console.log('API Key available:', finalApiKey ? 'Yes' : 'No');
-    
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${finalApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages,
-        temperature: 0.7,
-      }),
-    });
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',  // Using a more reliable model
+          messages,
+          temperature: 0.7,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
-    }
+      console.log('OpenAI API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('OpenAI API error response:', errorData);
+        
+        try {
+          const parsedError = JSON.parse(errorData);
+          throw new Error(`OpenAI API error: ${parsedError.error?.message || response.statusText}`);
+        } catch {
+          throw new Error(`OpenAI API error: ${response.statusText} (${response.status})`);
+        }
+      }
 
-    const data = await response.json();
-    console.log('Received response from OpenAI API');
-    
-    return new Response(JSON.stringify({ 
-      response: data.choices[0].message.content 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      const data = await response.json();
+      console.log('Received response from OpenAI API');
+      
+      return new Response(JSON.stringify({ 
+        response: data.choices[0].message.content 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (apiError) {
+      console.error('Error calling OpenAI API:', apiError);
+      throw new Error(`Failed to call OpenAI API: ${apiError.message}`);
+    }
   } catch (error) {
     console.error('Error in openai-chat function:', error);
     

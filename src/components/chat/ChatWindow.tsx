@@ -1,10 +1,11 @@
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send } from "lucide-react";
+import { MessageCircle, X, Send, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -42,16 +43,17 @@ const ChatWindow = () => {
     try {
       console.log("Sending messages to Edge Function:", [...messages, userMessage]);
       
-      const { data, error } = await supabase.functions.invoke("openai-chat", {
+      const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
         body: { messages: [...messages, userMessage] },
       });
       
-      if (error) {
-        console.error("Supabase function error:", error);
-        throw new Error(error.message || "Error calling the chat function");
-      }
-      
       console.log("Response from Edge Function:", data);
+      console.log("Supabase error:", supabaseError);
+      
+      if (supabaseError) {
+        console.error("Supabase function error:", supabaseError);
+        throw new Error(supabaseError.message || "Error calling the chat function");
+      }
       
       if (!data) {
         throw new Error("No data received from server");
@@ -90,6 +92,8 @@ const ChatWindow = () => {
     }
   };
 
+  const clearError = () => setError(null);
+
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {isOpen ? (
@@ -107,6 +111,23 @@ const ChatWindow = () => {
           </div>
           
           <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gray-50">
+            {error && (
+              <Alert variant="destructive" className="mb-3">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-xs">
+                  {error}
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    onClick={clearError} 
+                    className="ml-2 p-0 h-auto text-xs text-white"
+                  >
+                    Dismiss
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {messages.slice(1).map((msg, index) => (
               <div
                 key={index}
@@ -129,13 +150,6 @@ const ChatWindow = () => {
               <div className="flex justify-start">
                 <div className="max-w-[80%] p-3 rounded-lg bg-white border border-gray-200">
                   <p className="text-sm">Thinking...</p>
-                </div>
-              </div>
-            )}
-            {error && (
-              <div className="flex justify-center">
-                <div className="max-w-[80%] p-2 rounded-lg bg-red-50 border border-red-200 text-red-600">
-                  <p className="text-xs">{error}</p>
                 </div>
               </div>
             )}
