@@ -40,8 +40,9 @@ enable_confirmations = false
 enable_signup = true
 enable_confirmations = true
 
+# Fixing the analytics section by replacing 'disabled' with 'enabled = false'
 [analytics]
-disabled = true
+enabled = false
 
 [functions]
 [functions.realtime-chat]
