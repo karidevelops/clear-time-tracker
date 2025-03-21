@@ -285,7 +285,7 @@ export const UsersList = () => {
     setApprovalDialogOpen(false);
   };
 
-  const handleApprovalUpdate = async (isApproved: boolean, comment?: string) => {
+  const handleApprovalUpdate = async (isApproved: boolean, comment: string) => {
     try {
       if (!selectedEntry) return;
       
@@ -306,6 +306,7 @@ export const UsersList = () => {
           .from('time_entries')
           .update({
             status: 'draft',
+            rejection_comment: comment
           })
           .eq('id', selectedEntry);
 
