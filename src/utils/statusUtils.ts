@@ -31,5 +31,6 @@ export const timeEntryMessages = {
   error_updating_entry: 'Error updating entry status',
   approve: 'Approve',
   return_for_edit: 'Return for Edit',
-  return: 'Return'
+  return: 'Return',
+  cancel: 'Cancel'
 };
