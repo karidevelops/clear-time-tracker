@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -156,8 +155,8 @@ const ChatWindow = () => {
       console.log("No footer color change detected");
     }
     
-    // Improved regex for banner text - better handles quoted text
-    const textRegex = /changeBannerText\(["'](.+?)["']\)/;
+    // Improved regex for banner text - better handles quoted text with proper capture groups
+    const textRegex = /changeBannerText\(['"](.*?)['"](?:\)|,)/;
     const textMatch = message.match(textRegex);
     
     if (textMatch && textMatch[1]) {

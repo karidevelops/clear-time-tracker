@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Settings as SettingsIcon, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -221,6 +222,7 @@ const Header = ({ bannerText = 'Reportronic' }: HeaderProps) => {
               alt="Reportronic Logo" 
               className="h-8 w-auto" 
             />
+            <span className="font-medium text-lg">{bannerText}</span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-2">

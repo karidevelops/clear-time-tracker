@@ -62,7 +62,7 @@ serve(async (req) => {
         role: 'system',
         content: `UI_CUSTOMIZATION: If the user wants to change the footer color, include "changeFooterColor(bg-color-class)" in your response where color-class is a valid Tailwind color class (e.g., bg-blue-500, bg-red-600, bg-green-400).
         
-If the user wants to change the banner text, include "changeBannerText(new banner text)" in your response.
+If the user wants to change the banner text, include "changeBannerText(\"new banner text\")" in your response.
 
 You should recognize these requests in multiple languages:
 - English: "change footer color to X", "change banner text to Y"
