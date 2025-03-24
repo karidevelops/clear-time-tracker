@@ -111,7 +111,7 @@ Respond in the same language as the user's request.`;
     
     let appDataContent = `APP_DATA: You are an AI assistant for Reportronic time tracking application.`;
     
-    if (appData.clients && appData.projects) {
+    if (appData.clients && appData.clients.length > 0) {
       appDataContent += `
 Here is information about the clients and projects in the system:
 
@@ -120,12 +120,18 @@ ${appData.clients.map(client =>
   `- ${client.name} (ID: ${client.id})`
 ).join('\n')}
 
-Projects:
-${appData.projects.map(project => 
-  `- ${project.name} (ID: ${project.id}, Client ID: ${project.clientId})`
-).join('\n')}
+Projects:`;
 
-Use this information to help users understand what clients and projects are available in the system.
+      if (appData.projects && appData.projects.length > 0) {
+        appDataContent += `
+${appData.projects.map(project => 
+  `- ${project.name} (ID: ${project.id}, Client ID: ${project.client_id})`
+).join('\n')}`;
+      } else {
+        appDataContent += `\nNo projects found in the system.`;
+      }
+
+      appDataContent += `\n\nUse this information to help users understand what clients and projects are available in the system.
 Respond in the same language as the user's query.`;
     } else {
       appDataContent += `

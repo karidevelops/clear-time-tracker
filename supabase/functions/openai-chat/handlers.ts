@@ -42,6 +42,16 @@ export async function handleChatRequest(req: Request) {
     }
   }
   
+  // Log app data info
+  console.log('App data received:', {
+    clientsCount: appData?.clients?.length || 0,
+    projectsCount: appData?.projects?.length || 0
+  });
+  
+  if (appData?.clients?.length > 0) {
+    console.log('First client:', appData.clients[0]);
+  }
+  
   // Prepare system messages based on the request type
   const messagesWithSystem = prepareSystemMessages(
     messages,
