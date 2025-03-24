@@ -1,8 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
@@ -11,37 +10,46 @@ import { useFooter } from "@/context/FooterContext";
 import { useBanner } from "@/context/BannerContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
-
-interface Message {
-  role: "user" | "assistant" | "system";
-  content: string;
-}
-
-interface TimeEntrySummary {
-  totalHours: number;
-  projectHours: Record<string, number>;
-  clientHours: Record<string, number>;
-  dailyHours: Record<string, number>;
-  weekRange: string;
-}
+import { useChatAPI } from "./hooks/useChatAPI";
+import { useChatUI } from "./utils/chatUIUtils";
+import { useChatState } from "./hooks/useChatState";
 
 const ChatWindow = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const { language, t } = useLanguage();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([
-    { 
-      role: "system", 
-      content: "You are a helpful assistant. If a user wants to change the footer color, include 'changeFooterColor(color)' in your response where color is a valid Tailwind color class."
-    },
-  ]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [apiStatus, setApiStatus] = useState<"unknown" | "success" | "error">("unknown");
-  const [timeEntrySummary, setTimeEntrySummary] = useState<TimeEntrySummary | null>(null);
   const { toast } = useToast();
   const { setFooterColor } = useFooter();
   const { setBannerText } = useBanner();
+
+  const {
+    isOpen,
+    setIsOpen,
+    messages,
+    timeEntrySummary: stateSummary,
+    handleSendMessage
+  } = useChatState({
+    initialSystemMessage: "You are a helpful assistant. If a user wants to change the footer color, include 'changeFooterColor(color)' in your response where color is a valid Tailwind color class."
+  });
+
+  const { handleAIUIChanges } = useChatUI({ 
+    setFooterColor, 
+    setBannerText, 
+    toast, 
+    t 
+  });
+
+  const {
+    isLoading,
+    error,
+    apiStatus,
+    timeEntrySummary: apiSummary,
+    testOpenAIAPI,
+    sendMessage,
+    clearError
+  } = useChatAPI({
+    userId: user?.id,
+    onUIChange: handleAIUIChanges
+  });
 
   useEffect(() => {
     if (isOpen && apiStatus === "unknown") {
@@ -49,140 +57,9 @@ const ChatWindow = () => {
     }
   }, [isOpen]);
 
-  const testOpenAIAPI = async () => {
-    setIsLoading(true);
-    setError(null);
-    setApiStatus("unknown");
-    
-    try {
-      console.log("Testing OpenAI API connection...");
-      
-      const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
-        body: { messages: [{ role: "user", content: "Hello" }], userId: user?.id },
-      });
-      
-      console.log("Test response from Edge Function:", data);
-      
-      if (supabaseError) {
-        console.error("Supabase function error:", supabaseError);
-        throw new Error(supabaseError.message || "Error calling the chat function");
-      }
-      
-      if (data?.error) {
-        console.error("API response error:", data.error);
-        throw new Error(data.error);
-      }
-      
-      setApiStatus("success");
-      toast({
-        title: t("api_test_successful"),
-        description: t("openai_api_working"),
-      });
-    } catch (error) {
-      console.error("Error testing API:", error);
-      const errorMessage = error.message || "Failed to test API. Please check your API key.";
-      setError(errorMessage);
-      setApiStatus("error");
-      toast({
-        title: t("api_test_failed"),
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const onSendMessage = async (message: string) => {
+    await handleSendMessage(sendMessage, message);
   };
-
-  const handleSendMessage = async (message: string) => {
-    if (!message.trim()) return;
-    
-    const userMessage = { role: "user" as const, content: message };
-    setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
-    setError(null);
-    setTimeEntrySummary(null);
-    
-    try {
-      console.log("Sending request to Edge Function...");
-      console.log("Current user ID:", user?.id);
-      
-      const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
-        body: { 
-          messages: [...messages, userMessage],
-          userId: user?.id // Pass user ID to edge function
-        },
-      });
-      
-      console.log("Response from Edge Function:", data);
-      
-      if (supabaseError) {
-        console.error("Supabase function error:", supabaseError);
-        throw new Error(supabaseError.message || "Error calling the chat function");
-      }
-      
-      if (data?.error) {
-        console.error("API response error:", data.error);
-        throw new Error(data.error);
-      }
-      
-      if (!data || !data.response) {
-        console.error("Invalid response format:", data);
-        throw new Error("Invalid response format from server");
-      }
-      
-      const assistantResponse = data.response;
-      console.log("Raw AI response:", assistantResponse);
-      
-      // Store time entry summary if available
-      if (data.hasTimeEntryData && data.summary) {
-        console.log("Time entry summary received:", data.summary);
-        setTimeEntrySummary(data.summary);
-      }
-      
-      const cleanedContent = handleAIUIChanges(assistantResponse);
-      
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: cleanedContent },
-      ]);
-    } catch (error) {
-      console.error("Error sending message:", error);
-      const errorMessage = error.message || "Failed to get response. Please try again.";
-      setError(errorMessage);
-      toast({
-        title: t("chat_error"),
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAIUIChanges = (message: string) => {
-    console.log("Processing message for UI changes:", message);
-    
-    const colorRegex = /changeFooterColor\(['"]?(bg-[a-z]+-[0-9]+)['"]?\)/i;
-    const colorMatch = message.match(colorRegex);
-    
-    if (colorMatch && colorMatch[1]) {
-      const color = colorMatch[1].trim();
-      console.log(`Detected footer color change request: ${color}`);
-      setFooterColor(color);
-      toast({
-        title: t("footer_changed"),
-        description: color,
-      });
-    } else {
-      console.log("No footer color change detected");
-    }
-    
-    return message
-      .replace(/changeFooterColor\([^)]+\)/g, '')
-      .trim();
-  };
-
-  const clearError = () => setError(null);
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -200,11 +77,11 @@ const ChatWindow = () => {
             error={error} 
             apiStatus={apiStatus} 
             clearError={clearError}
-            timeEntrySummary={timeEntrySummary}
+            timeEntrySummary={apiSummary || stateSummary}
           />
           
           <MessageInput 
-            onSendMessage={handleSendMessage} 
+            onSendMessage={onSendMessage} 
             isLoading={isLoading} 
             placeholder={t("chat_placeholder")}
           />
