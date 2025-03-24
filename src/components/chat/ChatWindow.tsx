@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,6 @@ import MessageInput from "./MessageInput";
 import { useFooter } from "@/context/FooterContext";
 import { useBanner } from "@/context/BannerContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { useFooterText } from "@/context/FooterTextContext";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -22,7 +22,7 @@ const ChatWindow = () => {
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: "system", 
-      content: "You are a helpful assistant. If a user wants to change the footer color, include 'changeFooterColor(color)' in your response where color is a valid Tailwind color class. If a user wants to change the banner text, include 'changeBannerText(text)' in your response. If a user wants to change the footer text, include 'changeFooterText(text)' in your response."
+      content: "You are a helpful assistant. If a user wants to change the footer color, include 'changeFooterColor(color)' in your response where color is a valid Tailwind color class. If a user wants to change the banner text, include 'changeBannerText(text)' in your response."
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +31,6 @@ const ChatWindow = () => {
   const { toast } = useToast();
   const { setFooterColor } = useFooter();
   const { setBannerText } = useBanner();
-  const { setFooterText } = useFooterText();
 
   useEffect(() => {
     if (isOpen && apiStatus === "unknown") {
@@ -173,27 +172,10 @@ const ChatWindow = () => {
       console.log("No banner text change detected");
     }
     
-    // New regex for footer text
-    const footerTextRegex = /changeFooterText\(['"](.*?)['"](?:\)|,)/;
-    const footerTextMatch = message.match(footerTextRegex);
-    
-    if (footerTextMatch && footerTextMatch[1]) {
-      const text = footerTextMatch[1].trim();
-      console.log(`Detected footer text change request: ${text}`);
-      setFooterText(text);
-      toast({
-        title: t("footer_text_changed"),
-        description: text,
-      });
-    } else {
-      console.log("No footer text change detected");
-    }
-    
     // Remove the function calls from the displayed message
     return message
       .replace(/changeFooterColor\([^)]+\)/g, '')
       .replace(/changeBannerText\([^)]+\)/g, '')
-      .replace(/changeFooterText\([^)]+\)/g, '')
       .trim();
   };
 

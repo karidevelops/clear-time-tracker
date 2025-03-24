@@ -30,10 +30,8 @@ const MessageInput = ({ onSendMessage, isLoading, placeholder = "Type a message.
   const suggestions = [
     { text: "Change footer color to blue", lang: "en" },
     { text: "Change banner text to Reportronic 2025", lang: "en" },
-    { text: "Change footer text to Powered by AI", lang: "en" },
     { text: "Vaihda alapalkin väri punaiseksi", lang: "fi" },
     { text: "Vaihda bannerin teksti Reportronic 2025", lang: "fi" },
-    { text: "Muuta alapalkin teksti AI:n tuottama", lang: "fi" },
   ];
 
   return (

@@ -50,19 +50,12 @@ serve(async (req) => {
       (lastUserMessage.includes('ändra') && lastUserMessage.includes('banner')) ||
       (lastUserMessage.includes('vaihda') && lastUserMessage.includes('banneri'));
     
-    const isFooterTextChangeRequest = 
-      (lastUserMessage.includes('change') && lastUserMessage.includes('footer') && lastUserMessage.includes('text')) || 
-      (lastUserMessage.includes('muuta') && lastUserMessage.includes('alapalkki') && lastUserMessage.includes('teksti')) || 
-      (lastUserMessage.includes('vaihda') && lastUserMessage.includes('alapalkki') && lastUserMessage.includes('teksti')) || 
-      (lastUserMessage.includes('ändra') && lastUserMessage.includes('sidfot') && lastUserMessage.includes('text'));
-    
     console.log('Is color change request:', isColorChangeRequest);
     console.log('Is banner change request:', isBannerChangeRequest);
-    console.log('Is footer text change request:', isFooterTextChangeRequest);
     
     // Add system message for UI customization requests if not already present
     let messagesWithSystem = [...messages];
-    if ((isColorChangeRequest || isBannerChangeRequest || isFooterTextChangeRequest) && 
+    if ((isColorChangeRequest || isBannerChangeRequest) && 
         !messages.some(m => m.role === 'system' && m.content.includes('UI_CUSTOMIZATION'))) {
       
       messagesWithSystem.unshift({
@@ -71,18 +64,15 @@ serve(async (req) => {
         
 If the user wants to change the banner text, include "changeBannerText(\"new banner text\")" in your response.
 
-If the user wants to change the footer text, include "changeFooterText(\"new footer text\")" in your response.
-
 You should recognize these requests in multiple languages:
-- English: "change footer color to X", "change banner text to Y", "change footer text to Z"
-- Finnish: "muuta alapalkin väri X:ksi", "vaihda bannerin teksti Y:ksi", "muuta alapalkin teksti Z:ksi"
-- Swedish: "ändra sidfotens färg till X", "ändra bannertexten till Y", "ändra sidfotens text till Z"
+- English: "change footer color to X", "change banner text to Y"
+- Finnish: "muuta alapalkin väri X:ksi", "vaihda bannerin teksti Y:ksi"
+- Swedish: "ändra sidfotens färg till X", "ändra bannertexten till Y"
 
 Respond in the same language as the user's request.
 Be VERY explicit and follow EXACTLY this format:
 - For colors: changeFooterColor(bg-color-500)
-- For banner text: changeBannerText("text here")
-- For footer text: changeFooterText("text here")`
+- For banner text: changeBannerText("text here")`
       });
     }
     
