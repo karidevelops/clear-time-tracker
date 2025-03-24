@@ -2,7 +2,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -10,13 +9,10 @@ import Layout from "./components/Layout";
 import WeeklyView from "./components/WeeklyView";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
-import { LanguageProvider } from "./context/LanguageContext";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { useAuth } from "./context/AuthContext";
 import Auth from "./pages/Auth";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
-
-const queryClient = new QueryClient();
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -93,57 +89,55 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        {/* Public route */}
-        <Route path="/auth" element={<Auth />} />
-        
-        {/* Protected routes */}
-        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-        <Route 
-          path="/weekly" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <div className="py-6">
-                  <WeeklyView />
-                </div>
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/reports" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <div className="py-6">
-                  <Reports />
-                </div>
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/settings" 
-          element={
-            <AdminRoute>
-              <Layout>
-                <div className="py-6">
-                  <Settings />
-                </div>
-              </Layout>
-            </AdminRoute>
-          } 
-        />
-        {/* Catch-all route */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <Routes>
+      {/* Public route */}
+      <Route path="/auth" element={<Auth />} />
+      
+      {/* Protected routes */}
+      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route 
+        path="/weekly" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <div className="py-6">
+                <WeeklyView />
+              </div>
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/reports" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <div className="py-6">
+                <Reports />
+              </div>
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <AdminRoute>
+            <Layout>
+              <div className="py-6">
+                <Settings />
+              </div>
+            </Layout>
+          </AdminRoute>
+        } 
+      />
+      {/* Catch-all route */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </TooltipProvider>
 );
 
 export default App;
