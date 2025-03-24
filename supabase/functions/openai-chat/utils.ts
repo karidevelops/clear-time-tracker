@@ -1,0 +1,54 @@
+
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Detect UI customization requests in multiple languages
+export function isColorChangeRequest(message: string): boolean {
+  const lowercaseMessage = message.toLowerCase();
+  return (
+    (lowercaseMessage.includes('change') && lowercaseMessage.includes('color')) || 
+    (lowercaseMessage.includes('muuta') && lowercaseMessage.includes('väri')) || 
+    (lowercaseMessage.includes('vaihda') && lowercaseMessage.includes('väri')) || 
+    (lowercaseMessage.includes('ändra') && lowercaseMessage.includes('färg'))
+  );
+}
+
+// Detect hour-related queries in multiple languages
+export function isHoursQuery(message: string): boolean {
+  const lowercaseMessage = message.toLowerCase();
+  return (
+    (lowercaseMessage.includes('hour') || lowercaseMessage.includes('time')) || 
+    (lowercaseMessage.includes('tunti') || lowercaseMessage.includes('aika')) || 
+    (lowercaseMessage.includes('selvitä') && lowercaseMessage.includes('tunnit')) ||
+    (lowercaseMessage.includes('paljonko') && lowercaseMessage.includes('tunti')) ||
+    (lowercaseMessage.includes('montako') && lowercaseMessage.includes('tunti')) ||
+    lowercaseMessage.includes('näytä tunnit') ||
+    lowercaseMessage.includes('show hours') ||
+    lowercaseMessage.includes('kerro tunnit') ||
+    lowercaseMessage.includes('tell me hours')
+  );
+}
+
+// Detect application info queries (clients, projects)
+export function isAppInfoQuery(message: string): boolean {
+  const lowercaseMessage = message.toLowerCase();
+  return (
+    lowercaseMessage.includes('client') || 
+    lowercaseMessage.includes('project') || 
+    lowercaseMessage.includes('asiakas') || 
+    lowercaseMessage.includes('projekti') ||
+    lowercaseMessage.includes('list') ||
+    lowercaseMessage.includes('show me') ||
+    lowercaseMessage.includes('näytä')
+  );
+}
+
+export function getEnvOrThrow(key: string): string {
+  const value = Deno.env.get(key);
+  if (!value) {
+    throw new Error(`${key} is not configured`);
+  }
+  return value;
+}

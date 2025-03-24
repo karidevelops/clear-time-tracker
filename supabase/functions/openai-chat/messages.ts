@@ -1,0 +1,145 @@
+
+import { TimeEntry, WeeklySummary } from "./database.ts";
+import { isColorChangeRequest, isHoursQuery } from "./utils.ts";
+
+export interface Message {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export interface AppData {
+  clients: any[];
+  projects: any[];
+}
+
+export function prepareSystemMessages(
+  messages: Message[],
+  lastUserMessage: string,
+  timeEntriesData: TimeEntry[] | null,
+  weeklyHoursSummary: WeeklySummary | null,
+  appData: AppData | undefined
+): Message[] {
+  const messagesWithSystem = [...messages];
+  
+  if (isColorChangeRequest(lastUserMessage) && 
+      !messages.some(m => m.role === 'system' && m.content.includes('UI_CUSTOMIZATION'))) {
+    
+    messagesWithSystem.unshift({
+      role: 'system',
+      content: `UI_CUSTOMIZATION: If the user wants to change the footer color, include "changeFooterColor(bg-color-class)" in your response where color-class is a valid Tailwind color class (e.g., bg-blue-500, bg-red-600, bg-green-400).
+
+You should recognize these requests in multiple languages:
+- English: "change footer color to X"
+- Finnish: "muuta alapalkin väri X:ksi", "vaihda alapalkin väri X:ksi"
+- Swedish: "ändra sidfotens färg till X"
+
+Respond in the same language as the user's request.
+Be VERY explicit and follow EXACTLY this format:
+- For colors: changeFooterColor(bg-color-500)`
+    });
+  }
+  
+  if (isHoursQuery(lastUserMessage)) {
+    let hoursSystemContent = `HOURS_QUERY: You are an AI assistant specialized in helping users query their logged hours in Reportronic.`;
+    
+    if (timeEntriesData && weeklyHoursSummary) {
+      // If we have actual time entry data, provide it to the AI
+      hoursSystemContent += `
+I have access to the user's time entries for the current week. Here's a summary:
+
+Total hours this week: ${weeklyHoursSummary.totalHours.toFixed(2)} hours
+Week period: ${weeklyHoursSummary.weekRange}
+
+Hours by project:
+${Object.entries(weeklyHoursSummary.projectHours)
+  .map(([project, hours]) => `- ${project}: ${Number(hours).toFixed(2)} hours`)
+  .join('\n')}
+
+Hours by client:
+${Object.entries(weeklyHoursSummary.clientHours)
+  .map(([client, hours]) => `- ${client}: ${Number(hours).toFixed(2)} hours`)
+  .join('\n')}
+
+Daily breakdown:
+${Object.entries(weeklyHoursSummary.dailyHours)
+  .map(([date, hours]) => `- ${date}: ${Number(hours).toFixed(2)} hours`)
+  .join('\n')}
+
+Detailed time entries:
+${timeEntriesData.map(entry => 
+  `- ${entry.date}: ${entry.hours.toFixed(2)} hours on ${entry.project} (${entry.client}): "${entry.description}"`
+).join('\n')}
+
+When presenting this information to the user, be concise but comprehensive. Respond in the same language as the user's query.`;
+    } else {
+      // If no data available, use the default response
+      hoursSystemContent += `
+When users ask about their hours:
+1. Explain that you don't have direct access to their specific time entries and data
+2. Direct them to check their hours in the weekly view, monthly view, or dashboard
+3. Suggest using the built-in reports for a complete overview`;
+    }
+    
+    hoursSystemContent += `
+You should recognize these requests in multiple languages:
+- English: "show my hours", "how many hours", "check my time entries"
+- Finnish: "näytä tuntini", "montako tuntia", "selvitä kirjatut tunnit", "paljonko tunteja"
+- Swedish: "visa mina timmar", "hur många timmar"
+
+Respond in the same language as the user's request.`;
+    
+    // Replace any existing HOURS_QUERY system message or add a new one
+    const existingHoursIdx = messagesWithSystem.findIndex(m => 
+      m.role === 'system' && m.content.includes('HOURS_QUERY'));
+    
+    if (existingHoursIdx >= 0) {
+      messagesWithSystem[existingHoursIdx] = {
+        role: 'system',
+        content: hoursSystemContent
+      };
+    } else {
+      messagesWithSystem.unshift({
+        role: 'system',
+        content: hoursSystemContent
+      });
+    }
+  }
+
+  // Add application data information
+  if (appData && 
+      !messages.some(m => m.role === 'system' && m.content.includes('APP_DATA'))) {
+    
+    let appDataContent = `APP_DATA: You are an AI assistant for Reportronic time tracking application.`;
+    
+    if (appData.clients && appData.projects) {
+      appDataContent += `
+Here is information about the clients and projects in the system:
+
+Clients:
+${appData.clients.map(client => 
+  `- ${client.name} (ID: ${client.id})`
+).join('\n')}
+
+Projects:
+${appData.projects.map(project => 
+  `- ${project.name} (ID: ${project.id}, Client ID: ${project.clientId})`
+).join('\n')}
+
+Use this information to help users understand what clients and projects are available in the system.
+Respond in the same language as the user's query.`;
+    } else {
+      appDataContent += `
+When users ask about clients and projects:
+1. Explain that the Reportronic system contains various clients and projects
+2. Direct them to check the Clients & Projects page for a complete list
+3. Suggest using the dropdown menus when creating time entries to see available options`;
+    }
+    
+    messagesWithSystem.unshift({
+      role: 'system',
+      content: appDataContent
+    });
+  }
+
+  return messagesWithSystem;
+}
