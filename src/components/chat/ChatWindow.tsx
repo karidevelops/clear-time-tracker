@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,7 @@ const ChatWindow = () => {
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: "system", 
-      content: "You are a helpful assistant. If a user wants to change the footer color, include 'changeFooterColor(color)' in your response where color is a valid Tailwind color class. If a user wants to change the banner text, include 'changeBannerText(text)' in your response."
+      content: "You are a helpful assistant. If a user wants to change the footer color, include 'changeFooterColor(color)' in your response where color is a valid Tailwind color class."
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -140,7 +139,6 @@ const ChatWindow = () => {
   const handleAIUIChanges = (message: string) => {
     console.log("Processing message for UI changes:", message);
     
-    // Improved regex for footer color - matches both with and without quotes
     const colorRegex = /changeFooterColor\(['"]?(bg-[a-z]+-[0-9]+)['"]?\)/i;
     const colorMatch = message.match(colorRegex);
     
@@ -156,26 +154,8 @@ const ChatWindow = () => {
       console.log("No footer color change detected");
     }
     
-    // Regex for banner text
-    const bannerTextRegex = /changeBannerText\(['"](.*?)['"](?:\)|,)/;
-    const bannerTextMatch = message.match(bannerTextRegex);
-    
-    if (bannerTextMatch && bannerTextMatch[1]) {
-      const text = bannerTextMatch[1].trim();
-      console.log(`Detected banner text change request: ${text}`);
-      setBannerText(text);
-      toast({
-        title: t("banner_changed"),
-        description: text,
-      });
-    } else {
-      console.log("No banner text change detected");
-    }
-    
-    // Remove the function calls from the displayed message
     return message
       .replace(/changeFooterColor\([^)]+\)/g, '')
-      .replace(/changeBannerText\([^)]+\)/g, '')
       .trim();
   };
 

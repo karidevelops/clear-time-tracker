@@ -26,12 +26,10 @@ const MessageInput = ({ onSendMessage, isLoading, placeholder = "Type a message.
     }
   };
 
-  // Example suggestions for quick access
+  // Example suggestions for quick access - removed banner text suggestions
   const suggestions = [
     { text: "Change footer color to blue", lang: "en" },
-    { text: "Change banner text to Reportronic 2025", lang: "en" },
     { text: "Vaihda alapalkin väri punaiseksi", lang: "fi" },
-    { text: "Vaihda bannerin teksti Reportronic 2025", lang: "fi" },
   ];
 
   return (
