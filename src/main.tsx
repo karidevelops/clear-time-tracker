@@ -8,18 +8,23 @@ import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { Toaster } from './components/ui/sonner.tsx';
 import { FooterProvider } from './context/FooterContext';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <LanguageProvider>
-        <AuthProvider>
-          <FooterProvider>
-            <App />
-            <Toaster position="top-right" />
-          </FooterProvider>
-        </AuthProvider>
-      </LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <LanguageProvider>
+          <AuthProvider>
+            <FooterProvider>
+              <App />
+              <Toaster position="top-right" />
+            </FooterProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </QueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>,
 )

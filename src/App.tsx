@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
@@ -92,71 +92,57 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const AppRoutes = () => {
-  const { user, isLoading } = useAuth();
-  
-  return (
-    <Routes>
-      {/* Public route */}
-      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
-      
-      {/* Protected routes */}
-      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route 
-        path="/weekly" 
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <div className="py-6">
-                <WeeklyView />
-              </div>
-            </Layout>
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/reports" 
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <div className="py-6">
-                <Reports />
-              </div>
-            </Layout>
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/settings" 
-        element={
-          <AdminRoute>
-            <Layout>
-              <div className="py-6">
-                <Settings />
-              </div>
-            </Layout>
-          </AdminRoute>
-        } 
-      />
-      {/* Catch-all route */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <LanguageProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </LanguageProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <Routes>
+        {/* Public route */}
+        <Route path="/auth" element={<Auth />} />
+        
+        {/* Protected routes */}
+        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route 
+          path="/weekly" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <div className="py-6">
+                  <WeeklyView />
+                </div>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <div className="py-6">
+                  <Reports />
+                </div>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <AdminRoute>
+              <Layout>
+                <div className="py-6">
+                  <Settings />
+                </div>
+              </Layout>
+            </AdminRoute>
+          } 
+        />
+        {/* Catch-all route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
