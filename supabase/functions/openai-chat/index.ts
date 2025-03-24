@@ -34,18 +34,24 @@ serve(async (req) => {
     
     // Get the last user message in any language
     const lastUserMessage = messages.findLast(m => m.role === 'user')?.content?.toLowerCase() || '';
+    console.log('Last user message:', lastUserMessage);
     
-    // Detect UI customization requests in multiple languages
+    // Detect UI customization requests in multiple languages - enhanced detection
     const isColorChangeRequest = 
       (lastUserMessage.includes('change') && lastUserMessage.includes('color')) || 
       (lastUserMessage.includes('muuta') && lastUserMessage.includes('väri')) || 
+      (lastUserMessage.includes('vaihda') && lastUserMessage.includes('väri')) || 
       (lastUserMessage.includes('ändra') && lastUserMessage.includes('färg'));
     
     const isBannerChangeRequest = 
       (lastUserMessage.includes('change') && lastUserMessage.includes('banner')) || 
       (lastUserMessage.includes('muuta') && lastUserMessage.includes('banneri')) || 
       (lastUserMessage.includes('vaihda') && lastUserMessage.includes('teksti')) || 
-      (lastUserMessage.includes('ändra') && lastUserMessage.includes('banner'));
+      (lastUserMessage.includes('ändra') && lastUserMessage.includes('banner')) ||
+      (lastUserMessage.includes('vaihda') && lastUserMessage.includes('banneri'));
+    
+    console.log('Is color change request:', isColorChangeRequest);
+    console.log('Is banner change request:', isBannerChangeRequest);
     
     // Add system message for UI customization requests if not already present
     let messagesWithSystem = [...messages];
@@ -63,7 +69,10 @@ You should recognize these requests in multiple languages:
 - Finnish: "muuta alapalkin väri X:ksi", "vaihda bannerin teksti Y:ksi"
 - Swedish: "ändra sidfotens färg till X", "ändra bannertexten till Y"
 
-Respond in the same language as the user's request.`
+Respond in the same language as the user's request.
+Be VERY explicit and follow EXACTLY this format:
+- For colors: changeFooterColor(bg-color-500)
+- For banner text: changeBannerText("text here")`
       });
     }
     
@@ -113,8 +122,11 @@ Respond in the same language as the user's request.`
       throw new Error('Invalid response format from OpenAI API');
     }
     
+    const aiResponse = data.choices[0].message.content;
+    console.log('AI response preview:', aiResponse.substring(0, 100));
+    
     return new Response(JSON.stringify({ 
-      response: data.choices[0].message.content
+      response: aiResponse
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

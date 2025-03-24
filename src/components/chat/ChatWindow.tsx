@@ -114,7 +114,10 @@ const ChatWindow = () => {
         throw new Error("Invalid response format from server");
       }
       
-      const cleanedContent = handleAIUIChanges(data.response);
+      const assistantResponse = data.response;
+      console.log("Raw AI response:", assistantResponse);
+      
+      const cleanedContent = handleAIUIChanges(assistantResponse);
       
       setMessages((prev) => [
         ...prev,
@@ -135,29 +138,38 @@ const ChatWindow = () => {
   };
 
   const handleAIUIChanges = (message: string) => {
-    // Enhanced regex patterns to better capture the function calls
-    const colorMatch = message.match(/changeFooterColor\(([^)]+)\)/);
+    console.log("Processing message for UI changes:", message);
+    
+    // Improved regex for footer color - matches both with and without quotes
+    const colorRegex = /changeFooterColor\(['"]?(bg-[a-z]+-[0-9]+)['"]?\)/i;
+    const colorMatch = message.match(colorRegex);
+    
     if (colorMatch && colorMatch[1]) {
       const color = colorMatch[1].trim();
-      if (color.startsWith('bg-')) {
-        setFooterColor(color);
-        console.log(`Footer color changed to: ${color}`);
-        toast({
-          title: t("footer_changed"),
-          description: color,
-        });
-      }
+      console.log(`Detected footer color change request: ${color}`);
+      setFooterColor(color);
+      toast({
+        title: t("footer_changed"),
+        description: color,
+      });
+    } else {
+      console.log("No footer color change detected");
     }
     
-    const textMatch = message.match(/changeBannerText\(([^)]+)\)/);
+    // Improved regex for banner text - better handles quoted text
+    const textRegex = /changeBannerText\(["'](.+?)["']\)/;
+    const textMatch = message.match(textRegex);
+    
     if (textMatch && textMatch[1]) {
       const text = textMatch[1].trim();
+      console.log(`Detected banner text change request: ${text}`);
       setBannerText(text);
-      console.log(`Banner text changed to: ${text}`);
       toast({
         title: t("banner_changed"),
         description: text,
       });
+    } else {
+      console.log("No banner text change detected");
     }
     
     // Remove the function calls from the displayed message
