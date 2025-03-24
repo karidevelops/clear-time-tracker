@@ -11,7 +11,7 @@ interface UseChatUIProps {
 }
 
 export const useChatUI = ({ setFooterColor, setBannerText, toast, t }: UseChatUIProps) => {
-  const handleAIUIChanges = (message: string) => {
+  const handleAIUIChanges = (message: string): string => {
     console.log("Processing message for UI changes:", message);
     
     const colorRegex = /changeFooterColor\(['"]?(bg-[a-z]+-[0-9]+)['"]?\)/i;

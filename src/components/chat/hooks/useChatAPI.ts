@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -74,10 +73,13 @@ export const useChatAPI = ({ userId, onUIChange }: UseChatAPIProps) => {
     }
   };
 
-  const sendMessage = async (messages: Message[], newMessage: string) => {
+  const sendMessage = async (messages: Message[], newMessage: string): Promise<{
+    updatedMessages: Message[];
+    timeEntrySummary?: TimeEntrySummary | null;
+  }> => {
     if (!newMessage.trim()) return { updatedMessages: messages };
     
-    const userMessage = { role: "user" as const, content: newMessage };
+    const userMessage: Message = { role: "user", content: newMessage };
     const updatedMessages = [...messages, userMessage];
     setIsLoading(true);
     setError(null);
@@ -126,12 +128,14 @@ export const useChatAPI = ({ userId, onUIChange }: UseChatAPIProps) => {
         cleanedContent = onUIChange(assistantResponse);
       }
       
+      const finalMessages: Message[] = [
+        ...updatedMessages,
+        { role: "assistant", content: cleanedContent },
+      ];
+      
       return {
-        updatedMessages: [
-          ...updatedMessages,
-          { role: "assistant", content: cleanedContent },
-        ],
-        timeEntrySummary: data.hasTimeEntryData ? data.summary : null
+        updatedMessages: finalMessages,
+        timeEntrySummary: data.hasTimeEntryData ? data.summary as TimeEntrySummary : null
       };
     } catch (error) {
       console.error("Error sending message:", error);

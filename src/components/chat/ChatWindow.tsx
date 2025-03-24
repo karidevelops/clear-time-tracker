@@ -55,7 +55,7 @@ const ChatWindow = () => {
     if (isOpen && apiStatus === "unknown") {
       testOpenAIAPI();
     }
-  }, [isOpen]);
+  }, [isOpen, apiStatus]);
 
   const onSendMessage = async (message: string) => {
     await handleSendMessage(sendMessage, message);
