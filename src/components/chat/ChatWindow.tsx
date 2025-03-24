@@ -36,6 +36,7 @@ const ChatWindow = () => {
         console.error('Error fetching clients for chat:', error);
         return [];
       }
+      console.log('Fetched clients for chat:', data);
       return data;
     }
   });
@@ -52,6 +53,7 @@ const ChatWindow = () => {
         console.error('Error fetching projects for chat:', error);
         return [];
       }
+      console.log('Fetched projects for chat:', data);
       return data;
     }
   });
@@ -59,10 +61,12 @@ const ChatWindow = () => {
   // Update appData when clients and projects are loaded
   useEffect(() => {
     if (!isLoadingClients && !isLoadingProjects) {
-      setAppData({
+      const newAppData = {
         clients,
         projects
-      });
+      };
+      console.log('Setting appData for chat:', newAppData);
+      setAppData(newAppData);
     }
   }, [clients, projects, isLoadingClients, isLoadingProjects]);
 

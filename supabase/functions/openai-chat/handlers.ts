@@ -42,7 +42,7 @@ export async function handleChatRequest(req: Request) {
     }
   }
   
-  // Log app data info in detail
+  // Detailed logging of app data and client/project information
   console.log('App data received:', {
     clientsCount: appData?.clients?.length || 0,
     projectsCount: appData?.projects?.length || 0
@@ -50,6 +50,30 @@ export async function handleChatRequest(req: Request) {
   
   if (appData?.clients?.length > 0) {
     console.log('All clients:', appData.clients.map(c => `${c.name} (ID: ${c.id})`));
+    
+    // Log all projects
+    console.log('All projects:', appData.projects?.map(p => 
+      `${p.name} (ID: ${p.id}, Client ID: ${p.client_id})`
+    ) || 'No projects data');
+    
+    // Find and log Sebitti client and its projects specifically
+    const sebittiClient = appData.clients.find(
+      c => c.name.toLowerCase().includes('sebitti')
+    );
+    
+    if (sebittiClient) {
+      console.log('Sebitti client found:', sebittiClient);
+      
+      // Find projects for Sebitti
+      const sebittiProjects = appData.projects?.filter(
+        p => p.client_id === sebittiClient.id
+      ) || [];
+      
+      console.log(`Projects for client ${sebittiClient.name}:`, 
+        sebittiProjects.length > 0 ? sebittiProjects : "No projects found");
+    } else {
+      console.log("Sebitti client not found in appData");
+    }
     
     // Log specific client if mentioned in the message
     const clientMentioned = appData.clients.find(

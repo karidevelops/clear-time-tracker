@@ -124,14 +124,30 @@ Projects:`;
 
       if (appData.projects && appData.projects.length > 0) {
         appDataContent += `
-${appData.projects.map(project => 
-  `- ${project.name} (ID: ${project.id}, Client ID: ${project.client_id})`
-).join('\n')}`;
+${appData.projects.map(project => {
+  // Find client name for this project
+  const clientName = appData.clients.find(c => c.id === project.client_id)?.name || "Unknown";
+  return `- ${project.name} (ID: ${project.id}, Client: ${clientName})`;
+}).join('\n')}`;
       } else {
         appDataContent += `\nNo projects found in the system.`;
       }
 
+      // Add specific sections for each client and their projects
+      appDataContent += `\n\nProjects by Client:`;
+      for (const client of appData.clients) {
+        const clientProjects = appData.projects?.filter(p => p.client_id === client.id) || [];
+        appDataContent += `\n\n${client.name} projects:`;
+        
+        if (clientProjects.length > 0) {
+          appDataContent += `\n${clientProjects.map(p => `- ${p.name}`).join('\n')}`;
+        } else {
+          appDataContent += `\nNo projects found for this client.`;
+        }
+      }
+
       appDataContent += `\n\nUse this information to help users understand what clients and projects are available in the system.
+Make sure to answer questions about specific clients and their projects accurately.
 Respond in the same language as the user's query.`;
     } else {
       appDataContent += `
