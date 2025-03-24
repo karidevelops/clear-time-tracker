@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ChatHeaderProps {
   onClose: () => void;
@@ -9,9 +10,11 @@ interface ChatHeaderProps {
 }
 
 const ChatHeader = ({ onClose, onTestAPI, isLoading }: ChatHeaderProps) => {
+  const { t } = useLanguage();
+  
   return (
     <div className="flex items-center justify-between p-3 bg-reportronic-500 text-white">
-      <h3 className="font-medium">Chat Assistant</h3>
+      <h3 className="font-medium">{t("ai_assistant")}</h3>
       <div className="flex items-center space-x-2">
         <Button
           onClick={onTestAPI}

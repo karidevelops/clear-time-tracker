@@ -64,8 +64,8 @@ const ChatWindow = () => {
       
       setApiStatus("success");
       toast({
-        title: t("api_test_successful") || "API Test Successful",
-        description: t("openai_api_working") || "OpenAI API is working correctly",
+        title: t("api_test_successful"),
+        description: t("openai_api_working"),
       });
     } catch (error) {
       console.error("Error testing API:", error);
@@ -73,7 +73,7 @@ const ChatWindow = () => {
       setError(errorMessage);
       setApiStatus("error");
       toast({
-        title: t("api_test_failed") || "API Test Failed",
+        title: t("api_test_failed"),
         description: errorMessage,
         variant: "destructive",
       });
@@ -125,7 +125,7 @@ const ChatWindow = () => {
       const errorMessage = error.message || "Failed to get response. Please try again.";
       setError(errorMessage);
       toast({
-        title: t("chat_error") || "Chat Error",
+        title: t("chat_error"),
         description: errorMessage,
         variant: "destructive",
       });
@@ -142,6 +142,10 @@ const ChatWindow = () => {
       if (color.startsWith('bg-')) {
         setFooterColor(color);
         console.log(`Footer color changed to: ${color}`);
+        toast({
+          title: t("footer_changed"),
+          description: color,
+        });
       }
     }
     
@@ -150,6 +154,10 @@ const ChatWindow = () => {
       const text = textMatch[1].trim();
       setBannerText(text);
       console.log(`Banner text changed to: ${text}`);
+      toast({
+        title: t("banner_changed"),
+        description: text,
+      });
     }
     
     // Remove the function calls from the displayed message
@@ -182,6 +190,7 @@ const ChatWindow = () => {
           <MessageInput 
             onSendMessage={handleSendMessage} 
             isLoading={isLoading} 
+            placeholder={t("chat_placeholder")}
           />
         </div>
       ) : (

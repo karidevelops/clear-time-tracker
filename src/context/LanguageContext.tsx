@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface LanguageContextType {
@@ -194,6 +195,12 @@ interface TranslationsType {
   rejection_comment_placeholder: string;
   return_time_entry: string;
   return_time_entry_confirmation: string;
+  api_test_successful: string;
+  openai_api_working: string;
+  api_test_failed: string;
+  chat_error: string;
+  footer_changed: string;
+  banner_changed: string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
@@ -708,3 +715,109 @@ const translations: Record<string, TranslationsType> = {
     projects_count: "Antal projekt",
     client_updated: "Kund uppdaterad framgångsrikt",
     client_added: "Kund tillagd framgångsrikt",
+    client_deleted: "Kund borttagen framgångsrikt",
+    cannot_delete_client_with_projects: "Kan inte ta bort kund med projekt",
+    error_adding_project: "Fel vid tillägg av projekt",
+    add_project_for: "Lägg till projekt för",
+    today_entries: "Dagens inmatningar",
+    edit_time_entry: "Redigera tidsinmatning",
+    no_entries_today: "Inga inmatningar för idag",
+    loading: "Laddar",
+    entry_deleted: "Inmatning borttagen",
+    error_deleting_entry: "Fel vid borttagning av inmatning",
+    unknown_client: "Okänd kund",
+    submit_for_approval: "Skicka för godkännande",
+    update_time_entry: "Uppdatera tidsinmatning",
+    time_entry_updated: "Tidsinmatning uppdaterad",
+    draft: "Utkast",
+    pending_approval: "Väntar på godkännande",
+    approved: "Godkänd",
+    select_status: "Välj status",
+    only_admins_can_approve: "Endast administratörer kan godkänna",
+    approve: "Godkänn",
+    approve_time_entry: "Godkänn tidsinmatning",
+    approve_time_entry_confirmation: "Är du säker på att du vill godkänna denna tidsinmatning?",
+    all_projects: "Alla projekt",
+    error_fetching_clients: "Fel vid hämtning av kunder",
+    error_fetching_projects: "Fel vid hämtning av projekt",
+    error_fetching_project_details: "Fel vid hämtning av projektdetaljer",
+    database_policy_error: "Databasfel. Försök igen eller kontakta support.",
+    duplicate_entry_error: "En dubblett finns redan.",
+    foreign_key_constraint_error: "Ogiltig projektnivå. Välj ett annat projekt.",
+    
+    // Chat Assistant translations - Swedish
+    chat_welcome_message: "Hej! Jag är din assistent. Hur kan jag hjälpa dig med tidsregistrering idag?",
+    chat_error_message: "Tyvärr, ett fel uppstod. Försök igen senare.",
+    chat_help_message: "Jag kan hjälpa dig med tidsregistreringar. Till exempel:\n- \"Kopiera gårdagens timmar till idag\"\n- \"Visa dagens registreringar\"\n- \"Visa gårdagens registreringar\"",
+    chat_dont_understand: "Jag förstod inte riktigt din begäran. Kan du förtydliga? Du kan till exempel be mig kopiera gårdagens registreringar eller visa dagens registreringar.",
+    chat_placeholder: "Skriv ett meddelande...",
+    ai_assistant: "AI-Assistent",
+    no_entries_yesterday: "Inga registreringar hittades för igår.",
+    entries_exist_today: "Det finns redan registreringar för idag. Vill du ändå kopiera gårdagens registreringar?",
+    copied_entries_success: "Kopierade registreringar från igår till idag.",
+    error_copying_entries: "Fel vid kopiering av registreringar. Försök igen senare.",
+    today_entries_summary: "Idag har registreringar, totalt timmar:",
+    yesterday_entries_summary: "Igår hade registreringar, totalt timmar:",
+    error_fetching_entries: "Fel vid hämtning av registreringar. Försök igen senare.",
+    
+    // User management translations - Swedish
+    users: "Användare",
+    manage_users: "Hantera användare",
+    users_list: "Användarlista",
+    add_user: "Lägg till användare",
+    add_user_description: "Skapa ett nytt användarkonto",
+    full_name: "Fullständigt namn",
+    role: "Roll",
+    select_role: "Välj roll",
+    user: "Användare",
+    admin: "Administratör",
+    name: "Namn",
+    no_name: "Inget namn",
+    view_entries: "Visa registreringar",
+    manage_user_time_entries: "Hantera användarens tidsregistreringar",
+    no_entries_found: "Inga registreringar hittades",
+    return_for_edit: "Returnera för redigering",
+    error_fetching_users: "Fel vid hämtning av användare",
+    error_adding_user: "Fel vid tillägg av användare",
+    error_setting_role: "Fel vid inställning av användarroll",
+    user_added_successfully: "Användare har lagts till",
+    unknown_project: "Okänt projekt",
+    rejection_comment_placeholder: "Ange en anledning till avvisningen...",
+    return_time_entry: "Returnera tidsregistrering",
+    return_time_entry_confirmation: "Är du säker på att du vill returnera denna tidsregistrering för redigering?",
+    api_test_successful: "API-test lyckades",
+    openai_api_working: "OpenAI API fungerar korrekt",
+    api_test_failed: "API-test misslyckades",
+    chat_error: "Chatt-fel",
+    footer_changed: "Sidfotstexten ändrad",
+    banner_changed: "Bannertexten ändrad",
+  }
+};
+
+export const LanguageProvider = ({ children }: { children: ReactNode }) => {
+  const [language, setLanguage] = useState<string>(() => {
+    const savedLanguage = localStorage.getItem('language');
+    return savedLanguage || 'en';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('language', language);
+  }, [language]);
+
+  const t = (key: string): string => {
+    if (!translations[language]) {
+      return translations['en'][key as keyof TranslationsType] || key;
+    }
+    return translations[language][key as keyof TranslationsType] || translations['en'][key as keyof TranslationsType] || key;
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+};
+
+export const useLanguage = () => useContext(LanguageContext);
+
+export default LanguageProvider;
