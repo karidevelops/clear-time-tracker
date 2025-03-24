@@ -70,14 +70,15 @@ ${timeEntriesData.map(entry =>
   `- ${entry.date}: ${entry.hours.toFixed(2)} hours on ${entry.project} (${entry.client}): "${entry.description}"`
 ).join('\n')}
 
-When presenting this information to the user, be concise but comprehensive. Respond in the same language as the user's query.`;
+When presenting this information to the user, format it clearly and concisely. Respond in the same language as the user's query.`;
     } else {
       // If no data available, use the default response
       hoursSystemContent += `
 When users ask about their hours:
-1. Explain that you don't have direct access to their specific time entries and data
-2. Direct them to check their hours in the weekly view, monthly view, or dashboard
-3. Suggest using the built-in reports for a complete overview`;
+1. Explain that you don't have direct access to their specific time entries at the moment
+2. Suggest that they might need to log in or check if they have any time entries for the current week
+3. Offer to help them navigate to the Weekly View or Monthly View where they can see their time entries in detail
+4. If they need specific data analysis, suggest using the built-in reports`;
     }
     
     hoursSystemContent += `

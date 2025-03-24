@@ -45,7 +45,10 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
       console.log("Testing OpenAI API connection...");
       
       const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
-        body: { messages: [{ role: "user", content: "Hello" }], userId },
+        body: { 
+          messages: [{ role: "user", content: "Hello" }], 
+          userId // Ensure we're passing the userId to the test request
+        },
       });
       
       console.log("Test response from Edge Function:", data);
@@ -95,6 +98,7 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
     try {
       console.log("Sending request to Edge Function...");
       console.log("Current user ID:", userId);
+      console.log("Passing appData with clients:", appData?.clients?.length || 0, "projects:", appData?.projects?.length || 0);
       
       const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
         body: { 
@@ -128,6 +132,8 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
       if (data.hasTimeEntryData && data.summary) {
         console.log("Time entry summary received:", data.summary);
         setTimeEntrySummary(data.summary);
+      } else {
+        console.log("No time entry data received in the response");
       }
       
       let cleanedContent = assistantResponse;

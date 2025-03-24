@@ -49,81 +49,86 @@ export async function fetchTimeEntries(userId: string): Promise<{
   
   console.log(`Fetching entries between ${startDate} and ${endDate}`);
   
-  // Fetch time entries for the current week
-  const { data: entries, error } = await supabase
-    .from('time_entries')
-    .select(`
-      id, 
-      date, 
-      hours, 
-      description, 
-      status,
-      project_id,
-      projects(name, client_id, clients(name))
-    `)
-    .eq('user_id', userId)
-    .gte('date', startDate)
-    .lte('date', endDate)
-    .order('date', { ascending: true });
-  
-  if (error) {
-    console.error('Error fetching time entries:', error);
+  try {
+    // Fetch time entries for the current week
+    const { data: entries, error } = await supabase
+      .from('time_entries')
+      .select(`
+        id, 
+        date, 
+        hours, 
+        description, 
+        status,
+        project_id,
+        projects(name, client_id, clients(name))
+      `)
+      .eq('user_id', userId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: true });
+    
+    if (error) {
+      console.error('Error fetching time entries:', error);
+      throw error;
+    }
+    
+    console.log(`Found ${entries?.length || 0} time entries`);
+    console.log('Sample entries:', JSON.stringify(entries?.slice(0, 2)));
+    
+    if (!entries || entries.length === 0) {
+      console.log('No time entries found for the current week');
+      return { entries: null, summary: null };
+    }
+    
+    // Format entries for better readability
+    const timeEntriesData = entries.map(entry => ({
+      date: entry.date,
+      hours: Number(entry.hours),
+      description: entry.description || "Ei kuvausta",
+      status: entry.status,
+      project: entry.projects?.name || "Tuntematon projekti",
+      client: entry.projects?.clients?.name || "Tuntematon asiakas"
+    }));
+    
+    // Calculate weekly summary
+    const totalHours = entries.reduce((sum, entry) => sum + Number(entry.hours), 0);
+    
+    // Group by project
+    const projectHours = entries.reduce((acc, entry) => {
+      const projectName = entry.projects?.name || "Tuntematon projekti";
+      acc[projectName] = (acc[projectName] || 0) + Number(entry.hours);
+      return acc;
+    }, {} as Record<string, number>);
+    
+    // Group by client
+    const clientHours = entries.reduce((acc, entry) => {
+      const clientName = entry.projects?.clients?.name || "Tuntematon asiakas";
+      acc[clientName] = (acc[clientName] || 0) + Number(entry.hours);
+      return acc;
+    }, {} as Record<string, number>);
+    
+    // Group by day of week
+    const dayHours = entries.reduce((acc, entry) => {
+      acc[entry.date] = (acc[entry.date] || 0) + Number(entry.hours);
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const weeklyHoursSummary = {
+      totalHours,
+      projectHours,
+      clientHours,
+      dailyHours: dayHours,
+      weekRange: `${startDate} - ${endDate}`
+    };
+    
+    console.log('Weekly summary calculated:', JSON.stringify(weeklyHoursSummary));
+    
+    return { 
+      entries: timeEntriesData,
+      summary: weeklyHoursSummary
+    };
+  } catch (error) {
+    console.error('Error in fetchTimeEntries:', error);
     throw error;
   }
-  
-  console.log(`Found ${entries?.length || 0} time entries`);
-  console.log('Sample entries:', JSON.stringify(entries?.slice(0, 2)));
-  
-  if (!entries || entries.length === 0) {
-    console.log('No time entries found for the current week');
-    return { entries: null, summary: null };
-  }
-  
-  // Format entries for better readability
-  const timeEntriesData = entries.map(entry => ({
-    date: entry.date,
-    hours: Number(entry.hours),
-    description: entry.description || "Ei kuvausta",
-    status: entry.status,
-    project: entry.projects?.name || "Tuntematon projekti",
-    client: entry.projects?.clients?.name || "Tuntematon asiakas"
-  }));
-  
-  // Calculate weekly summary
-  const totalHours = entries.reduce((sum, entry) => sum + Number(entry.hours), 0);
-  
-  // Group by project
-  const projectHours = entries.reduce((acc, entry) => {
-    const projectName = entry.projects?.name || "Tuntematon projekti";
-    acc[projectName] = (acc[projectName] || 0) + Number(entry.hours);
-    return acc;
-  }, {} as Record<string, number>);
-  
-  // Group by client
-  const clientHours = entries.reduce((acc, entry) => {
-    const clientName = entry.projects?.clients?.name || "Tuntematon asiakas";
-    acc[clientName] = (acc[clientName] || 0) + Number(entry.hours);
-    return acc;
-  }, {} as Record<string, number>);
-  
-  // Group by day of week
-  const dayHours = entries.reduce((acc, entry) => {
-    acc[entry.date] = (acc[entry.date] || 0) + Number(entry.hours);
-    return acc;
-  }, {} as Record<string, number>);
-  
-  const weeklyHoursSummary = {
-    totalHours,
-    projectHours,
-    clientHours,
-    dailyHours: dayHours,
-    weekRange: `${startDate} - ${endDate}`
-  };
-  
-  console.log('Weekly summary calculated:', JSON.stringify(weeklyHoursSummary));
-  
-  return { 
-    entries: timeEntriesData,
-    summary: weeklyHoursSummary
-  };
 }

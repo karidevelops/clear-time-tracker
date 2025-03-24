@@ -19,15 +19,26 @@ export function isColorChangeRequest(message: string): boolean {
 export function isHoursQuery(message: string): boolean {
   const lowercaseMessage = message.toLowerCase();
   return (
-    (lowercaseMessage.includes('hour') || lowercaseMessage.includes('time')) || 
-    (lowercaseMessage.includes('tunti') || lowercaseMessage.includes('aika')) || 
+    // English patterns
+    lowercaseMessage.includes('hour') || 
+    lowercaseMessage.includes('time') ||
+    lowercaseMessage.includes('show my hours') ||
+    lowercaseMessage.includes('tell me hours') ||
+    
+    // Finnish patterns
+    lowercaseMessage.includes('tunti') || 
+    lowercaseMessage.includes('aika') || 
+    lowercaseMessage.includes('näytä tunnit') ||
+    lowercaseMessage.includes('kerro tunnit') ||
+    lowercaseMessage.includes('paljonko tunteja') ||
+    lowercaseMessage.includes('montako tuntia') ||
     (lowercaseMessage.includes('selvitä') && lowercaseMessage.includes('tunnit')) ||
     (lowercaseMessage.includes('paljonko') && lowercaseMessage.includes('tunti')) ||
     (lowercaseMessage.includes('montako') && lowercaseMessage.includes('tunti')) ||
-    lowercaseMessage.includes('näytä tunnit') ||
-    lowercaseMessage.includes('show hours') ||
-    lowercaseMessage.includes('kerro tunnit') ||
-    lowercaseMessage.includes('tell me hours')
+    
+    // Swedish patterns
+    lowercaseMessage.includes('visa mina timmar') ||
+    lowercaseMessage.includes('hur många timmar')
   );
 }
 

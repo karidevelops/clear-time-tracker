@@ -31,8 +31,14 @@ export async function handleChatRequest(req: Request) {
   
   if (isHoursRequest && userId) {
     try {
+      console.log('Fetching time entries for user ID:', userId);
       // Fetch time entries from database
       const { entries, summary } = await fetchTimeEntries(userId);
+      
+      // Log the results
+      console.log('Time entries fetched:', entries ? entries.length : 0);
+      console.log('Weekly summary:', summary);
+      
       timeEntriesData = entries;
       weeklyHoursSummary = summary;
     } catch (dbError) {
