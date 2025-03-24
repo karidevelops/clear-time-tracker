@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -67,7 +66,6 @@ const ChatWindow = () => {
         <div className="flex flex-col w-80 sm:w-96 h-96 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
           <ChatHeader 
             onClose={() => setIsOpen(false)} 
-            onTestAPI={testOpenAIAPI} 
             isLoading={isLoading} 
           />
           
