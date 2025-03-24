@@ -58,7 +58,7 @@ const ChatWindow = () => {
       console.log("Testing OpenAI API connection...");
       
       const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
-        body: { messages: [{ role: "user", content: "Hello" }] },
+        body: { messages: [{ role: "user", content: "Hello" }], userId: user?.id },
       });
       
       console.log("Test response from Edge Function:", data);

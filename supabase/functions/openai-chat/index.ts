@@ -62,8 +62,18 @@ serve(async (req) => {
     
     if (isHoursQuery && userId) {
       try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+        // Get Supabase credentials from environment
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
+        
+        if (!supabaseUrl || !supabaseKey) {
+          console.error('Supabase credentials missing');
+          throw new Error('Supabase credentials are not configured');
+        }
+        
+        console.log('Supabase URL:', supabaseUrl);
+        console.log('Supabase key starting with:', supabaseKey.substring(0, 5) + '...');
+        
         const supabase = createClient(supabaseUrl, supabaseKey);
         
         console.log('Fetching time entries for user:', userId);
@@ -106,6 +116,7 @@ serve(async (req) => {
         }
         
         console.log(`Found ${entries?.length || 0} time entries`);
+        console.log('Sample entries:', JSON.stringify(entries?.slice(0, 2)));
         
         if (entries && entries.length > 0) {
           // Format entries for better readability
@@ -150,9 +161,12 @@ serve(async (req) => {
           };
           
           console.log('Weekly summary calculated:', JSON.stringify(weeklyHoursSummary));
+        } else {
+          console.log('No time entries found for the current week');
         }
       } catch (dbError) {
         console.error('Error during database query:', dbError);
+        console.error('Stack trace:', dbError.stack);
         // Continue with the OpenAI request even if DB fetch fails
       }
     }
@@ -207,7 +221,9 @@ ${Object.entries(weeklyHoursSummary.dailyHours)
 Detailed time entries:
 ${timeEntriesData.map(entry => 
   `- ${entry.date}: ${entry.hours.toFixed(2)} hours on ${entry.project} (${entry.client}): "${entry.description}"`
-).join('\n')}`;
+).join('\n')}
+
+When presenting this information to the user, be concise but comprehensive. Respond in the same language as the user's query.`;
       } else {
         // If no data available, use the default response
         hoursSystemContent += `
