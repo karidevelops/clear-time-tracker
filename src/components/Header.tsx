@@ -221,7 +221,6 @@ const Header = ({ bannerText = 'Reportronic' }: HeaderProps) => {
               alt="Reportronic Logo" 
               className="h-8 w-auto" 
             />
-            <span className="text-lg font-semibold">{bannerText}</span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-2">
