@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,13 @@ const ChatWindow = () => {
   const [error, setError] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<"unknown" | "success" | "error">("unknown");
   const { toast } = useToast();
+
+  // Test API connection when component mounts
+  useEffect(() => {
+    if (isOpen && apiStatus === "unknown") {
+      testOpenAIAPI();
+    }
+  }, [isOpen]);
 
   const testOpenAIAPI = async () => {
     setIsLoading(true);

@@ -20,10 +20,11 @@ serve(async (req) => {
       throw new Error('Messages array is required');
     }
 
-    // Get the API key from environment or use the provided one
-    // The key format looks incorrect - it should start with 'sk-' not 'sk-proj-'
-    // Switching to standard OpenAI API key format
-    const apiKey = Deno.env.get('OPENAI_API_KEY') || "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";
+    // Get the API key from environment
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!apiKey) {
+      throw new Error('OpenAI API key is not configured');
+    }
     
     console.log('Making request to OpenAI API...');
     console.log('Using API key starting with:', apiKey.substring(0, 5) + '...');
