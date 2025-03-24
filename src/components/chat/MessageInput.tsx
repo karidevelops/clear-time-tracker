@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { Send, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -26,12 +26,12 @@ const MessageInput = ({ onSendMessage, isLoading, placeholder = "Type a message.
     }
   };
 
-  // Example suggestions for quick access - added hour query suggestions
+  // Example suggestions for quick access - enhanced hours queries
   const suggestions = [
-    { text: "Change footer color to blue", lang: "en" },
-    { text: "How many hours did I log this week?", lang: "en" },
-    { text: "Vaihda alapalkin väri punaiseksi", lang: "fi" },
-    { text: "Montako tuntia olen kirjannut tällä viikolla?", lang: "fi" },
+    { text: "Change footer color to blue", lang: "en", icon: null },
+    { text: "How many hours did I log this week?", lang: "en", icon: <Clock size={14} /> },
+    { text: "Vaihda alapalkin väri punaiseksi", lang: "fi", icon: null },
+    { text: "Montako tuntia olen kirjannut tällä viikolla?", lang: "fi", icon: <Clock size={14} /> },
   ];
 
   return (
@@ -62,10 +62,11 @@ const MessageInput = ({ onSendMessage, isLoading, placeholder = "Type a message.
               key={index}
               variant="outline"
               size="sm"
-              className="text-xs py-1"
+              className="text-xs py-1 flex items-center gap-1"
               onClick={() => setMessage(suggestion.text)}
               title={suggestion.text}
             >
+              {suggestion.icon}
               {suggestion.text.length > 25 
                 ? suggestion.text.substring(0, 22) + "..." 
                 : suggestion.text}

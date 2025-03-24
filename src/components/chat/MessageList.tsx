@@ -1,7 +1,7 @@
 
 import { useRef, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -32,6 +32,22 @@ const MessageList = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Check if a message is related to hours/time queries
+  const isHoursRelatedMessage = (content: string) => {
+    const lowerContent = content.toLowerCase();
+    return (
+      lowerContent.includes("hour") || 
+      lowerContent.includes("time") || 
+      lowerContent.includes("tunti") || 
+      lowerContent.includes("aika") ||
+      lowerContent.includes("weekly view") ||
+      lowerContent.includes("monthly view") ||
+      lowerContent.includes("dashboard") ||
+      lowerContent.includes("viikkonäkymä") ||
+      lowerContent.includes("kuukausinäkymä")
+    );
+  };
 
   return (
     <div className="flex-1 p-3 overflow-y-auto space-y-3 bg-gray-50">
@@ -71,9 +87,17 @@ const MessageList = ({
             className={`max-w-[80%] p-3 rounded-lg ${
               msg.role === "user"
                 ? "bg-reportronic-100 text-reportronic-900"
-                : "bg-white border border-gray-200"
+                : isHoursRelatedMessage(msg.content)
+                  ? "bg-blue-50 border border-blue-200" 
+                  : "bg-white border border-gray-200"
             }`}
           >
+            {msg.role === "assistant" && isHoursRelatedMessage(msg.content) && (
+              <div className="flex items-center mb-1 text-blue-500">
+                <Clock size={14} className="mr-1" />
+                <span className="text-xs font-medium">Hours Information</span>
+              </div>
+            )}
             <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
           </div>
         </div>
