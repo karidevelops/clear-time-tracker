@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Settings as SettingsIcon, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -44,13 +43,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface HeaderProps {
+  bannerText?: string;
+}
+
 interface User {
   id: string;
   email: string;
   full_name?: string;
 }
 
-const Header = () => {
+const Header = ({ bannerText = 'Reportronic' }: HeaderProps) => {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -106,13 +109,10 @@ const Header = () => {
         const usersWithEmail: User[] = [];
         
         for (const profile of profiles) {
-          // Create user object with available data
-          // Since we don't have direct access to emails from profiles table,
-          // we'll use the ID as a placeholder or other identification
           usersWithEmail.push({
             id: profile.id,
-            email: profile.id, // Using ID as placeholder since email isn't directly available
-            full_name: profile.full_name || profile.id.substring(0, 8) // Use first 8 chars of ID if no name
+            email: profile.id,
+            full_name: profile.full_name || profile.id.substring(0, 8)
           });
         }
         
@@ -154,7 +154,6 @@ const Header = () => {
   };
 
   const handleTimeEntrySaved = () => {
-    // Force a refresh of the current route to update the data
     const currentPath = location.pathname;
     navigate('/', { replace: true });
     setTimeout(() => {
@@ -190,7 +189,6 @@ const Header = () => {
     if (newSelectedUser) {
       setSelectedUser(newSelectedUser);
       
-      // Force refresh the current view after user change
       const currentPath = location.pathname;
       navigate('/', { replace: true });
       setTimeout(() => {
@@ -223,6 +221,7 @@ const Header = () => {
               alt="Reportronic Logo" 
               className="h-8 w-auto" 
             />
+            <span className="text-lg font-semibold">{bannerText}</span>
           </Link>
           
           <nav className="hidden md:flex items-center space-x-2">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import { useFooter } from "@/context/FooterContext";
+import { useBanner } from "@/context/BannerContext";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -17,15 +17,15 @@ interface Message {
 const ChatWindow = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "system", content: "You are a helpful assistant. If a user asks to change the footer color, respond with 'CHANGE_FOOTER_COLOR:color' where color is a valid Tailwind color class (like bg-blue-500)." },
+    { role: "system", content: "You are a helpful assistant. If a user asks to change the footer color, respond with 'CHANGE_FOOTER_COLOR:color' where color is a valid Tailwind color class (like bg-blue-500). If a user asks to change the banner text, respond with 'CHANGE_BANNER_TEXT:text' where text is a valid string." },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<"unknown" | "success" | "error">("unknown");
   const { toast } = useToast();
   const { setFooterColor } = useFooter();
+  const { setBannerText } = useBanner();
 
-  // Test API connection when component mounts
   useEffect(() => {
     if (isOpen && apiStatus === "unknown") {
       testOpenAIAPI();
@@ -108,22 +108,16 @@ const ChatWindow = () => {
         throw new Error("Invalid response format from server");
       }
       
-      // Check if response contains a color change command
-      const responseText = data.response;
-      if (responseText.includes("CHANGE_FOOTER_COLOR:")) {
-        const colorClass = responseText.split("CHANGE_FOOTER_COLOR:")[1].trim().split(" ")[0];
-        if (colorClass.startsWith("bg-")) {
-          setFooterColor(colorClass);
-          toast({
-            title: "Footer Color Changed",
-            description: `Footer color has been updated to ${colorClass.replace('bg-', '')}`,
-          });
-        }
+      const cleanedContent = handleAIUIChanges(data.response);
+      
+      if (!cleanedContent) {
+        console.error("Invalid response format:", data);
+        throw new Error("Invalid response format from server");
       }
       
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.response },
+        { role: "assistant", content: cleanedContent },
       ]);
     } catch (error) {
       console.error("Error sending message:", error);
@@ -137,6 +131,23 @@ const ChatWindow = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAIUIChanges = (message: string) => {
+    const colorMatch = message.match(/changeFooterColor\(([^)]+)\)/);
+    if (colorMatch && colorMatch[1]) {
+      setFooterColor(colorMatch[1]);
+    }
+    
+    const textMatch = message.match(/changeBannerText\(([^)]+)\)/);
+    if (textMatch && textMatch[1]) {
+      setBannerText(textMatch[1]);
+    }
+    
+    return message
+      .replace(/changeFooterColor\([^)]+\)/g, '')
+      .replace(/changeBannerText\([^)]+\)/g, '')
+      .trim();
   };
 
   const clearError = () => setError(null);
