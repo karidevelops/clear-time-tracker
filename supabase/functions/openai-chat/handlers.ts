@@ -39,8 +39,13 @@ export async function handleChatRequest(req: Request) {
       console.log('Time entries fetched:', entries ? entries.length : 0);
       console.log('Weekly summary:', summary);
       
-      timeEntriesData = entries;
-      weeklyHoursSummary = summary;
+      if (entries && entries.length > 0) {
+        timeEntriesData = entries;
+        weeklyHoursSummary = summary;
+        console.log('Time entry data processed successfully');
+      } else {
+        console.log('No time entries found for this user');
+      }
     } catch (dbError) {
       console.error('Error during database query:', dbError);
       console.error('Stack trace:', dbError.stack);

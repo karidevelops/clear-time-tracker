@@ -38,7 +38,17 @@ export function isHoursQuery(message: string): boolean {
     
     // Swedish patterns
     lowercaseMessage.includes('visa mina timmar') ||
-    lowercaseMessage.includes('hur många timmar')
+    lowercaseMessage.includes('hur många timmar') ||
+    
+    // Additional simple patterns that may be missed
+    lowercaseMessage.includes('työaika') ||
+    lowercaseMessage.includes('work time') ||
+    lowercaseMessage.includes('työtunnit') ||
+    lowercaseMessage.includes('työaikani') ||
+    lowercaseMessage.includes('työaikaa') ||
+    lowercaseMessage.includes('how many hours') ||
+    lowercaseMessage.includes('check hours') ||
+    lowercaseMessage.includes('view hours')
   );
 }
 
