@@ -26,10 +26,12 @@ const MessageInput = ({ onSendMessage, isLoading, placeholder = "Type a message.
     }
   };
 
-  // Example suggestions for quick access - removed banner text suggestions
+  // Example suggestions for quick access - added hour query suggestions
   const suggestions = [
     { text: "Change footer color to blue", lang: "en" },
+    { text: "How many hours did I log this week?", lang: "en" },
     { text: "Vaihda alapalkin väri punaiseksi", lang: "fi" },
+    { text: "Montako tuntia olen kirjannut tällä viikolla?", lang: "fi" },
   ];
 
   return (

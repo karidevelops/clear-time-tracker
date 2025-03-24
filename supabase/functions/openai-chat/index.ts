@@ -43,36 +43,56 @@ serve(async (req) => {
       (lastUserMessage.includes('vaihda') && lastUserMessage.includes('väri')) || 
       (lastUserMessage.includes('ändra') && lastUserMessage.includes('färg'));
     
-    const isBannerChangeRequest = 
-      (lastUserMessage.includes('change') && lastUserMessage.includes('banner')) || 
-      (lastUserMessage.includes('muuta') && lastUserMessage.includes('banneri')) || 
-      (lastUserMessage.includes('vaihda') && lastUserMessage.includes('teksti')) || 
-      (lastUserMessage.includes('ändra') && lastUserMessage.includes('banner')) ||
-      (lastUserMessage.includes('vaihda') && lastUserMessage.includes('banneri'));
+    // Detect hour-related queries in multiple languages
+    const isHoursQuery = 
+      (lastUserMessage.includes('hour') || lastUserMessage.includes('time')) || 
+      (lastUserMessage.includes('tunti') || lastUserMessage.includes('aika')) || 
+      (lastUserMessage.includes('selvitä') && lastUserMessage.includes('tunnit')) ||
+      (lastUserMessage.includes('paljonko') && lastUserMessage.includes('tunti')) ||
+      (lastUserMessage.includes('montako') && lastUserMessage.includes('tunti'));
     
     console.log('Is color change request:', isColorChangeRequest);
-    console.log('Is banner change request:', isBannerChangeRequest);
+    console.log('Is hours query:', isHoursQuery);
     
-    // Add system message for UI customization requests if not already present
+    // Add system message for UI customization or hours query requests if not already present
     let messagesWithSystem = [...messages];
-    if ((isColorChangeRequest || isBannerChangeRequest) && 
+    
+    if (isColorChangeRequest && 
         !messages.some(m => m.role === 'system' && m.content.includes('UI_CUSTOMIZATION'))) {
       
       messagesWithSystem.unshift({
         role: 'system',
         content: `UI_CUSTOMIZATION: If the user wants to change the footer color, include "changeFooterColor(bg-color-class)" in your response where color-class is a valid Tailwind color class (e.g., bg-blue-500, bg-red-600, bg-green-400).
-        
-If the user wants to change the banner text, include "changeBannerText(\"new banner text\")" in your response.
 
 You should recognize these requests in multiple languages:
-- English: "change footer color to X", "change banner text to Y"
-- Finnish: "muuta alapalkin väri X:ksi", "vaihda bannerin teksti Y:ksi"
-- Swedish: "ändra sidfotens färg till X", "ändra bannertexten till Y"
+- English: "change footer color to X"
+- Finnish: "muuta alapalkin väri X:ksi", "vaihda alapalkin väri X:ksi"
+- Swedish: "ändra sidfotens färg till X"
 
 Respond in the same language as the user's request.
 Be VERY explicit and follow EXACTLY this format:
-- For colors: changeFooterColor(bg-color-500)
-- For banner text: changeBannerText("text here")`
+- For colors: changeFooterColor(bg-color-500)`
+      });
+    }
+    
+    if (isHoursQuery && 
+        !messages.some(m => m.role === 'system' && m.content.includes('HOURS_QUERY'))) {
+      
+      messagesWithSystem.unshift({
+        role: 'system',
+        content: `HOURS_QUERY: You are an AI assistant specialized in helping users query their logged hours in Reportronic.
+
+When users ask about their hours:
+1. Explain that you don't have direct access to their specific time entries and data
+2. Direct them to check their hours in the weekly view, monthly view, or dashboard
+3. Suggest using the built-in reports for a complete overview
+
+You should recognize these requests in multiple languages:
+- English: "show my hours", "how many hours", "check my time entries"
+- Finnish: "näytä tuntini", "montako tuntia", "selvitä kirjatut tunnit", "paljonko tunteja"
+- Swedish: "visa mina timmar", "hur många timmar"
+
+Respond in the same language as the user's request.`
       });
     }
     
