@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,12 +17,18 @@ export interface TimeEntrySummary {
   weekRange: string;
 }
 
+interface AppData {
+  clients: any[];
+  projects: any[];
+}
+
 interface UseChatAPIProps {
   userId?: string;
   onUIChange?: (message: string) => string;
+  appData?: AppData;
 }
 
-export const useChatAPI = ({ userId, onUIChange }: UseChatAPIProps) => {
+export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<"unknown" | "success" | "error">("unknown");
@@ -92,7 +99,8 @@ export const useChatAPI = ({ userId, onUIChange }: UseChatAPIProps) => {
       const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
         body: { 
           messages: updatedMessages,
-          userId // Pass user ID to edge function
+          userId, // Pass user ID to edge function
+          appData  // Pass application data to edge function
         },
       });
       

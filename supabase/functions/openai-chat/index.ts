@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, userId } = await req.json();
+    const { messages, userId, appData } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
       throw new Error('Messages array is required');
@@ -56,8 +56,19 @@ serve(async (req) => {
       lastUserMessage.includes('kerro tunnit') ||
       lastUserMessage.includes('tell me hours');
     
+    // Detect application info queries (clients, projects)
+    const isAppInfoQuery = 
+      lastUserMessage.includes('client') || 
+      lastUserMessage.includes('project') || 
+      lastUserMessage.includes('asiakas') || 
+      lastUserMessage.includes('projekti') ||
+      lastUserMessage.includes('list') ||
+      lastUserMessage.includes('show me') ||
+      lastUserMessage.includes('näytä');
+    
     console.log('Is color change request:', isColorChangeRequest);
     console.log('Is hours query:', isHoursQuery);
+    console.log('Is app info query:', isAppInfoQuery);
     console.log('User ID provided:', userId);
     
     // Initialize Supabase client
@@ -260,6 +271,42 @@ Respond in the same language as the user's request.`;
           content: hoursSystemContent
         });
       }
+    }
+
+    // Add application data information if requested or if it's an app info query
+    if ((appData || isAppInfoQuery) && 
+        !messages.some(m => m.role === 'system' && m.content.includes('APP_DATA'))) {
+      
+      let appDataContent = `APP_DATA: You are an AI assistant for Reportronic time tracking application.`;
+      
+      if (appData && appData.clients && appData.projects) {
+        appDataContent += `
+Here is information about the clients and projects in the system:
+
+Clients:
+${appData.clients.map(client => 
+  `- ${client.name} (ID: ${client.id})`
+).join('\n')}
+
+Projects:
+${appData.projects.map(project => 
+  `- ${project.name} (ID: ${project.id}, Client ID: ${project.clientId})`
+).join('\n')}
+
+Use this information to help users understand what clients and projects are available in the system.
+Respond in the same language as the user's query.`;
+      } else {
+        appDataContent += `
+When users ask about clients and projects:
+1. Explain that the Reportronic system contains various clients and projects
+2. Direct them to check the Clients & Projects page for a complete list
+3. Suggest using the dropdown menus when creating time entries to see available options`;
+      }
+      
+      messagesWithSystem.unshift({
+        role: 'system',
+        content: appDataContent
+      });
     }
     
     // Make the chat completion request

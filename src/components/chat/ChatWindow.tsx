@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useChatAPI } from "./hooks/useChatAPI";
 import { useChatUI } from "./utils/chatUIUtils";
 import { useChatState } from "./hooks/useChatState";
+import { clients, getAllProjects } from "@/data/ClientsData";
 
 const ChatWindow = () => {
   const { language, t } = useLanguage();
@@ -20,6 +22,13 @@ const ChatWindow = () => {
   const { setFooterColor } = useFooter();
   const { setBannerText } = useBanner();
 
+  // Get application data to provide to the AI assistant
+  const allProjects = getAllProjects();
+  const appData = {
+    clients,
+    projects: allProjects,
+  };
+
   const {
     isOpen,
     setIsOpen,
@@ -27,7 +36,7 @@ const ChatWindow = () => {
     timeEntrySummary: stateSummary,
     handleSendMessage
   } = useChatState({
-    initialSystemMessage: "You are a helpful assistant. If a user wants to change the footer color, include 'changeFooterColor(color)' in your response where color is a valid Tailwind color class."
+    initialSystemMessage: "You are a helpful assistant for Reportronic time tracking application. You can help users understand how to use the app, find information about their time entries, projects, and clients. If a user wants to change the footer color, include 'changeFooterColor(color)' in your response where color is a valid Tailwind color class."
   });
 
   const { handleAIUIChanges } = useChatUI({ 
@@ -47,7 +56,8 @@ const ChatWindow = () => {
     clearError
   } = useChatAPI({
     userId: user?.id,
-    onUIChange: handleAIUIChanges
+    onUIChange: handleAIUIChanges,
+    appData // Pass application data to the chat API
   });
 
   useEffect(() => {
