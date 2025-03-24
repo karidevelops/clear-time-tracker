@@ -390,6 +390,12 @@ const translations: Record<string, TranslationsType> = {
     rejection_comment_placeholder: 'Enter a reason for the rejection...',
     return_time_entry: 'Return Time Entry',
     return_time_entry_confirmation: 'Are you sure you want to return this time entry for editing?',
+    api_test_successful: "API Test Successful",
+    openai_api_working: "OpenAI API is working correctly",
+    api_test_failed: "API Test Failed",
+    chat_error: "Chat Error",
+    footer_changed: "Footer color changed",
+    banner_changed: "Banner text changed",
   },
   fi: {
     dashboard: 'Tuntikirjaus',
@@ -578,6 +584,12 @@ const translations: Record<string, TranslationsType> = {
     rejection_comment_placeholder: 'Anna syy hylkäämiselle...',
     return_time_entry: 'Palauta tuntikirjaus',
     return_time_entry_confirmation: 'Haluatko varmasti palauttaa tämän tuntikirjauksen muokattavaksi?',
+    api_test_successful: "API-testi onnistui",
+    openai_api_working: "OpenAI API toimii oikein",
+    api_test_failed: "API-testi epäonnistui",
+    chat_error: "Keskusteluvirhe",
+    footer_changed: "Alapalkin väri muutettu",
+    banner_changed: "Bannerin teksti muutettu",
   },
   sv: {
     dashboard: 'Instrumentbräda',
@@ -696,98 +708,3 @@ const translations: Record<string, TranslationsType> = {
     projects_count: "Antal projekt",
     client_updated: "Kund uppdaterad framgångsrikt",
     client_added: "Kund tillagd framgångsrikt",
-    client_deleted: "Kund borttagen framgångsrikt",
-    cannot_delete_client_with_projects: "Kan inte ta bort kund med projekt",
-    error_adding_project: "Fel vid tilläggning av projekt",
-    add_project_for: 'Lägg till projekt för',
-    today_entries: 'Dagens inmatningar',
-    edit_time_entry: 'Redigera tidsinmatning',
-    no_entries_today: 'Inga inmatningar för idag',
-    loading: 'Laddar',
-    entry_deleted: 'Inmatning borttagen',
-    error_deleting_entry: 'Fel vid borttagning av inmatning',
-    unknown_client: 'Okänd kund',
-    submit_for_approval: 'Skicka för godkännande',
-    update_time_entry: 'Uppdatera tidsinmatning',
-    time_entry_updated: 'Tidsinmatning uppdaterad',
-    draft: 'Utkast',
-    pending_approval: 'Väntar på godkännande',
-    approved: 'Godkänd',
-    select_status: 'Välj status',
-    only_admins_can_approve: 'Endast administratörer kan godkänna',
-    approve: 'Godkänn',
-    approve_time_entry: 'Godkänn tidsinmatning',
-    approve_time_entry_confirmation: 'Är du säker på att du vill godkänna denna tidsinmatning?',
-    all_projects: 'Alla projekt',
-    error_fetching_clients: 'Fel vid hämtning av kunder',
-    error_fetching_projects: 'Fel vid hämtning av projekt',
-    error_fetching_project_details: 'Fel vid hämtning av projektdetaljer',
-    database_policy_error: 'Databasfelspolicy. Försök igen eller kontakta support.',
-    duplicate_entry_error: 'En dubblett finns redan.',
-    foreign_key_constraint_error: 'Ogiltig projektval. Välj ett annat projekt.',
-    
-    // Chat Assistant translations - Swedish
-    chat_welcome_message: "Hej! Jag är din assistent. Hur kan jag hjälpa dig med tidsregistrering idag?",
-    chat_error_message: "Tyvärr, ett fel inträffade. Försök igen senare.",
-    chat_help_message: "Jag kan hjälpa dig med tidsinmatningar. Till exempel:\n- \"Kopiera gårdagens timmar till idag\"\n- \"Visa dagens inmatningar\"\n- \"Visa gårdagens inmatningar\"",
-    chat_dont_understand: "Jag förstod inte helt din förfrågan. Kan du förtydliga? Du kan till exempel be mig att kopiera gårdagens inmatningar eller visa dagens inmatningar.",
-    chat_placeholder: "Skriv ett meddelande...",
-    ai_assistant: "AI-Assistent",
-    no_entries_yesterday: "Inga inmatningar hittades för igår.",
-    entries_exist_today: "Det finns redan inmatningar för idag. Vill du fortfarande kopiera gårdagens inmatningar?",
-    copied_entries_success: "Kopierade inmatningar från igår till idag.",
-    error_copying_entries: "Fel vid kopiering av inmatningar. Försök igen senare.",
-    today_entries_summary: "Idag har inmatningar, totalt timmar:",
-    yesterday_entries_summary: "Igår hade inmatningar, totalt timmar:",
-    error_fetching_entries: "Fel vid hämtning av inmatningar. Försök igen senare.",
-
-    // User management translations - Swedish
-    users: 'Användare',
-    manage_users: 'Hantera användare',
-    users_list: 'Användarlista',
-    add_user: 'Lägg till användare',
-    add_user_description: 'Skapa ett nytt användarkonto',
-    full_name: 'Fullständigt namn',
-    role: 'Roll',
-    select_role: 'Välj roll',
-    user: 'Användare',
-    admin: 'Administratör',
-    name: 'Namn',
-    no_name: 'Inget namn',
-    view_entries: 'Visa inmatningar',
-    manage_user_time_entries: 'Hantera användarens tidsinmatningar',
-    no_entries_found: 'Inga inmatningar hittades',
-    return_for_edit: 'Återlämna för redigering',
-    error_fetching_users: 'Fel vid hämtning av användare',
-    error_adding_user: 'Fel vid tillägg av användare',
-    error_setting_role: 'Fel vid inställning av användarroll',
-    user_added_successfully: 'Användare tillagd framgångsrikt',
-    unknown_project: 'Okänt projekt',
-    rejection_comment_placeholder: 'Ange en anledning för avslag...',
-    return_time_entry: 'Återlämna tidsinmatning',
-    return_time_entry_confirmation: 'Är du säker på att du vill återlämna denna tidsinmatning för redigering?',
-  },
-};
-
-const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguage] = useState('en');
-
-  const t = (key: string) => {
-    if (translations[language] && translations[language][key]) {
-      return translations[language][key];
-    }
-    return key;
-  };
-
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      {children}
-    </LanguageContext.Provider>
-  );
-};
-
-const useLanguage = () => {
-  return useContext(LanguageContext);
-};
-
-export { LanguageContext, useLanguage, LanguageProvider };

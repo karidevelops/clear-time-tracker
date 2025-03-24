@@ -32,18 +32,38 @@ serve(async (req) => {
     console.log('First few characters of first message:', 
       messages[0]?.content ? messages[0].content.substring(0, 20) + '...' : 'No content');
     
-    // Check if this is a footer color change request
-    const lastUserMessage = messages.findLast(m => m.role === 'user')?.content || '';
-    const isFooterColorRequest = lastUserMessage.toLowerCase().includes('change') && 
-                               lastUserMessage.toLowerCase().includes('footer') && 
-                               lastUserMessage.toLowerCase().includes('color');
+    // Get the last user message in any language
+    const lastUserMessage = messages.findLast(m => m.role === 'user')?.content?.toLowerCase() || '';
     
-    // Add system message for footer color requests if not already present
+    // Detect UI customization requests in multiple languages
+    const isColorChangeRequest = 
+      (lastUserMessage.includes('change') && lastUserMessage.includes('color')) || 
+      (lastUserMessage.includes('muuta') && lastUserMessage.includes('väri')) || 
+      (lastUserMessage.includes('ändra') && lastUserMessage.includes('färg'));
+    
+    const isBannerChangeRequest = 
+      (lastUserMessage.includes('change') && lastUserMessage.includes('banner')) || 
+      (lastUserMessage.includes('muuta') && lastUserMessage.includes('banneri')) || 
+      (lastUserMessage.includes('vaihda') && lastUserMessage.includes('teksti')) || 
+      (lastUserMessage.includes('ändra') && lastUserMessage.includes('banner'));
+    
+    // Add system message for UI customization requests if not already present
     let messagesWithSystem = [...messages];
-    if (isFooterColorRequest && !messages.some(m => m.role === 'system' && m.content.includes('CHANGE_FOOTER_COLOR'))) {
+    if ((isColorChangeRequest || isBannerChangeRequest) && 
+        !messages.some(m => m.role === 'system' && m.content.includes('UI_CUSTOMIZATION'))) {
+      
       messagesWithSystem.unshift({
         role: 'system',
-        content: 'If the user wants to change the footer color, respond with "CHANGE_FOOTER_COLOR:bg-color-class" where color-class is a valid Tailwind color class (e.g., bg-blue-500, bg-red-600, bg-green-400, etc.). Make sure to include this exact format in your response.'
+        content: `UI_CUSTOMIZATION: If the user wants to change the footer color, include "changeFooterColor(bg-color-class)" in your response where color-class is a valid Tailwind color class (e.g., bg-blue-500, bg-red-600, bg-green-400).
+        
+If the user wants to change the banner text, include "changeBannerText(new banner text)" in your response.
+
+You should recognize these requests in multiple languages:
+- English: "change footer color to X", "change banner text to Y"
+- Finnish: "muuta alapalkin väri X:ksi", "vaihda bannerin teksti Y:ksi"
+- Swedish: "ändra sidfotens färg till X", "ändra bannertexten till Y"
+
+Respond in the same language as the user's request.`
       });
     }
     

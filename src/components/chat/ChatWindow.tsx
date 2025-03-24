@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
 import { useFooter } from "@/context/FooterContext";
 import { useBanner } from "@/context/BannerContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -16,8 +18,12 @@ interface Message {
 
 const ChatWindow = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { language, t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([
-    { role: "system", content: "You are a helpful assistant. If a user asks to change the footer color, respond with 'CHANGE_FOOTER_COLOR:color' where color is a valid Tailwind color class (like bg-blue-500). If a user asks to change the banner text, respond with 'CHANGE_BANNER_TEXT:text' where text is a valid string." },
+    { 
+      role: "system", 
+      content: "You are a helpful assistant. If a user wants to change the footer color, include 'changeFooterColor(color)' in your response where color is a valid Tailwind color class. If a user wants to change the banner text, include 'changeBannerText(text)' in your response."
+    },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,8 +64,8 @@ const ChatWindow = () => {
       
       setApiStatus("success");
       toast({
-        title: "API Test Successful",
-        description: "OpenAI API is working correctly",
+        title: t("api_test_successful") || "API Test Successful",
+        description: t("openai_api_working") || "OpenAI API is working correctly",
       });
     } catch (error) {
       console.error("Error testing API:", error);
@@ -67,7 +73,7 @@ const ChatWindow = () => {
       setError(errorMessage);
       setApiStatus("error");
       toast({
-        title: "API Test Failed",
+        title: t("api_test_failed") || "API Test Failed",
         description: errorMessage,
         variant: "destructive",
       });
@@ -110,11 +116,6 @@ const ChatWindow = () => {
       
       const cleanedContent = handleAIUIChanges(data.response);
       
-      if (!cleanedContent) {
-        console.error("Invalid response format:", data);
-        throw new Error("Invalid response format from server");
-      }
-      
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: cleanedContent },
@@ -124,7 +125,7 @@ const ChatWindow = () => {
       const errorMessage = error.message || "Failed to get response. Please try again.";
       setError(errorMessage);
       toast({
-        title: "Chat Error",
+        title: t("chat_error") || "Chat Error",
         description: errorMessage,
         variant: "destructive",
       });
@@ -134,16 +135,24 @@ const ChatWindow = () => {
   };
 
   const handleAIUIChanges = (message: string) => {
+    // Enhanced regex patterns to better capture the function calls
     const colorMatch = message.match(/changeFooterColor\(([^)]+)\)/);
     if (colorMatch && colorMatch[1]) {
-      setFooterColor(colorMatch[1]);
+      const color = colorMatch[1].trim();
+      if (color.startsWith('bg-')) {
+        setFooterColor(color);
+        console.log(`Footer color changed to: ${color}`);
+      }
     }
     
     const textMatch = message.match(/changeBannerText\(([^)]+)\)/);
     if (textMatch && textMatch[1]) {
-      setBannerText(textMatch[1]);
+      const text = textMatch[1].trim();
+      setBannerText(text);
+      console.log(`Banner text changed to: ${text}`);
     }
     
+    // Remove the function calls from the displayed message
     return message
       .replace(/changeFooterColor\([^)]+\)/g, '')
       .replace(/changeBannerText\([^)]+\)/g, '')
