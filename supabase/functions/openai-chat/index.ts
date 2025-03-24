@@ -44,13 +44,17 @@ serve(async (req) => {
       (lastUserMessage.includes('vaihda') && lastUserMessage.includes('väri')) || 
       (lastUserMessage.includes('ändra') && lastUserMessage.includes('färg'));
     
-    // Detect hour-related queries in multiple languages
+    // Detect hour-related queries in multiple languages - expanded detection patterns
     const isHoursQuery = 
       (lastUserMessage.includes('hour') || lastUserMessage.includes('time')) || 
       (lastUserMessage.includes('tunti') || lastUserMessage.includes('aika')) || 
       (lastUserMessage.includes('selvitä') && lastUserMessage.includes('tunnit')) ||
       (lastUserMessage.includes('paljonko') && lastUserMessage.includes('tunti')) ||
-      (lastUserMessage.includes('montako') && lastUserMessage.includes('tunti'));
+      (lastUserMessage.includes('montako') && lastUserMessage.includes('tunti')) ||
+      lastUserMessage.includes('näytä tunnit') ||
+      lastUserMessage.includes('show hours') ||
+      lastUserMessage.includes('kerro tunnit') ||
+      lastUserMessage.includes('tell me hours');
     
     console.log('Is color change request:', isColorChangeRequest);
     console.log('Is hours query:', isHoursQuery);
