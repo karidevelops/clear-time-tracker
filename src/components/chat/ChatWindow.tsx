@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +13,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useChatAPI } from "./hooks/useChatAPI";
 import { useChatUI } from "./utils/chatUIUtils";
 import { useChatState } from "./hooks/useChatState";
-import { clients, getAllProjects } from "@/data/ClientsData";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const ChatWindow = () => {
   const { language, t } = useLanguage();
@@ -21,13 +22,49 @@ const ChatWindow = () => {
   const { toast } = useToast();
   const { setFooterColor } = useFooter();
   const { setBannerText } = useBanner();
+  const [appData, setAppData] = useState({ clients: [], projects: [] });
 
-  // Get application data to provide to the AI assistant
-  const allProjects = getAllProjects();
-  const appData = {
-    clients,
-    projects: allProjects,
-  };
+  // Fetch real clients from Supabase
+  const { data: clients = [], isLoading: isLoadingClients } = useQuery({
+    queryKey: ['chat-clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name');
+      
+      if (error) {
+        console.error('Error fetching clients for chat:', error);
+        return [];
+      }
+      return data;
+    }
+  });
+
+  // Fetch real projects from Supabase
+  const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
+    queryKey: ['chat-projects'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name, client_id');
+      
+      if (error) {
+        console.error('Error fetching projects for chat:', error);
+        return [];
+      }
+      return data;
+    }
+  });
+
+  // Update appData when clients and projects are loaded
+  useEffect(() => {
+    if (!isLoadingClients && !isLoadingProjects) {
+      setAppData({
+        clients,
+        projects
+      });
+    }
+  }, [clients, projects, isLoadingClients, isLoadingProjects]);
 
   const {
     isOpen,
@@ -57,7 +94,7 @@ const ChatWindow = () => {
   } = useChatAPI({
     userId: user?.id,
     onUIChange: handleAIUIChanges,
-    appData // Pass application data to the chat API
+    appData // Pass real application data to the chat API
   });
 
   useEffect(() => {
