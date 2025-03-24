@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, userId } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
       throw new Error('Messages array is required');
@@ -53,6 +54,108 @@ serve(async (req) => {
     
     console.log('Is color change request:', isColorChangeRequest);
     console.log('Is hours query:', isHoursQuery);
+    console.log('User ID provided:', userId);
+    
+    // Initialize Supabase client
+    let timeEntriesData = null;
+    let weeklyHoursSummary = null;
+    
+    if (isHoursQuery && userId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        console.log('Fetching time entries for user:', userId);
+        
+        // Get current date and calculate start/end of current week
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); // Monday
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
+        endOfWeek.setHours(23, 59, 59, 999);
+        
+        const startDate = startOfWeek.toISOString().split('T')[0];
+        const endDate = endOfWeek.toISOString().split('T')[0];
+        
+        console.log(`Fetching entries between ${startDate} and ${endDate}`);
+        
+        // Fetch time entries for the current week
+        const { data: entries, error } = await supabase
+          .from('time_entries')
+          .select(`
+            id, 
+            date, 
+            hours, 
+            description, 
+            status,
+            project_id,
+            projects(name, client_id, clients(name))
+          `)
+          .eq('user_id', userId)
+          .gte('date', startDate)
+          .lte('date', endDate)
+          .order('date', { ascending: true });
+        
+        if (error) {
+          console.error('Error fetching time entries:', error);
+          throw error;
+        }
+        
+        console.log(`Found ${entries?.length || 0} time entries`);
+        
+        if (entries && entries.length > 0) {
+          // Format entries for better readability
+          timeEntriesData = entries.map(entry => ({
+            date: entry.date,
+            hours: Number(entry.hours),
+            description: entry.description || "Ei kuvausta",
+            status: entry.status,
+            project: entry.projects?.name || "Tuntematon projekti",
+            client: entry.projects?.clients?.name || "Tuntematon asiakas"
+          }));
+          
+          // Calculate weekly summary
+          const totalHours = entries.reduce((sum, entry) => sum + Number(entry.hours), 0);
+          
+          // Group by project
+          const projectHours = entries.reduce((acc, entry) => {
+            const projectName = entry.projects?.name || "Tuntematon projekti";
+            acc[projectName] = (acc[projectName] || 0) + Number(entry.hours);
+            return acc;
+          }, {});
+          
+          // Group by client
+          const clientHours = entries.reduce((acc, entry) => {
+            const clientName = entry.projects?.clients?.name || "Tuntematon asiakas";
+            acc[clientName] = (acc[clientName] || 0) + Number(entry.hours);
+            return acc;
+          }, {});
+          
+          // Group by day of week
+          const dayHours = entries.reduce((acc, entry) => {
+            acc[entry.date] = (acc[entry.date] || 0) + Number(entry.hours);
+            return acc;
+          }, {});
+          
+          weeklyHoursSummary = {
+            totalHours,
+            projectHours,
+            clientHours,
+            dailyHours: dayHours,
+            weekRange: `${startDate} - ${endDate}`
+          };
+          
+          console.log('Weekly summary calculated:', JSON.stringify(weeklyHoursSummary));
+        }
+      } catch (dbError) {
+        console.error('Error during database query:', dbError);
+        // Continue with the OpenAI request even if DB fetch fails
+      }
+    }
     
     // Add system message for UI customization or hours query requests if not already present
     let messagesWithSystem = [...messages];
@@ -75,25 +178,68 @@ Be VERY explicit and follow EXACTLY this format:
       });
     }
     
-    if (isHoursQuery && 
-        !messages.some(m => m.role === 'system' && m.content.includes('HOURS_QUERY'))) {
+    if (isHoursQuery) {
+      let hoursSystemContent = `HOURS_QUERY: You are an AI assistant specialized in helping users query their logged hours in Reportronic.`;
       
-      messagesWithSystem.unshift({
-        role: 'system',
-        content: `HOURS_QUERY: You are an AI assistant specialized in helping users query their logged hours in Reportronic.
+      if (timeEntriesData && weeklyHoursSummary) {
+        // If we have actual time entry data, provide it to the AI
+        hoursSystemContent += `
+I have access to the user's time entries for the current week. Here's a summary:
 
+Total hours this week: ${weeklyHoursSummary.totalHours.toFixed(2)} hours
+Week period: ${weeklyHoursSummary.weekRange}
+
+Hours by project:
+${Object.entries(weeklyHoursSummary.projectHours)
+  .map(([project, hours]) => `- ${project}: ${Number(hours).toFixed(2)} hours`)
+  .join('\n')}
+
+Hours by client:
+${Object.entries(weeklyHoursSummary.clientHours)
+  .map(([client, hours]) => `- ${client}: ${Number(hours).toFixed(2)} hours`)
+  .join('\n')}
+
+Daily breakdown:
+${Object.entries(weeklyHoursSummary.dailyHours)
+  .map(([date, hours]) => `- ${date}: ${Number(hours).toFixed(2)} hours`)
+  .join('\n')}
+
+Detailed time entries:
+${timeEntriesData.map(entry => 
+  `- ${entry.date}: ${entry.hours.toFixed(2)} hours on ${entry.project} (${entry.client}): "${entry.description}"`
+).join('\n')}`;
+      } else {
+        // If no data available, use the default response
+        hoursSystemContent += `
 When users ask about their hours:
 1. Explain that you don't have direct access to their specific time entries and data
 2. Direct them to check their hours in the weekly view, monthly view, or dashboard
-3. Suggest using the built-in reports for a complete overview
-
+3. Suggest using the built-in reports for a complete overview`;
+      }
+      
+      hoursSystemContent += `
 You should recognize these requests in multiple languages:
 - English: "show my hours", "how many hours", "check my time entries"
 - Finnish: "näytä tuntini", "montako tuntia", "selvitä kirjatut tunnit", "paljonko tunteja"
 - Swedish: "visa mina timmar", "hur många timmar"
 
-Respond in the same language as the user's request.`
-      });
+Respond in the same language as the user's request.`;
+      
+      // Replace any existing HOURS_QUERY system message or add a new one
+      const existingHoursIdx = messagesWithSystem.findIndex(m => 
+        m.role === 'system' && m.content.includes('HOURS_QUERY'));
+      
+      if (existingHoursIdx >= 0) {
+        messagesWithSystem[existingHoursIdx] = {
+          role: 'system',
+          content: hoursSystemContent
+        };
+      } else {
+        messagesWithSystem.unshift({
+          role: 'system',
+          content: hoursSystemContent
+        });
+      }
     }
     
     // Make the chat completion request
@@ -146,7 +292,9 @@ Respond in the same language as the user's request.`
     console.log('AI response preview:', aiResponse.substring(0, 100));
     
     return new Response(JSON.stringify({ 
-      response: aiResponse
+      response: aiResponse,
+      hasTimeEntryData: timeEntriesData !== null && timeEntriesData.length > 0,
+      summary: weeklyHoursSummary
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

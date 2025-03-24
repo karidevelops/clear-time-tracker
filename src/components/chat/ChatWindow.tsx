@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,15 +10,25 @@ import MessageInput from "./MessageInput";
 import { useFooter } from "@/context/FooterContext";
 import { useBanner } from "@/context/BannerContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface Message {
   role: "user" | "assistant" | "system";
   content: string;
 }
 
+interface TimeEntrySummary {
+  totalHours: number;
+  projectHours: Record<string, number>;
+  clientHours: Record<string, number>;
+  dailyHours: Record<string, number>;
+  weekRange: string;
+}
+
 const ChatWindow = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { language, t } = useLanguage();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: "system", 
@@ -27,6 +38,7 @@ const ChatWindow = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<"unknown" | "success" | "error">("unknown");
+  const [timeEntrySummary, setTimeEntrySummary] = useState<TimeEntrySummary | null>(null);
   const { toast } = useToast();
   const { setFooterColor } = useFooter();
   const { setBannerText } = useBanner();
@@ -88,12 +100,17 @@ const ChatWindow = () => {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
     setError(null);
+    setTimeEntrySummary(null);
     
     try {
       console.log("Sending request to Edge Function...");
+      console.log("Current user ID:", user?.id);
       
       const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
-        body: { messages: [...messages, userMessage] },
+        body: { 
+          messages: [...messages, userMessage],
+          userId: user?.id // Pass user ID to edge function
+        },
       });
       
       console.log("Response from Edge Function:", data);
@@ -115,6 +132,12 @@ const ChatWindow = () => {
       
       const assistantResponse = data.response;
       console.log("Raw AI response:", assistantResponse);
+      
+      // Store time entry summary if available
+      if (data.hasTimeEntryData && data.summary) {
+        console.log("Time entry summary received:", data.summary);
+        setTimeEntrySummary(data.summary);
+      }
       
       const cleanedContent = handleAIUIChanges(assistantResponse);
       
@@ -176,7 +199,8 @@ const ChatWindow = () => {
             isLoading={isLoading} 
             error={error} 
             apiStatus={apiStatus} 
-            clearError={clearError} 
+            clearError={clearError}
+            timeEntrySummary={timeEntrySummary}
           />
           
           <MessageInput 
