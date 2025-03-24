@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import ChatHeader from "./ChatHeader";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
+import { useFooter } from "@/context/FooterContext";
 
 interface Message {
   role: "user" | "assistant" | "system";
@@ -16,12 +17,13 @@ interface Message {
 const ChatWindow = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "system", content: "You are a helpful assistant." },
+    { role: "system", content: "You are a helpful assistant. If a user asks to change the footer color, respond with 'CHANGE_FOOTER_COLOR:color' where color is a valid Tailwind color class (like bg-blue-500)." },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<"unknown" | "success" | "error">("unknown");
   const { toast } = useToast();
+  const { setFooterColor } = useFooter();
 
   // Test API connection when component mounts
   useEffect(() => {
@@ -104,6 +106,19 @@ const ChatWindow = () => {
       if (!data || !data.response) {
         console.error("Invalid response format:", data);
         throw new Error("Invalid response format from server");
+      }
+      
+      // Check if response contains a color change command
+      const responseText = data.response;
+      if (responseText.includes("CHANGE_FOOTER_COLOR:")) {
+        const colorClass = responseText.split("CHANGE_FOOTER_COLOR:")[1].trim().split(" ")[0];
+        if (colorClass.startsWith("bg-")) {
+          setFooterColor(colorClass);
+          toast({
+            title: "Footer Color Changed",
+            description: `Footer color has been updated to ${colorClass.replace('bg-', '')}`,
+          });
+        }
       }
       
       setMessages((prev) => [

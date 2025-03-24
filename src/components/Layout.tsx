@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 import Header from './Header';
 import { useLanguage } from '@/context/LanguageContext';
 import ChatWindow from './chat/ChatWindow';
+import { useFooter } from '@/context/FooterContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,6 +11,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const { t } = useLanguage();
+  const { footerColor } = useFooter();
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -19,7 +21,7 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </div>
       </main>
-      <footer className="bg-reportronic-500 text-white py-6">
+      <footer className={`${footerColor} text-white py-6 transition-colors duration-300`}>
         <div className="reportronic-container">
           <div className="text-sm text-center">
             © {new Date().getFullYear()} Reportronic - {t('inspired_by')}

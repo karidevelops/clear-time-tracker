@@ -32,6 +32,21 @@ serve(async (req) => {
     console.log('First few characters of first message:', 
       messages[0]?.content ? messages[0].content.substring(0, 20) + '...' : 'No content');
     
+    // Check if this is a footer color change request
+    const lastUserMessage = messages.findLast(m => m.role === 'user')?.content || '';
+    const isFooterColorRequest = lastUserMessage.toLowerCase().includes('change') && 
+                               lastUserMessage.toLowerCase().includes('footer') && 
+                               lastUserMessage.toLowerCase().includes('color');
+    
+    // Add system message for footer color requests if not already present
+    let messagesWithSystem = [...messages];
+    if (isFooterColorRequest && !messages.some(m => m.role === 'system' && m.content.includes('CHANGE_FOOTER_COLOR'))) {
+      messagesWithSystem.unshift({
+        role: 'system',
+        content: 'If the user wants to change the footer color, respond with "CHANGE_FOOTER_COLOR:bg-color-class" where color-class is a valid Tailwind color class (e.g., bg-blue-500, bg-red-600, bg-green-400, etc.). Make sure to include this exact format in your response.'
+      });
+    }
+    
     // Make the chat completion request
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -41,7 +56,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages,
+        messages: messagesWithSystem,
         temperature: 0.7,
         max_tokens: 800,
       }),
