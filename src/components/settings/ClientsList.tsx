@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -77,7 +76,6 @@ export const ClientsList = ({ onAddProject }: ClientsListProps) => {
     }));
   };
 
-  // Fetch clients
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
@@ -116,7 +114,6 @@ export const ClientsList = ({ onAddProject }: ClientsListProps) => {
     }
   });
 
-  // Fetch projects for all clients
   const { data: allProjects = {}, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['clients-projects'],
     queryFn: async () => {
@@ -143,7 +140,6 @@ export const ClientsList = ({ onAddProject }: ClientsListProps) => {
     enabled: clients.length > 0
   });
 
-  // Create project mutation
   const createProjectMutation = useMutation({
     mutationFn: async ({ clientId, name }: { clientId: string, name: string }) => {
       console.log('Creating project for client:', clientId, 'with name:', name);
@@ -176,6 +172,7 @@ export const ClientsList = ({ onAddProject }: ClientsListProps) => {
   const createClientMutation = useMutation({
     mutationFn: async (values: { name: string }) => {
       console.log('Creating client with name:', values.name);
+      
       const { data, error } = await supabase
         .from('clients')
         .insert({ name: values.name })
@@ -185,11 +182,53 @@ export const ClientsList = ({ onAddProject }: ClientsListProps) => {
         console.error('Error creating client:', error);
         throw error;
       }
+      
       console.log('Client created successfully:', data);
+      
+      const newClientId = data[0].id;
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('client_id', newClientId);
+      
+      if (projectsError) {
+        console.error('Error checking projects for new client:', projectsError);
+      } else {
+        console.log(`Found ${projects.length} default projects for new client:`, projects);
+        
+        if (projects.length === 0) {
+          console.log('No default projects found, creating them manually');
+          
+          const defaultProjects = [
+            'Ohjelmointi', 
+            'Testaus', 
+            'Projektinhoito', 
+            'Käyttöliittymäsuunnittelu', 
+            'Arkkitehtisuunnittelu'
+          ];
+          
+          for (const projectName of defaultProjects) {
+            const { error: projectError } = await supabase
+              .from('projects')
+              .insert({
+                name: projectName,
+                client_id: newClientId
+              });
+            
+            if (projectError) {
+              console.error(`Error creating default project ${projectName}:`, projectError);
+            } else {
+              console.log(`Created default project ${projectName} for client ${newClientId}`);
+            }
+          }
+        }
+      }
+      
       return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-projects'] });
       toast.success(t('client_added'));
       setDialogOpen(false);
       form.reset();
@@ -274,7 +313,6 @@ export const ClientsList = ({ onAddProject }: ClientsListProps) => {
 
   const deleteProjectMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Check if project has time entries
       const { count, error: countError } = await supabase
         .from('time_entries')
         .select('id', { count: 'exact', head: true })
@@ -337,7 +375,6 @@ export const ClientsList = ({ onAddProject }: ClientsListProps) => {
     if (onAddProject) {
       onAddProject({ id: clientId, name: clientName });
     } else {
-      // Open create project dialog with clientId
       const projectName = prompt(t('enter_project_name'));
       if (projectName && projectName.trim()) {
         createProjectMutation.mutate({ 
@@ -483,7 +520,6 @@ export const ClientsList = ({ onAddProject }: ClientsListProps) => {
                     </TableCell>
                   </TableRow>
                   
-                  {/* Projects for this client */}
                   {expandedClients[client.id] && (
                     <>
                       {isLoadingProjects ? (

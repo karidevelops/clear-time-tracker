@@ -42,14 +42,31 @@ export async function handleChatRequest(req: Request) {
     }
   }
   
-  // Log app data info
+  // Log app data info in detail
   console.log('App data received:', {
     clientsCount: appData?.clients?.length || 0,
     projectsCount: appData?.projects?.length || 0
   });
   
   if (appData?.clients?.length > 0) {
-    console.log('First client:', appData.clients[0]);
+    console.log('All clients:', appData.clients.map(c => `${c.name} (ID: ${c.id})`));
+    
+    // Log specific client if mentioned in the message
+    const clientMentioned = appData.clients.find(
+      c => lastUserMessage.includes(c.name.toLowerCase())
+    );
+    
+    if (clientMentioned) {
+      console.log('Client mentioned in message:', clientMentioned);
+      
+      // Find projects for this client
+      const clientProjects = appData.projects?.filter(
+        p => p.client_id === clientMentioned.id
+      ) || [];
+      
+      console.log(`Projects for client ${clientMentioned.name}:`, 
+        clientProjects.length > 0 ? clientProjects : "No projects found");
+    }
   }
   
   // Prepare system messages based on the request type
