@@ -5,6 +5,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import ChatWindow from './chat/ChatWindow';
 import { useFooter } from '@/context/FooterContext';
 import { useBanner } from '@/context/BannerContext';
+import { useFooterText } from '@/context/FooterTextContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ const Layout = ({ children }: LayoutProps) => {
   const { t } = useLanguage();
   const { footerColor } = useFooter();
   const { bannerText } = useBanner();
+  const { footerText } = useFooterText();
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -26,7 +28,7 @@ const Layout = ({ children }: LayoutProps) => {
       <footer className={`${footerColor} text-white py-6 transition-colors duration-300`}>
         <div className="reportronic-container">
           <div className="text-sm text-center">
-            © {new Date().getFullYear()} Reportronic - {t('inspired_by')}
+            © {new Date().getFullYear()} Reportronic - {footerText}
           </div>
         </div>
       </footer>

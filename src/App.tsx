@@ -13,6 +13,7 @@ import { useAuth } from "./context/AuthContext";
 import Auth from "./pages/Auth";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
+import { FooterTextProvider } from "./context/FooterTextContext";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -92,51 +93,53 @@ const App = () => (
   <TooltipProvider>
     <Toaster />
     <Sonner />
-    <Routes>
-      {/* Public route */}
-      <Route path="/auth" element={<Auth />} />
-      
-      {/* Protected routes */}
-      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-      <Route 
-        path="/weekly" 
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <div className="py-6">
-                <WeeklyView />
-              </div>
-            </Layout>
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/reports" 
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <div className="py-6">
-                <Reports />
-              </div>
-            </Layout>
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/settings" 
-        element={
-          <AdminRoute>
-            <Layout>
-              <div className="py-6">
-                <Settings />
-              </div>
-            </Layout>
-          </AdminRoute>
-        } 
-      />
-      {/* Catch-all route */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <FooterTextProvider>
+      <Routes>
+        {/* Public route */}
+        <Route path="/auth" element={<Auth />} />
+        
+        {/* Protected routes */}
+        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route 
+          path="/weekly" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <div className="py-6">
+                  <WeeklyView />
+                </div>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <div className="py-6">
+                  <Reports />
+                </div>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <AdminRoute>
+              <Layout>
+                <div className="py-6">
+                  <Settings />
+                </div>
+              </Layout>
+            </AdminRoute>
+          } 
+        />
+        {/* Catch-all route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </FooterTextProvider>
   </TooltipProvider>
 );
 
