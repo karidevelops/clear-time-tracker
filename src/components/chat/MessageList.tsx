@@ -59,14 +59,7 @@ const MessageList = ({
         </Alert>
       )}
       
-      {isLoading && (
-        <div className="flex justify-start">
-          <div className="max-w-[80%] p-3 rounded-lg bg-white border border-gray-200">
-            <p className="text-sm">Thinking...</p>
-          </div>
-        </div>
-      )}
-      
+      {/* Display messages in chronological order (oldest first) */}
       {messages.slice(1).map((msg, index) => (
         <div
           key={index}
@@ -84,7 +77,15 @@ const MessageList = ({
             <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
           </div>
         </div>
-      )).reverse()}
+      ))}
+      
+      {isLoading && (
+        <div className="flex justify-start">
+          <div className="max-w-[80%] p-3 rounded-lg bg-white border border-gray-200">
+            <p className="text-sm">Thinking...</p>
+          </div>
+        </div>
+      )}
       
       <div ref={messagesEndRef} />
     </div>
