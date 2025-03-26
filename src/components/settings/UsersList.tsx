@@ -46,6 +46,8 @@ const addUserSchema = z.object({
   role: z.enum(["admin", "user"]),
 });
 
+type UserRole = "admin" | "user";
+
 export const UsersList = () => {
   const { t, language } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
@@ -70,7 +72,7 @@ export const UsersList = () => {
 
   const changeRoleForm = useForm({
     defaultValues: {
-      role: "user",
+      role: "user" as UserRole,
     },
   });
 
@@ -267,14 +269,14 @@ export const UsersList = () => {
 
   const handleOpenChangeRoleDialog = (user: User) => {
     setSelectedUser(user);
-    changeRoleForm.setValue("role", user.role);
+    changeRoleForm.setValue("role", user.role as UserRole);
     setChangeRoleDialogOpen(true);
   };
 
   const handleChangeRole = async () => {
     if (!selectedUser) return;
     
-    const newRole = changeRoleForm.getValues().role;
+    const newRole = changeRoleForm.getValues().role as UserRole;
     
     try {
       setLoading(true);
@@ -641,8 +643,8 @@ export const UsersList = () => {
             <div className="space-y-2">
               <Label htmlFor="role">{t('role')}</Label>
               <Select 
-                onValueChange={(value) => changeRoleForm.setValue("role", value)}
-                defaultValue={selectedUser?.role || "user"}
+                onValueChange={(value: UserRole) => changeRoleForm.setValue("role", value)}
+                defaultValue={selectedUser?.role as UserRole || "user"}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={t('select_role')} />
