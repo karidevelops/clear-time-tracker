@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Trash2, Check, Edit, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { UserPlus, Trash2, Check, Edit, RotateCcw, ChevronDown, ChevronUp, ShieldCheck } from "lucide-react";
 import { timeEntryStatuses, timeEntryStatusColors } from "@/utils/statusUtils";
 import { toast } from "sonner";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -56,12 +56,20 @@ export const UsersList = () => {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
   const [selectedAction, setSelectedAction] = useState<'approve' | 'reject' | null>(null);
+  const [changeRoleDialogOpen, setChangeRoleDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const form = useForm<z.infer<typeof addUserSchema>>({
     resolver: zodResolver(addUserSchema),
     defaultValues: {
       email: "",
       full_name: "",
+      role: "user",
+    },
+  });
+
+  const changeRoleForm = useForm({
+    defaultValues: {
       role: "user",
     },
   });
@@ -91,13 +99,10 @@ export const UsersList = () => {
         console.error("Error fetching user roles:", rolesError);
       }
 
-      // Get email addresses from auth.users through custom fetch
-      // We cannot directly query auth.users from the client or use RPC until the function is properly typed
       let authUsers = [];
       let authError = null;
       
       try {
-        // Using a direct fetch with the raw SQL function
         const response = await supabase.functions.invoke('get-user-emails', {
           method: 'GET'
         });
@@ -260,6 +265,45 @@ export const UsersList = () => {
     }
   };
 
+  const handleOpenChangeRoleDialog = (user: User) => {
+    setSelectedUser(user);
+    changeRoleForm.setValue("role", user.role);
+    setChangeRoleDialogOpen(true);
+  };
+
+  const handleChangeRole = async () => {
+    if (!selectedUser) return;
+    
+    const newRole = changeRoleForm.getValues().role;
+    
+    try {
+      setLoading(true);
+      
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ role: newRole })
+        .eq('user_id', selectedUser.id);
+      
+      if (error) {
+        console.error("Error updating user role:", error);
+        toast.error(t('error_updating_role'));
+        return;
+      }
+      
+      setUsers(prevUsers => prevUsers.map(user => 
+        user.id === selectedUser.id ? { ...user, role: newRole } : user
+      ));
+      
+      toast.success(t('role_updated_successfully'));
+      setChangeRoleDialogOpen(false);
+    } catch (error) {
+      console.error("Error in handleChangeRole:", error);
+      toast.error(t('error_updating_role'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const generateRandomPassword = () => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
     let password = '';
@@ -301,7 +345,6 @@ export const UsersList = () => {
         toast.success(t('entry_rejected'));
       }
 
-      // Update the entries in the state
       const entryUserId = Object.keys(userTimeEntries).find(userId => 
         userTimeEntries[userId].some(entry => entry.id === entryId)
       );
@@ -388,28 +431,39 @@ export const UsersList = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => toggleUserEntries(user.id)}
-                          className="flex items-center"
-                        >
-                          {user.showEntries ? (
-                            <>
-                              {t('hide_entries')}
-                              <ChevronUp className="ml-1 h-4 w-4" />
-                            </>
-                          ) : (
-                            <>
-                              {t('view_entries')}
-                              <ChevronDown className="ml-1 h-4 w-4" />
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => toggleUserEntries(user.id)}
+                            className="flex items-center"
+                          >
+                            {user.showEntries ? (
+                              <>
+                                {t('hide_entries')}
+                                <ChevronUp className="ml-1 h-4 w-4" />
+                              </>
+                            ) : (
+                              <>
+                                {t('view_entries')}
+                                <ChevronDown className="ml-1 h-4 w-4" />
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenChangeRoleDialog(user)}
+                            className="flex items-center"
+                          >
+                            <ShieldCheck className="mr-1 h-4 w-4" />
+                            {t('change_role')}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                     
-                    {/* Time Entries Row */}
                     {user.showEntries && (
                       <TableRow>
                         <TableCell colSpan={4} className="p-0 border-t-0">
@@ -573,6 +627,39 @@ export const UsersList = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={changeRoleDialogOpen} onOpenChange={setChangeRoleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('change_role')}</DialogTitle>
+            <DialogDescription>
+              {selectedUser && 
+                `${t('change_role_for')} ${selectedUser.full_name || selectedUser.email}`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); handleChangeRole(); }} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="role">{t('role')}</Label>
+              <Select 
+                onValueChange={(value) => changeRoleForm.setValue("role", value)}
+                defaultValue={selectedUser?.role || "user"}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('select_role')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">{t('user')}</SelectItem>
+                  <SelectItem value="admin">{t('admin')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="submit">{t('save_changes')}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {selectedEntry && (
         <ApprovalDialog
           open={approvalDialogOpen}
@@ -593,4 +680,3 @@ export const UsersList = () => {
     </div>
   );
 };
-
