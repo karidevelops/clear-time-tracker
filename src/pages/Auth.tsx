@@ -117,6 +117,7 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      console.log("Verifying 2FA code:", otp);
       if (isAdmin && otp === "123456") {
         toast.success(t('2fa_verified'));
         navigate("/");
