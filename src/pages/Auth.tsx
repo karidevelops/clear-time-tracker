@@ -294,7 +294,7 @@ const Auth = () => {
                   className="p-0 h-auto font-normal text-xs" 
                   onClick={() => setShowForgotPassword(true)}
                 >
-                  {t('forgot_password') || "Forgot password?"}
+                  {t('forgot_password')}
                 </Button>
               </CardContent>
               <CardFooter>
