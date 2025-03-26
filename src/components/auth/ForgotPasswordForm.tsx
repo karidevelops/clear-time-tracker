@@ -22,8 +22,14 @@ const ForgotPasswordForm = ({ onBackToLogin }: ForgotPasswordFormProps) => {
     setLoading(true);
     
     try {
+      // Get the correct base URL for redirection
+      const currentUrl = window.location.origin;
+      const redirectTo = `${currentUrl}/auth`;
+      
+      console.log("Password reset with redirect URL:", redirectTo);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo,
       });
 
       if (error) {

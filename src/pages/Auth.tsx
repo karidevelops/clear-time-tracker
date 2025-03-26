@@ -18,6 +18,7 @@ const Auth = () => {
   useEffect(() => {
     const setupRedirectUrl = async () => {
       try {
+        // Get the full origin URL to use for redirects
         const currentUrl = window.location.origin;
         console.log("Setting redirect URL to:", currentUrl);
       } catch (err) {
