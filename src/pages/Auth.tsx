@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +9,6 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, Loader2 } from "lucide-react";
 
 const Auth = () => {
   const { t } = useLanguage();
@@ -22,9 +20,6 @@ const Auth = () => {
   const [otp, setOTP] = useState("");
   const [sessionData, setSessionData] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>("");
-  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
     const setupRedirectUrl = async () => {
@@ -37,65 +32,34 @@ const Auth = () => {
     };
     
     setupRedirectUrl();
-
-    // Check initial session
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        console.log("User already logged in, redirecting to home");
-        navigate("/");
-      }
-    };
-
-    checkSession();
-  }, [navigate]);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setDebugInfo("");
     
     try {
-      console.log(`Attempting to login with email: ${email}`);
-      
-      // Trim whitespace from inputs
-      const trimmedEmail = email.trim();
-      const trimmedPassword = password.trim();
-      
-      setDebugInfo(`Attempting login with: ${trimmedEmail}`);
-      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: trimmedEmail,
-        password: trimmedPassword
+        email,
+        password
       });
 
       if (error) {
         console.error("Login error:", error);
-        setDebugInfo(prev => `${prev}\nError: ${JSON.stringify(error)}`);
         toast.error(error.message);
-        
-        // If the error is for the admin user, check if they need to reset their password
-        if (trimmedEmail.toLowerCase() === "kari.vatka@sebitti.fi") {
-          setDebugInfo(prev => `${prev}\nThis is the admin account. You may need to reset the password.`);
-        }
-        
         return;
       }
 
-      // Special handling for admin user with 2FA
-      if (trimmedEmail.toLowerCase() === "kari.vatka@sebitti.fi") {
+      if (email === "kari.vatka@sebitti.fi") {
         setIsAdmin(true);
         setShowOTP(true);
         setSessionData(data);
-        toast.success(t('enter_verification_code'));
-        setDebugInfo(prev => `${prev}\nAdmin login successful. 2FA required.`);
       } else {
         toast.success(t('login_successful'));
         navigate("/");
       }
     } catch (error: any) {
       console.error("Exception during login:", error);
-      setDebugInfo(prev => `${prev}\nException: ${JSON.stringify(error)}`);
       toast.error(error.message || t('login_error'));
     } finally {
       setLoading(false);
@@ -167,52 +131,6 @@ const Auth = () => {
     }
   };
 
-  const resetAdminPassword = async () => {
-    try {
-      setResetPasswordLoading(true);
-      setResetSuccess(false);
-      setDebugInfo(prev => `${prev}\nAttempting to reset admin password...`);
-      
-      toast.info("Attempting to reset admin password...");
-      
-      const response = await supabase.functions.invoke('reset-admin-password');
-      
-      console.log("Password reset response:", response);
-      setDebugInfo(prev => `${prev}\nPassword reset response: ${JSON.stringify(response)}`);
-      
-      if (response.error) {
-        toast.error(`Reset failed: ${response.error}`);
-        console.error("Password reset error:", response.error);
-        setDebugInfo(prev => `${prev}\nReset failed: ${response.error}`);
-        return;
-      }
-      
-      if (response.data && response.data.success) {
-        toast.success("Password has been reset to 'testailu'");
-        setPassword("testailu");
-        setResetSuccess(true);
-        setDebugInfo(prev => `${prev}\nPassword successfully reset to 'testailu'`);
-      } else {
-        const errorMsg = response.data?.error || "Unknown error";
-        toast.error(`Reset failed: ${errorMsg}`);
-        setDebugInfo(prev => `${prev}\nReset failed: ${errorMsg}`);
-      }
-    } catch (error: any) {
-      console.error("Exception during password reset:", error);
-      setDebugInfo(prev => `${prev}\nException: ${error.message || JSON.stringify(error)}`);
-      toast.error(`Error: ${error.message}`);
-    } finally {
-      setResetPasswordLoading(false);
-    }
-  };
-
-  const sendVerificationCode = () => {
-    // In a real implementation, this would send a code via email
-    toast.success("Verification code sent to your email!");
-    // For demo purposes, we'll display the code in the UI
-    toast.info("Demo code: 123456");
-  };
-
   if (showOTP) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -231,25 +149,15 @@ const Auth = () => {
                   onChange={setOTP}
                   render={({ slots }) => (
                     <InputOTPGroup>
-                      {slots && slots.map((slot, index) => (
+                      {slots.map((slot, index) => (
                         <InputOTPSlot key={index} {...slot} index={index} />
                       ))}
                     </InputOTPGroup>
                   )}
                 />
-                <div className="flex justify-between mt-2">
-                  <p className="text-sm text-muted-foreground">
-                    {t('demo_use_code')} 123456
-                  </p>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={sendVerificationCode}
-                  >
-                    {t('send_code')}
-                  </Button>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t('demo_use_code')} 123456
+                </p>
               </div>
             </CardContent>
             <CardFooter>
@@ -305,38 +213,6 @@ const Auth = () => {
                     required 
                   />
                 </div>
-                {email.toLowerCase() === "kari.vatka@sebitti.fi" && (
-                  <div className="pt-2">
-                    <Button 
-                      type="button" 
-                      variant={resetSuccess ? "outline" : "secondary"}
-                      size="sm" 
-                      onClick={resetAdminPassword}
-                      className="w-full"
-                      disabled={resetPasswordLoading}
-                    >
-                      {resetPasswordLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Resetting...
-                        </>
-                      ) : resetSuccess ? (
-                        "Password Reset Successful ✓"
-                      ) : (
-                        "Reset Admin Password"
-                      )}
-                    </Button>
-                  </div>
-                )}
-                {debugInfo && (
-                  <div className="text-xs mt-2 p-2 bg-muted rounded-md overflow-x-auto">
-                    <div className="flex items-center text-amber-500 mb-1 gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      <span className="font-medium">Debug Information</span>
-                    </div>
-                    <pre className="whitespace-pre-wrap break-words">{debugInfo}</pre>
-                  </div>
-                )}
               </CardContent>
               <CardFooter>
                 <Button 
@@ -344,12 +220,7 @@ const Auth = () => {
                   className="w-full bg-reportronic-500 hover:bg-reportronic-600" 
                   disabled={loading}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('logging_in')}
-                    </>
-                  ) : t('login')}
+                  {loading ? t('logging_in') : t('login')}
                 </Button>
               </CardFooter>
             </form>
@@ -392,12 +263,7 @@ const Auth = () => {
                   className="w-full bg-reportronic-500 hover:bg-reportronic-600" 
                   disabled={loading}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('registering')}
-                    </>
-                  ) : t('register')}
+                  {loading ? t('registering') : t('register')}
                 </Button>
               </CardFooter>
             </form>
