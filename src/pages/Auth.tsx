@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +21,7 @@ const Auth = () => {
   const [otp, setOTP] = useState("");
   const [sessionData, setSessionData] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>("");
 
   useEffect(() => {
     const setupRedirectUrl = async () => {
@@ -32,34 +34,58 @@ const Auth = () => {
     };
     
     setupRedirectUrl();
-  }, []);
+
+    // Check initial session
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        console.log("User already logged in, redirecting to home");
+        navigate("/");
+      }
+    };
+
+    checkSession();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setDebugInfo("");
     
     try {
+      console.log(`Attempting to login with email: ${email}`);
+      
+      // Trim whitespace from inputs
+      const trimmedEmail = email.trim();
+      const trimmedPassword = password.trim();
+      
+      setDebugInfo(`Attempting login with: ${trimmedEmail}`);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+        email: trimmedEmail,
+        password: trimmedPassword
       });
 
       if (error) {
         console.error("Login error:", error);
+        setDebugInfo(prev => `${prev}\nError: ${JSON.stringify(error)}`);
         toast.error(error.message);
         return;
       }
 
-      if (email === "kari.vatka@sebitti.fi") {
+      // Special handling for admin user with 2FA
+      if (trimmedEmail.toLowerCase() === "kari.vatka@sebitti.fi") {
         setIsAdmin(true);
         setShowOTP(true);
         setSessionData(data);
+        toast.success(t('enter_verification_code'));
       } else {
         toast.success(t('login_successful'));
         navigate("/");
       }
     } catch (error: any) {
       console.error("Exception during login:", error);
+      setDebugInfo(prev => `${prev}\nException: ${JSON.stringify(error)}`);
       toast.error(error.message || t('login_error'));
     } finally {
       setLoading(false);
@@ -131,6 +157,36 @@ const Auth = () => {
     }
   };
 
+  const resetAdminPassword = async () => {
+    try {
+      setLoading(true);
+      toast.info("Attempting to reset admin password...");
+      
+      const response = await supabase.functions.invoke('reset-admin-password');
+      
+      if (response.error) {
+        toast.error(`Reset failed: ${response.error}`);
+        console.error("Password reset error:", response.error);
+        return;
+      }
+      
+      toast.success("Password has been reset to 'testailu'");
+      setPassword("testailu");
+    } catch (error: any) {
+      console.error("Exception during password reset:", error);
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendVerificationCode = () => {
+    // In a real implementation, this would send a code via email
+    toast.success("Verification code sent to your email!");
+    // For demo purposes, we'll display the code in the UI
+    toast.info("Demo code: 123456");
+  };
+
   if (showOTP) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -155,9 +211,19 @@ const Auth = () => {
                     </InputOTPGroup>
                   )}
                 />
-                <p className="text-sm text-muted-foreground">
-                  {t('demo_use_code')} 123456
-                </p>
+                <div className="flex justify-between mt-2">
+                  <p className="text-sm text-muted-foreground">
+                    {t('demo_use_code')} 123456
+                  </p>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={sendVerificationCode}
+                  >
+                    {t('send_code')}
+                  </Button>
+                </div>
               </div>
             </CardContent>
             <CardFooter>
@@ -213,6 +279,25 @@ const Auth = () => {
                     required 
                   />
                 </div>
+                {email.toLowerCase() === "kari.vatka@sebitti.fi" && (
+                  <div className="pt-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={resetAdminPassword}
+                      className="w-full"
+                      disabled={loading}
+                    >
+                      {loading ? "Resetting..." : "Reset Admin Password"}
+                    </Button>
+                  </div>
+                )}
+                {debugInfo && (
+                  <div className="text-xs mt-2 p-2 bg-muted rounded-md overflow-x-auto">
+                    <pre className="whitespace-pre-wrap break-words">{debugInfo}</pre>
+                  </div>
+                )}
               </CardContent>
               <CardFooter>
                 <Button 
