@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const Auth = () => {
   const { t } = useLanguage();
@@ -22,6 +23,8 @@ const Auth = () => {
   const [sessionData, setSessionData] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
     const setupRedirectUrl = async () => {
@@ -70,6 +73,12 @@ const Auth = () => {
         console.error("Login error:", error);
         setDebugInfo(prev => `${prev}\nError: ${JSON.stringify(error)}`);
         toast.error(error.message);
+        
+        // If the error is for the admin user, check if they need to reset their password
+        if (trimmedEmail.toLowerCase() === "kari.vatka@sebitti.fi") {
+          setDebugInfo(prev => `${prev}\nThis is the admin account. You may need to reset the password.`);
+        }
+        
         return;
       }
 
@@ -79,6 +88,7 @@ const Auth = () => {
         setShowOTP(true);
         setSessionData(data);
         toast.success(t('enter_verification_code'));
+        setDebugInfo(prev => `${prev}\nAdmin login successful. 2FA required.`);
       } else {
         toast.success(t('login_successful'));
         navigate("/");
@@ -159,24 +169,40 @@ const Auth = () => {
 
   const resetAdminPassword = async () => {
     try {
-      setLoading(true);
+      setResetPasswordLoading(true);
+      setResetSuccess(false);
+      setDebugInfo(prev => `${prev}\nAttempting to reset admin password...`);
+      
       toast.info("Attempting to reset admin password...");
       
       const response = await supabase.functions.invoke('reset-admin-password');
       
+      console.log("Password reset response:", response);
+      setDebugInfo(prev => `${prev}\nPassword reset response: ${JSON.stringify(response)}`);
+      
       if (response.error) {
         toast.error(`Reset failed: ${response.error}`);
         console.error("Password reset error:", response.error);
+        setDebugInfo(prev => `${prev}\nReset failed: ${response.error}`);
         return;
       }
       
-      toast.success("Password has been reset to 'testailu'");
-      setPassword("testailu");
+      if (response.data && response.data.success) {
+        toast.success("Password has been reset to 'testailu'");
+        setPassword("testailu");
+        setResetSuccess(true);
+        setDebugInfo(prev => `${prev}\nPassword successfully reset to 'testailu'`);
+      } else {
+        const errorMsg = response.data?.error || "Unknown error";
+        toast.error(`Reset failed: ${errorMsg}`);
+        setDebugInfo(prev => `${prev}\nReset failed: ${errorMsg}`);
+      }
     } catch (error: any) {
       console.error("Exception during password reset:", error);
+      setDebugInfo(prev => `${prev}\nException: ${error.message || JSON.stringify(error)}`);
       toast.error(`Error: ${error.message}`);
     } finally {
-      setLoading(false);
+      setResetPasswordLoading(false);
     }
   };
 
@@ -205,7 +231,7 @@ const Auth = () => {
                   onChange={setOTP}
                   render={({ slots }) => (
                     <InputOTPGroup>
-                      {slots.map((slot, index) => (
+                      {slots && slots.map((slot, index) => (
                         <InputOTPSlot key={index} {...slot} index={index} />
                       ))}
                     </InputOTPGroup>
@@ -283,18 +309,31 @@ const Auth = () => {
                   <div className="pt-2">
                     <Button 
                       type="button" 
-                      variant="outline" 
+                      variant={resetSuccess ? "outline" : "secondary"}
                       size="sm" 
                       onClick={resetAdminPassword}
                       className="w-full"
-                      disabled={loading}
+                      disabled={resetPasswordLoading}
                     >
-                      {loading ? "Resetting..." : "Reset Admin Password"}
+                      {resetPasswordLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Resetting...
+                        </>
+                      ) : resetSuccess ? (
+                        "Password Reset Successful ✓"
+                      ) : (
+                        "Reset Admin Password"
+                      )}
                     </Button>
                   </div>
                 )}
                 {debugInfo && (
                   <div className="text-xs mt-2 p-2 bg-muted rounded-md overflow-x-auto">
+                    <div className="flex items-center text-amber-500 mb-1 gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      <span className="font-medium">Debug Information</span>
+                    </div>
                     <pre className="whitespace-pre-wrap break-words">{debugInfo}</pre>
                   </div>
                 )}
@@ -305,7 +344,12 @@ const Auth = () => {
                   className="w-full bg-reportronic-500 hover:bg-reportronic-600" 
                   disabled={loading}
                 >
-                  {loading ? t('logging_in') : t('login')}
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('logging_in')}
+                    </>
+                  ) : t('login')}
                 </Button>
               </CardFooter>
             </form>
@@ -348,7 +392,12 @@ const Auth = () => {
                   className="w-full bg-reportronic-500 hover:bg-reportronic-600" 
                   disabled={loading}
                 >
-                  {loading ? t('registering') : t('register')}
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('registering')}
+                    </>
+                  ) : t('register')}
                 </Button>
               </CardFooter>
             </form>

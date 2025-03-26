@@ -14,6 +14,7 @@ serve(async (req) => {
   }
   
   try {
+    // Get Supabase connection details from environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
@@ -21,28 +22,52 @@ serve(async (req) => {
       throw new Error("Missing environment variables for Supabase connection");
     }
 
+    console.log("Received request to reset admin password");
+    
     // Create a Supabase client with the service role key (admin privileges)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // The email address must match exactly what you want to reset
+    // The email address and new password
     const email = "kari.vatka@sebitti.fi";
     const newPassword = "testailu";
     
-    // Update the user's password
+    console.log(`Attempting to reset password for ${email}`);
+
+    // First, try to find the user by email
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+    
+    if (userError) {
+      console.error("Error listing users:", userError);
+      throw userError;
+    }
+    
+    const adminUser = userData.users.find(user => user.email === email);
+    
+    if (!adminUser) {
+      console.error("Admin user not found");
+      throw new Error(`User with email ${email} not found`);
+    }
+    
+    console.log(`Found user with ID ${adminUser.id}, updating password`);
+    
+    // Update the user's password using the user's ID
     const { data, error } = await supabase.auth.admin.updateUserById(
-      // Hard-coded user ID for this specific admin
-      "b9c3629e-657d-48c8-ade5-24050b226a0e",
+      adminUser.id,
       { password: newPassword }
     );
 
     if (error) {
+      console.error("Error updating password:", error);
       throw error;
     }
+
+    console.log("Password updated successfully");
 
     return new Response(
       JSON.stringify({ 
         message: "Password updated successfully", 
-        email: email
+        email: email,
+        success: true 
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -50,8 +75,13 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    console.error("Error in reset-admin-password function:", error);
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        success: false 
+      }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400
