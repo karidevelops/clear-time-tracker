@@ -58,7 +58,7 @@ const InputOTPSlot = React.forwardRef<
     return defaultSlot
   }
   
-  // Now we can safely destructure the slot
+  // Extract properties from slot but convert camelCase to lowercase for DOM props
   const { char, hasFakeCaret, isActive } = slot
 
   return (
@@ -69,6 +69,8 @@ const InputOTPSlot = React.forwardRef<
         isActive && "z-10 ring-2 ring-ring ring-offset-background",
         className
       )}
+      data-active={isActive || undefined}
+      data-fake-caret={hasFakeCaret || undefined}
       {...props}
     >
       {char}
