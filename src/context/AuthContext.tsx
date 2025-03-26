@@ -29,6 +29,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // First set up the auth listener, then check for initial session
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        console.log('Auth state changed:', event);
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        setIsLoading(false);
+        
+        if (event === 'SIGNED_IN') {
+          toast.success('Signed in successfully');
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          toast.success('Signed out successfully');
+        }
+
+        if (event === 'USER_UPDATED') {
+          toast.success('User profile updated');
+        }
+
+        if (event === 'PASSWORD_RECOVERY') {
+          toast.info('Password recovery initiated');
+        }
+      }
+    );
+
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -49,24 +75,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     getInitialSession();
-
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('Auth state changed:', event);
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        setIsLoading(false);
-        
-        if (event === 'SIGNED_IN') {
-          toast.success('Signed in successfully');
-        }
-        
-        if (event === 'SIGNED_OUT') {
-          toast.success('Signed out successfully');
-        }
-      }
-    );
 
     // Cleanup
     return () => {

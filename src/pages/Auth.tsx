@@ -16,12 +16,28 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hashParams, setHashParams] = useState<URLSearchParams | null>(null);
 
   useEffect(() => {
     const setupRedirectUrl = async () => {
       try {
+        // Handle redirect with error hash
+        if (window.location.hash && window.location.hash.includes('error')) {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          setHashParams(hashParams);
+          
+          const error = hashParams.get('error');
+          const errorDescription = hashParams.get('error_description');
+          
+          if (error && errorDescription) {
+            console.error("Auth redirect error:", error, errorDescription);
+            toast.error(errorDescription);
+          }
+        }
+        
+        // Log the current URL for debugging
         const currentUrl = window.location.origin;
-        console.log("Setting redirect URL to:", currentUrl);
+        console.log("Current origin URL:", currentUrl);
       } catch (err) {
         console.error('Exception during setupRedirectUrl:', err);
       }
@@ -62,7 +78,7 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const redirectUrl = window.location.origin;
+      const redirectUrl = window.location.origin + '/auth';
       console.log("Registration with redirect URL:", redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
@@ -72,7 +88,7 @@ const Auth = () => {
           data: {
             full_name: email.split('@')[0],
           },
-          emailRedirectTo: `${redirectUrl}/auth`
+          emailRedirectTo: redirectUrl
         }
       });
 
