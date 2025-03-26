@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 const Auth = () => {
   const { t } = useLanguage();
@@ -17,6 +19,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [hashParams, setHashParams] = useState<URLSearchParams | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const setupRedirectUrl = async () => {
@@ -35,6 +38,16 @@ const Auth = () => {
           }
         }
         
+        // Handle successful signup/confirmation redirect
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+          setMessage(t('email_confirmed_success'));
+          toast.success(t('email_confirmed_success'));
+          // Wait a moment before redirecting to home
+          setTimeout(() => {
+            navigate("/");
+          }, 2000);
+        }
+        
         // Log the current URL for debugging
         const currentUrl = window.location.origin;
         console.log("Current origin URL:", currentUrl);
@@ -44,7 +57,7 @@ const Auth = () => {
     };
     
     setupRedirectUrl();
-  }, []);
+  }, [navigate, t]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +91,7 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      // Get the current URL for redirect
       const redirectUrl = window.location.origin + '/auth';
       console.log("Registration with redirect URL:", redirectUrl);
       
@@ -103,6 +117,7 @@ const Auth = () => {
         toast.success(t('login_successful'));
         navigate("/");
       } else {
+        setMessage(t('registration_successful_check_email'));
         toast.success(t('registration_successful'));
         toast.info(t('check_email_for_confirmation'));
         
@@ -122,6 +137,13 @@ const Auth = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-sm">
+        {message && (
+          <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
+        
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger id="login-tab" value="login">{t('login')}</TabsTrigger>
