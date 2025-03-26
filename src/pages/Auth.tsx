@@ -20,6 +20,8 @@ const Auth = () => {
   const [otp, setOTP] = useState("");
   const [sessionData, setSessionData] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   useEffect(() => {
     const setupRedirectUrl = async () => {
@@ -132,6 +134,32 @@ const Auth = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) {
+        console.error("Password reset error:", error);
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success(t('password_reset_email_sent'));
+      setShowForgotPassword(false);
+      setResetEmail("");
+    } catch (error: any) {
+      console.error("Exception during password reset:", error);
+      toast.error(error.message || t('password_reset_error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (showOTP) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -168,6 +196,52 @@ const Auth = () => {
                 disabled={loading || otp.length < 6}
               >
                 {loading ? t('verifying') : t('verify')}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    );
+  }
+
+  if (showForgotPassword) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background p-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>{t('forgot_password') || "Forgot Password"}</CardTitle>
+            <CardDescription>
+              {t('enter_email_for_password_reset') || "Enter your email to receive a password reset link"}
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleForgotPassword}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">{t('email')}</Label>
+                <Input 
+                  id="reset-email" 
+                  type="email" 
+                  value={resetEmail} 
+                  onChange={(e) => setResetEmail(e.target.value)} 
+                  required 
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-2">
+              <Button 
+                type="submit" 
+                className="w-full bg-reportronic-500 hover:bg-reportronic-600" 
+                disabled={loading}
+              >
+                {loading ? t('sending') || "Sending..." : t('send_reset_link') || "Send Reset Link"}
+              </Button>
+              <Button 
+                type="button" 
+                variant="ghost"
+                className="w-full" 
+                onClick={() => setShowForgotPassword(false)}
+              >
+                {t('back_to_login') || "Back to Login"}
               </Button>
             </CardFooter>
           </form>
@@ -214,6 +288,14 @@ const Auth = () => {
                     required 
                   />
                 </div>
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  className="p-0 h-auto font-normal text-xs" 
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  {t('forgot_password') || "Forgot password?"}
+                </Button>
               </CardContent>
               <CardFooter>
                 <Button 
