@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +9,7 @@ import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Info, Mail } from "lucide-react";
 import { InputValidator } from "@/utils/security/inputValidation";
 import { SecurityLogger } from "@/utils/security/errorHandler";
 
@@ -20,8 +19,10 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [hashParams, setHashParams] = useState<URLSearchParams | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [showResendOption, setShowResendOption] = useState(false);
 
   useEffect(() => {
     const setupRedirectUrl = async () => {
@@ -85,6 +86,47 @@ const Auth = () => {
     }
 
     return { isValid: true };
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email || !email.trim()) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setResendLoading(true);
+    
+    try {
+      const redirectUrl = window.location.origin + '/auth';
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        console.error("Resend confirmation error:", error);
+        toast.error("Failed to resend confirmation email. Please try again.");
+        return;
+      }
+
+      toast.success("Confirmation email sent! Please check your inbox and spam folder.");
+      
+    } catch (error: any) {
+      console.error("Exception during resend confirmation:", error);
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -188,7 +230,9 @@ const Auth = () => {
         toast.success(t('registration_successful'));
         toast.info(t('check_email_for_confirmation'));
         
-        setEmail("");
+        // Show resend option after successful registration
+        setShowResendOption(true);
+        
         setPassword("");
         document.getElementById("login-tab")?.click();
       }
@@ -212,6 +256,24 @@ const Auth = () => {
           <Alert className="mb-4">
             <Info className="h-4 w-4" />
             <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
+        
+        {showResendOption && (
+          <Alert className="mb-4">
+            <Mail className="h-4 w-4" />
+            <AlertDescription className="space-y-3">
+              <p>Haven't received the confirmation email?</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResendConfirmation}
+                disabled={resendLoading}
+                className="w-full"
+              >
+                {resendLoading ? "Sending..." : "Resend confirmation email"}
+              </Button>
+            </AlertDescription>
           </Alert>
         )}
         
@@ -255,7 +317,7 @@ const Auth = () => {
                   />
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="space-y-2">
                 <Button 
                   type="submit" 
                   className="w-full bg-reportronic-500 hover:bg-reportronic-600" 
@@ -263,6 +325,17 @@ const Auth = () => {
                 >
                   {loading ? t('logging_in') : t('login')}
                 </Button>
+                {!showResendOption && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowResendOption(true)}
+                    className="w-full text-sm text-muted-foreground"
+                  >
+                    Need to resend confirmation email?
+                  </Button>
+                )}
               </CardFooter>
             </form>
           </TabsContent>
