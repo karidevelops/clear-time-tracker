@@ -42,12 +42,17 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
     setApiStatus("unknown");
     
     try {
-      console.log("Testing OpenAI API connection...");
+      console.log("Testing OpenAI API connection with user ID:", userId);
+      
+      if (!userId) {
+        throw new Error('User ID is required for chat functionality');
+      }
       
       const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
         body: { 
           messages: [{ role: "user", content: "Hello" }], 
-          userId // Ensure we're passing the userId to the test request
+          userId,
+          appData
         },
       });
       
@@ -89,6 +94,10 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
   }> => {
     if (!newMessage.trim()) return { updatedMessages: messages };
     
+    if (!userId) {
+      throw new Error('User must be logged in to use chat');
+    }
+    
     const userMessage: Message = { role: "user", content: newMessage };
     const updatedMessages = [...messages, userMessage];
     setIsLoading(true);
@@ -96,15 +105,15 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
     setTimeEntrySummary(null);
     
     try {
-      console.log("Sending request to Edge Function...");
-      console.log("Current user ID:", userId);
+      console.log("Sending request to Edge Function with user ID:", userId);
+      console.log("Message:", newMessage);
       console.log("Passing appData with clients:", appData?.clients?.length || 0, "projects:", appData?.projects?.length || 0);
       
       const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
         body: { 
           messages: updatedMessages,
-          userId, // Pass user ID to edge function
-          appData  // Pass application data to edge function
+          userId,
+          appData
         },
       });
       

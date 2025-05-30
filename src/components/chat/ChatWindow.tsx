@@ -102,14 +102,29 @@ const ChatWindow = () => {
   });
 
   useEffect(() => {
-    if (isOpen && apiStatus === "unknown") {
+    if (isOpen && apiStatus === "unknown" && user?.id) {
+      console.log('Testing OpenAI API with user ID:', user.id);
       testOpenAIAPI();
     }
-  }, [isOpen, apiStatus]);
+  }, [isOpen, apiStatus, user?.id]);
 
   const onSendMessage = async (message: string) => {
+    if (!user?.id) {
+      toast({
+        title: t('error'),
+        description: 'Sinun täytyy kirjautua sisään käyttääksesi chattia',
+        variant: "destructive",
+      });
+      return;
+    }
+    console.log('Sending message with user ID:', user.id);
     await handleSendMessage(sendMessage, message);
   };
+
+  // Don't show chat if user is not logged in
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
