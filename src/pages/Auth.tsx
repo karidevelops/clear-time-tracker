@@ -23,6 +23,7 @@ const Auth = () => {
   const [hashParams, setHashParams] = useState<URLSearchParams | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [showResendOption, setShowResendOption] = useState(false);
+  const [lastResendTime, setLastResendTime] = useState<number>(0);
 
   useEffect(() => {
     const setupRedirectUrl = async () => {
@@ -100,10 +101,23 @@ const Auth = () => {
       return;
     }
 
+    // Check if enough time has passed since last resend (45 seconds)
+    const now = Date.now();
+    const timeSinceLastResend = now - lastResendTime;
+    const minWaitTime = 45000; // 45 seconds in milliseconds
+
+    if (timeSinceLastResend < minWaitTime && lastResendTime > 0) {
+      const remainingSeconds = Math.ceil((minWaitTime - timeSinceLastResend) / 1000);
+      toast.error(`Please wait ${remainingSeconds} more seconds before requesting another email`);
+      return;
+    }
+
     setResendLoading(true);
     
     try {
       const redirectUrl = window.location.origin + '/auth';
+      console.log("Attempting to resend confirmation email to:", email);
+      console.log("Redirect URL:", redirectUrl);
       
       const { error } = await supabase.auth.resend({
         type: 'signup',
@@ -115,15 +129,26 @@ const Auth = () => {
 
       if (error) {
         console.error("Resend confirmation error:", error);
-        toast.error("Failed to resend confirmation email. Please try again.");
+        
+        // Handle specific error cases
+        if (error.message.includes('For security purposes')) {
+          toast.error("Please wait 45 seconds before requesting another confirmation email");
+        } else if (error.message.includes('rate limit')) {
+          toast.error("Too many requests. Please wait a moment and try again");
+        } else if (error.message.includes('User not found')) {
+          toast.error("No account found with this email address. Please register first");
+        } else {
+          toast.error(`Failed to send confirmation email: ${error.message}`);
+        }
         return;
       }
 
+      setLastResendTime(now);
       toast.success("Confirmation email sent! Please check your inbox and spam folder.");
       
     } catch (error: any) {
       console.error("Exception during resend confirmation:", error);
-      toast.error("An error occurred. Please try again.");
+      toast.error("An error occurred. Please try again later.");
     } finally {
       setResendLoading(false);
     }
@@ -211,8 +236,14 @@ const Auth = () => {
           details: `Registration failed for email: ${email} - ${error.message}`
         });
         
-        // Generic error message for security
-        toast.error('Registration failed. Please try again.');
+        // Handle specific registration errors
+        if (error.message.includes('User already registered')) {
+          toast.error('An account with this email already exists. Please try logging in instead.');
+        } else if (error.message.includes('Invalid email')) {
+          toast.error('Please enter a valid email address.');
+        } else {
+          toast.error('Registration failed. Please try again.');
+        }
         setLoading(false);
         return;
       }
@@ -232,6 +263,7 @@ const Auth = () => {
         
         // Show resend option after successful registration
         setShowResendOption(true);
+        setLastResendTime(Date.now()); // Set initial time to prevent immediate resend
         
         setPassword("");
         document.getElementById("login-tab")?.click();
@@ -273,6 +305,9 @@ const Auth = () => {
               >
                 {resendLoading ? "Sending..." : "Resend confirmation email"}
               </Button>
+              <p className="text-xs text-muted-foreground">
+                Note: You can only request a new email every 45 seconds
+              </p>
             </AlertDescription>
           </Alert>
         )}
