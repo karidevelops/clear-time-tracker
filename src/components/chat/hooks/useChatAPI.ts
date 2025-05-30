@@ -3,6 +3,9 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/LanguageContext";
+import { InputValidator } from "@/utils/security/inputValidation";
+import { chatRateLimiter } from "@/utils/security/rateLimiter";
+import { SecureErrorHandler, SecurityLogger } from "@/utils/security/errorHandler";
 
 export interface Message {
   role: "user" | "assistant" | "system";
@@ -47,10 +50,24 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
       if (!userId) {
         throw new Error('User ID is required for chat functionality');
       }
+
+      // Check rate limit
+      const rateLimitCheck = chatRateLimiter.checkLimit(userId);
+      if (!rateLimitCheck.allowed) {
+        const waitTime = Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 1000);
+        throw new Error(`Rate limit exceeded. Please wait ${waitTime} seconds.`);
+      }
       
+      const testMessage = { role: "user" as const, content: "Hello" };
+      const validation = InputValidator.validateChatMessage(testMessage.content);
+      
+      if (!validation.isValid) {
+        throw new Error(validation.error || 'Invalid message format');
+      }
+
       const { data, error: supabaseError } = await supabase.functions.invoke("openai-chat", {
         body: { 
-          messages: [{ role: "user", content: "Hello" }], 
+          messages: [{ ...testMessage, content: validation.sanitized }], 
           userId,
           appData
         },
@@ -60,7 +77,12 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
       
       if (supabaseError) {
         console.error("Supabase function error:", supabaseError);
-        throw new Error(supabaseError.message || "Error calling the chat function");
+        SecurityLogger.logEvent({
+          type: 'auth_failure',
+          userId,
+          details: `Supabase function error: ${supabaseError.message}`
+        });
+        throw new Error(SecureErrorHandler.handleError(supabaseError, 'chat'));
       }
       
       if (data?.error) {
@@ -73,9 +95,9 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
         title: t("api_test_successful"),
         description: t("openai_api_working"),
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error testing API:", error);
-      const errorMessage = error.message || "Failed to test API. Please check your API key.";
+      const errorMessage = SecureErrorHandler.handleError(error, 'chat');
       setError(errorMessage);
       setApiStatus("error");
       toast({
@@ -97,8 +119,31 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
     if (!userId) {
       throw new Error('User must be logged in to use chat');
     }
+
+    // Validate input
+    const validation = InputValidator.validateChatMessage(newMessage);
+    if (!validation.isValid) {
+      SecurityLogger.logEvent({
+        type: 'invalid_input',
+        userId,
+        details: validation.error || 'Invalid chat message'
+      });
+      throw new Error(validation.error || 'Invalid message format');
+    }
+
+    // Check rate limit
+    const rateLimitCheck = chatRateLimiter.checkLimit(userId);
+    if (!rateLimitCheck.allowed) {
+      SecurityLogger.logEvent({
+        type: 'rate_limit',
+        userId,
+        details: 'Chat rate limit exceeded'
+      });
+      const waitTime = Math.ceil((rateLimitCheck.resetTime! - Date.now()) / 1000);
+      throw new Error(`Rate limit exceeded. Please wait ${waitTime} seconds.`);
+    }
     
-    const userMessage: Message = { role: "user", content: newMessage };
+    const userMessage: Message = { role: "user", content: validation.sanitized || newMessage };
     const updatedMessages = [...messages, userMessage];
     setIsLoading(true);
     setError(null);
@@ -121,11 +166,23 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
       
       if (supabaseError) {
         console.error("Supabase function error:", supabaseError);
-        throw new Error(supabaseError.message || "Error calling the chat function");
+        SecurityLogger.logEvent({
+          type: 'auth_failure',
+          userId,
+          details: `Supabase function error: ${supabaseError.message}`
+        });
+        throw new Error(SecureErrorHandler.handleError(supabaseError, 'chat'));
       }
       
       if (data?.error) {
         console.error("API response error:", data.error);
+        if (data.error.includes('Rate limit')) {
+          SecurityLogger.logEvent({
+            type: 'rate_limit',
+            userId,
+            details: 'Server-side rate limit exceeded'
+          });
+        }
         throw new Error(data.error);
       }
       
@@ -160,9 +217,9 @@ export const useChatAPI = ({ userId, onUIChange, appData }: UseChatAPIProps) => 
         updatedMessages: finalMessages,
         timeEntrySummary: data.hasTimeEntryData ? data.summary as TimeEntrySummary : null
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
-      const errorMessage = error.message || "Failed to get response. Please try again.";
+      const errorMessage = SecureErrorHandler.handleError(error, 'chat');
       setError(errorMessage);
       toast({
         title: t("chat_error"),

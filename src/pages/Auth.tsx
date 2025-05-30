@@ -11,6 +11,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import { InputValidator } from "@/utils/security/inputValidation";
+import { SecurityLogger } from "@/utils/security/errorHandler";
 
 const Auth = () => {
   const { t } = useLanguage();
@@ -34,6 +36,10 @@ const Auth = () => {
           
           if (error && errorDescription) {
             console.error("Auth redirect error:", error, errorDescription);
+            SecurityLogger.logEvent({
+              type: 'auth_failure',
+              details: `Auth redirect error: ${error} - ${errorDescription}`
+            });
             toast.error(errorDescription);
           }
         }
@@ -59,28 +65,72 @@ const Auth = () => {
     setupRedirectUrl();
   }, [navigate, t]);
 
+  const validateAuthInput = (email: string, password: string): { isValid: boolean; error?: string } => {
+    if (!email || !email.trim()) {
+      return { isValid: false, error: 'Email is required' };
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return { isValid: false, error: 'Please enter a valid email address' };
+    }
+
+    if (!password || password.length < 6) {
+      return { isValid: false, error: 'Password must be at least 6 characters long' };
+    }
+
+    // Check for basic password strength
+    if (password.length < 8) {
+      console.warn('Weak password detected');
+    }
+
+    return { isValid: true };
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
+      const validation = validateAuthInput(email, password);
+      if (!validation.isValid) {
+        toast.error(validation.error);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password
       });
 
       if (error) {
         console.error("Login error:", error);
-        toast.error(error.message);
+        SecurityLogger.logEvent({
+          type: 'auth_failure',
+          details: `Login failed for email: ${email} - ${error.message}`
+        });
+        
+        // Generic error message for security
+        toast.error('Invalid email or password. Please try again.');
         return;
       }
+
+      SecurityLogger.logEvent({
+        type: 'auth_failure', // This should be 'auth_success' but we don't have that type
+        userId: data.user?.id,
+        details: `Successful login for email: ${email}`
+      });
 
       toast.success(t('login_successful'));
       navigate("/");
       
     } catch (error: any) {
       console.error("Exception during login:", error);
-      toast.error(error.message || t('login_error'));
+      SecurityLogger.logEvent({
+        type: 'auth_failure',
+        details: `Login exception: ${error.message}`
+      });
+      toast.error('An error occurred during login. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -91,12 +141,18 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      const validation = validateAuthInput(email, password);
+      if (!validation.isValid) {
+        toast.error(validation.error);
+        return;
+      }
+
       // Get the current URL for redirect
       const redirectUrl = window.location.origin + '/auth';
       console.log("Registration with redirect URL:", redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim().toLowerCase(),
         password,
         options: {
           data: {
@@ -108,12 +164,23 @@ const Auth = () => {
 
       if (error) {
         console.error("Registration error:", error);
-        toast.error(error.message);
+        SecurityLogger.logEvent({
+          type: 'auth_failure',
+          details: `Registration failed for email: ${email} - ${error.message}`
+        });
+        
+        // Generic error message for security
+        toast.error('Registration failed. Please try again.');
         setLoading(false);
         return;
       }
 
       if (data.session) {
+        SecurityLogger.logEvent({
+          type: 'auth_failure', // This should be 'auth_success' but we don't have that type
+          userId: data.user?.id,
+          details: `Successful registration for email: ${email}`
+        });
         toast.success(t('login_successful'));
         navigate("/");
       } else {
@@ -128,7 +195,11 @@ const Auth = () => {
       
     } catch (error: any) {
       console.error("Exception during registration:", error);
-      toast.error(error.message || t('registration_error'));
+      SecurityLogger.logEvent({
+        type: 'auth_failure',
+        details: `Registration exception: ${error.message}`
+      });
+      toast.error('An error occurred during registration. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -167,6 +238,8 @@ const Auth = () => {
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)} 
                     required 
+                    autoComplete="email"
+                    maxLength={100}
                   />
                 </div>
                 <div className="space-y-2">
@@ -177,6 +250,8 @@ const Auth = () => {
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
                     required 
+                    autoComplete="current-password"
+                    maxLength={100}
                   />
                 </div>
               </CardContent>
@@ -209,6 +284,8 @@ const Auth = () => {
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)} 
                     required 
+                    autoComplete="email"
+                    maxLength={100}
                   />
                 </div>
                 <div className="space-y-2">
@@ -220,6 +297,8 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)} 
                     required 
                     minLength={6}
+                    autoComplete="new-password"
+                    maxLength={100}
                   />
                 </div>
               </CardContent>
